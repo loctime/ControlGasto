@@ -22,7 +22,7 @@ import {
 import { PaymentReceiptDialog } from "@/components/payment-receipt-dialog"
 import { ReceiptViewer } from "@/components/receipt-viewer"
 import { controlFileService } from "@/lib/controlfile"
-import { Timestamp } from "firebase/firestore"
+import { Timestamp, FieldValue } from "firebase/firestore"
 
 interface Expense {
   id: string
@@ -31,9 +31,9 @@ interface Expense {
   category: 'hogar' | 'transporte' | 'alimentacion' | 'servicios' | 'entretenimiento' | 'salud' | 'otros'
   paid: boolean
   userId: string
-  createdAt: Timestamp
-  paidAt?: Timestamp
-  unpaidAt?: Timestamp
+  createdAt: Timestamp | FieldValue
+  paidAt?: Timestamp | FieldValue | null
+  unpaidAt?: Timestamp | FieldValue | null
   receiptImageId?: string
 }
 

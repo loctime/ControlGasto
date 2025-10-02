@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { collection, query, where, getDocs, orderBy, limit, updateDoc, doc, writeBatch, Timestamp } from "firebase/firestore"
+import { collection, query, where, getDocs, orderBy, limit, updateDoc, doc, writeBatch, Timestamp, FieldValue } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 // ✅ LAZY LOADING: Cargar gráficos solo cuando se necesiten
@@ -43,9 +43,9 @@ interface Expense {
   amount: number
   category: 'hogar' | 'transporte' | 'alimentacion' | 'servicios' | 'entretenimiento' | 'salud' | 'otros'
   paid: boolean
-  createdAt: Timestamp
-  paidAt?: Timestamp
-  unpaidAt?: Timestamp
+  createdAt: Timestamp | FieldValue
+  paidAt?: Timestamp | FieldValue | null
+  unpaidAt?: Timestamp | FieldValue | null
 }
 
 export function HistoryContent() {

@@ -20,6 +20,7 @@ import {
   onSnapshot,
   serverTimestamp,
   Timestamp,
+  FieldValue,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
@@ -30,9 +31,9 @@ interface Expense {
   category: 'hogar' | 'transporte' | 'alimentacion' | 'servicios' | 'entretenimiento' | 'salud' | 'otros'
   paid: boolean
   userId: string
-  createdAt: Timestamp
-  paidAt?: Timestamp
-  unpaidAt?: Timestamp
+  createdAt: Timestamp | FieldValue
+  paidAt?: Timestamp | FieldValue | null
+  unpaidAt?: Timestamp | FieldValue | null
   receiptImageId?: string
 }
 
