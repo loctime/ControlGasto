@@ -8,6 +8,7 @@
     "lint": "next lint",
     "start": "next start",
     "postbuild": "next-sitemap",
+    "build:vercel": "next build",
     "analyze": "cross-env ANALYZE=true next build",
     "type-check": "tsc --noEmit",
     "setup-firebase": "node scripts/setup-firebase.js",

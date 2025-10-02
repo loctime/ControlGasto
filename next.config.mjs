@@ -31,7 +31,7 @@ const nextConfig = {
         },
       },
     },
-    optimizeCss: true,
+    // optimizeCss: true, // ❌ DESHABILITADO - Causa errores de prerenderizado
     scrollRestoration: true,
   },
   // Configuración para PWA
