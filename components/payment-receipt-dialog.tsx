@@ -22,6 +22,7 @@ import {
   ExternalLink 
 } from "lucide-react"
 import { controlFileService } from "@/lib/controlfile"
+import { useControlFileSync } from "@/hooks/use-controlfile-sync"
 import { useToast } from "@/hooks/use-toast"
 
 interface PaymentReceiptDialogProps {
@@ -40,9 +41,14 @@ export function PaymentReceiptDialog({
   onConfirm,
   expenseName,
   expenseAmount,
-  isConnectedToControlFile,
+  isConnectedToControlFile: propIsConnected, // Renombrar para evitar conflicto
   onConnectionChange
 }: PaymentReceiptDialogProps) {
+  // Usar el hook global para obtener el estado real de ControlFile
+  const { isControlFileConnected, connectManually } = useControlFileSync()
+  
+  // Usar el estado global si está disponible, sino usar el prop
+  const isConnectedToControlFile = isControlFileConnected || propIsConnected
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -123,28 +129,8 @@ export function PaymentReceiptDialog({
   }
 
   const handleConnectControlFile = async () => {
-    try {
-      const result = await controlFileService.connect()
-      if (result.success) {
-        onConnectionChange?.(true)
-        toast({
-          title: "Conectado exitosamente",
-          description: "Tu cuenta se ha conectado con ControlFile",
-        })
-      } else {
-        toast({
-          title: "Error de conexión",
-          description: result.error || "No se pudo conectar con ControlFile",
-          variant: "destructive"
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error de conexión",
-        description: "Ocurrió un error inesperado",
-        variant: "destructive"
-      })
-    }
+    // Usar el método del hook global
+    await connectManually()
   }
 
   return (
