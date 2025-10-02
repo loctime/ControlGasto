@@ -11,8 +11,9 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog"
-import { Receipt, Eye, Download, ExternalLink } from "lucide-react"
+import { Receipt, Eye, Download, ExternalLink, Loader2 } from "lucide-react"
 import { controlFileService } from "@/lib/controlfile"
+import { useToast } from "@/hooks/use-toast"
 
 interface ReceiptViewerProps {
   receiptImageId: string
@@ -26,6 +27,8 @@ export function ReceiptViewer({
   expenseAmount 
 }: ReceiptViewerProps) {
   const [isViewerOpen, setIsViewerOpen] = useState(false)
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false)
+  const { toast } = useToast()
 
   const handleViewReceipt = () => {
     setIsViewerOpen(true)
@@ -42,18 +45,55 @@ export function ReceiptViewer({
   }
 
   const handleViewInControlFile = async () => {
+    setIsLoadingUrl(true)
     try {
-      // Intentar abrir directamente el archivo en ControlFile
+      console.log(`🔍 Obteniendo URL directa de BlackBlaze para archivo: ${receiptImageId}`)
+      
+      // Intentar obtener URL directa de BlackBlaze B2
       const result = await controlFileService.getFileUrl(receiptImageId)
+      
       if (result.success && result.url) {
+        console.log(`✅ URL directa obtenida: ${result.url}`)
+        
+        // Verificar si es una URL de BlackBlaze
+        const isBlackBlaze = result.url.includes('backblazeb2.com') || result.url.includes('b2.')
+        
+        if (isBlackBlaze) {
+          console.log(`🚀 Abriendo URL directa de BlackBlaze B2`)
+          toast({
+            title: "Abriendo comprobante",
+            description: "Cargando imagen directamente desde BlackBlaze B2...",
+          })
+        } else {
+          console.log(`📁 Abriendo URL de ControlFile`)
+          toast({
+            title: "Abriendo comprobante",
+            description: "Redirigiendo a ControlFile...",
+          })
+        }
+        
         window.open(result.url, '_blank', 'noopener,noreferrer')
       } else {
+        console.log(`❌ No se pudo obtener URL directa: ${result.error}`)
+        
         // Si no se puede obtener la URL directa, abrir ControlFile general
+        toast({
+          title: "Abriendo ControlFile",
+          description: "No se pudo obtener URL directa, abriendo ControlFile...",
+          variant: "default"
+        })
         handleDownloadReceipt()
       }
     } catch (error) {
       console.error('Error obteniendo URL del archivo:', error)
+      toast({
+        title: "Error al abrir comprobante",
+        description: "No se pudo acceder al archivo. Intentando abrir ControlFile...",
+        variant: "destructive"
+      })
       handleDownloadReceipt()
+    } finally {
+      setIsLoadingUrl(false)
     }
   }
 
@@ -100,7 +140,7 @@ export function ReceiptViewer({
               </CardContent>
             </Card>
 
-            {/* Mensaje informativo */}
+            {/* Mensaje informativo mejorado */}
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -109,20 +149,30 @@ export function ReceiptViewer({
                   </div>
                   <div>
                     <h4 className="font-medium text-blue-800 mb-1">
-                      Comprobante guardado en ControlFile
+                      Comprobante guardado en ControlFile + BlackBlaze B2
                     </h4>
                     <p className="text-sm text-blue-700 mb-3">
-                      Tu comprobante de pago se ha guardado de forma segura en tu cuenta de ControlFile. 
-                      Puedes acceder a él en cualquier momento desde tu panel de ControlFile.
+                      Tu comprobante se ha guardado de forma segura en BlackBlaze B2 a través de ControlFile. 
+                      Puedes acceder directamente al archivo o a través de tu panel de ControlFile.
                     </p>
                     <div className="flex gap-2">
                       <Button
                         onClick={handleViewInControlFile}
                         size="sm"
                         className="bg-green-600 hover:bg-green-700"
+                        disabled={isLoadingUrl}
                       >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Ver Comprobante
+                        {isLoadingUrl ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Obteniendo URL...
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver Comprobante Directo
+                          </>
+                        )}
                       </Button>
                       <Button
                         onClick={handleDownloadReceipt}
@@ -138,6 +188,19 @@ export function ReceiptViewer({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Información técnica (solo en desarrollo) */}
+            {process.env.NODE_ENV === 'development' && (
+              <Card className="bg-gray-50 border-gray-200">
+                <CardContent className="p-4">
+                  <div className="text-xs text-gray-600">
+                    <p><strong>File ID:</strong> {receiptImageId}</p>
+                    <p><strong>Almacenamiento:</strong> BlackBlaze B2 via ControlFile</p>
+                    <p><strong>Acceso:</strong> URL directa o interfaz ControlFile</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </DialogContent>
       </Dialog>

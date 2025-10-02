@@ -223,7 +223,22 @@ export class ControlFileService {
     return `https://files.controldoc.app/`
   }
 
-  // Obtener URL directa de un archivo
+  // Verificar si la URL es de BlackBlaze B2
+  private isBlackBlazeUrl(url: string): boolean {
+    const blackBlazePatterns = [
+      'backblazeb2.com',
+      'b2.',
+      'f000.backblazeb2.com',
+      's3.us-west-004.backblazeb2.com',
+      's3.eu-central-003.backblazeb2.com',
+      's3.ap-southeast-002.backblazeb2.com',
+      's3.us-west-000.backblazeb2.com'
+    ]
+    
+    return blackBlazePatterns.some(pattern => url.includes(pattern))
+  }
+
+  // Obtener URL directa de un archivo desde BlackBlaze B2
   async getFileUrl(fileId: string): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
       const token = await this.getAuthToken()
@@ -234,26 +249,82 @@ export class ControlFileService {
         }
       }
 
-      const response = await fetch(`${this.backendUrl}/api/files/${fileId}/url`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      // Lista de endpoints a probar para obtener URL directa de BlackBlaze
+      const endpoints = [
+        {
+          url: `${this.backendUrl}/api/files/${fileId}/download-url`,
+          description: 'download-url endpoint'
+        },
+        {
+          url: `${this.backendUrl}/api/files/${fileId}/direct-url`,
+          description: 'direct-url endpoint'
+        },
+        {
+          url: `${this.backendUrl}/api/files/${fileId}/b2-url`,
+          description: 'b2-url endpoint'
+        },
+        {
+          url: `${this.backendUrl}/api/files/${fileId}/url`,
+          description: 'url endpoint (fallback)'
         }
-      })
+      ]
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        return {
-          success: false,
-          error: errorData.message || 'Error obteniendo URL del archivo'
+      console.log(`🔍 Intentando obtener URL directa de BlackBlaze para archivo: ${fileId}`)
+
+      // Probar cada endpoint hasta encontrar una URL válida de BlackBlaze
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`📡 Probando endpoint: ${endpoint.description}`)
+          
+          const response = await fetch(endpoint.url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          })
+
+          if (response.ok) {
+            const result = await response.json()
+            
+            // Buscar URL en diferentes campos de respuesta
+            const possibleUrls = [
+              result.url,
+              result.directUrl,
+              result.downloadUrl,
+              result.b2Url,
+              result.blackBlazeUrl,
+              result.fileUrl
+            ].filter(Boolean)
+
+            for (const url of possibleUrls) {
+              if (this.isBlackBlazeUrl(url)) {
+                console.log(`✅ URL directa de BlackBlaze encontrada: ${url}`)
+                return {
+                  success: true,
+                  url: url
+                }
+              }
+            }
+
+            // Si encontramos una URL pero no es de BlackBlaze, la guardamos como fallback
+            if (possibleUrls.length > 0) {
+              console.log(`⚠️ URL encontrada pero no es de BlackBlaze: ${possibleUrls[0]}`)
+            }
+          } else {
+            console.log(`❌ Endpoint ${endpoint.description} falló: ${response.status}`)
+          }
+        } catch (endpointError) {
+          console.log(`❌ Error en endpoint ${endpoint.description}:`, endpointError)
+          continue
         }
       }
 
-      const result = await response.json()
+      // Si ningún endpoint devolvió URL de BlackBlaze, devolver error
+      console.log(`❌ No se pudo obtener URL directa de BlackBlaze B2 para archivo: ${fileId}`)
       return {
-        success: true,
-        url: result.url
+        success: false,
+        error: 'No se pudo obtener URL directa de BlackBlaze B2. El archivo puede no estar disponible o el servicio no soporta URLs directas.'
       }
     } catch (error: any) {
       console.error('Error obteniendo URL del archivo:', error)
