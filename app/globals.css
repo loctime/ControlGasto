@@ -4,25 +4,38 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Colores base mejorados con más contraste */
+  --background: oklch(0.99 0.005 106);
+  --foreground: oklch(0.15 0.02 106);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.15 0.02 106);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.15 0.02 106);
+  
+  /* Primary más vibrante */
+  --primary: oklch(0.25 0.15 250);
+  --primary-foreground: oklch(0.98 0.01 250);
+  
+  /* Secondary con más personalidad */
+  --secondary: oklch(0.95 0.05 280);
+  --secondary-foreground: oklch(0.25 0.15 250);
+  
+  /* Muted más sutil pero visible */
+  --muted: oklch(0.96 0.02 106);
+  --muted-foreground: oklch(0.45 0.05 106);
+  
+  /* Accent más llamativo */
+  --accent: oklch(0.92 0.08 320);
+  --accent-foreground: oklch(0.25 0.15 250);
+  
+  /* Destructive más impactante */
+  --destructive: oklch(0.55 0.25 15);
+  --destructive-foreground: oklch(0.98 0.01 15);
+  
+  /* Bordes más definidos */
+  --border: oklch(0.88 0.05 106);
+  --input: oklch(0.88 0.05 106);
+  --ring: oklch(0.25 0.15 250);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -38,50 +51,63 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   
-  /* Colores semánticos adicionales */
-  --success: oklch(0.646 0.222 141.116);
-  --success-foreground: oklch(0.985 0 0);
-  --warning: oklch(0.828 0.189 84.429);
-  --warning-foreground: oklch(0.145 0 0);
-  --info: oklch(0.6 0.118 184.704);
-  --info-foreground: oklch(0.985 0 0);
+  /* Colores semánticos con más impacto visual */
+  --success: oklch(0.55 0.18 140);
+  --success-foreground: oklch(0.98 0.01 140);
+  --warning: oklch(0.65 0.15 45);
+  --warning-foreground: oklch(0.15 0.02 45);
+  --info: oklch(0.55 0.15 220);
+  --info-foreground: oklch(0.98 0.01 220);
   
-  /* Colores para estados de gastos */
-  --paid: oklch(0.646 0.222 141.116);
-  --paid-foreground: oklch(0.985 0 0);
-  --pending: oklch(0.828 0.189 84.429);
-  --pending-foreground: oklch(0.145 0 0);
+  /* Colores para estados de gastos - MÁS CONTRASTE */
+  --paid: oklch(0.45 0.20 140);        /* Verde más intenso */
+  --paid-foreground: oklch(0.98 0.01 140);
+  --pending: oklch(0.60 0.18 35);     /* Naranja vibrante */
+  --pending-foreground: oklch(0.15 0.02 35);
   
-  /* Colores para categorías */
-  --category-hogar: oklch(0.6 0.118 184.704);
-  --category-transporte: oklch(0.646 0.222 41.116);
-  --category-alimentacion: oklch(0.828 0.189 84.429);
-  --category-servicios: oklch(0.769 0.188 70.08);
-  --category-entretenimiento: oklch(0.627 0.265 303.9);
-  --category-salud: oklch(0.645 0.246 16.439);
-  --category-otros: oklch(0.556 0 0);
+  /* Colores para categorías - MÁS PERSONALIDAD */
+  --category-hogar: oklch(0.55 0.15 200);        /* Azul hogar */
+  --category-transporte: oklch(0.50 0.18 280);    /* Púrpura transporte */
+  --category-alimentacion: oklch(0.60 0.20 60);  /* Amarillo alimentación */
+  --category-servicios: oklch(0.45 0.20 320);    /* Rosa servicios */
+  --category-entretenimiento: oklch(0.55 0.18 300); /* Magenta entretenimiento */
+  --category-salud: oklch(0.50 0.20 10);         /* Rojo salud */
+  --category-otros: oklch(0.45 0.05 106);        /* Gris otros */
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  /* Modo oscuro con más personalidad y contraste */
+  --background: oklch(0.08 0.01 250);
+  --foreground: oklch(0.95 0.02 250);
+  --card: oklch(0.12 0.02 250);
+  --card-foreground: oklch(0.95 0.02 250);
+  --popover: oklch(0.12 0.02 250);
+  --popover-foreground: oklch(0.95 0.02 250);
+  
+  /* Primary más vibrante en oscuro */
+  --primary: oklch(0.70 0.15 250);
+  --primary-foreground: oklch(0.08 0.01 250);
+  
+  /* Secondary con más carácter */
+  --secondary: oklch(0.20 0.05 280);
+  --secondary-foreground: oklch(0.90 0.02 280);
+  
+  /* Muted más visible */
+  --muted: oklch(0.18 0.03 250);
+  --muted-foreground: oklch(0.65 0.05 250);
+  
+  /* Accent más llamativo */
+  --accent: oklch(0.25 0.08 320);
+  --accent-foreground: oklch(0.90 0.02 320);
+  
+  /* Destructive más impactante */
+  --destructive: oklch(0.50 0.20 15);
+  --destructive-foreground: oklch(0.95 0.01 15);
+  
+  /* Bordes más definidos */
+  --border: oklch(0.25 0.05 250);
+  --input: oklch(0.25 0.05 250);
+  --ring: oklch(0.70 0.15 250);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -96,28 +122,28 @@
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
   
-  /* Colores semánticos adicionales - modo oscuro */
-  --success: oklch(0.696 0.17 162.48);
-  --success-foreground: oklch(0.145 0 0);
-  --warning: oklch(0.769 0.188 70.08);
-  --warning-foreground: oklch(0.145 0 0);
-  --info: oklch(0.488 0.243 264.376);
-  --info-foreground: oklch(0.985 0 0);
+  /* Colores semánticos - modo oscuro mejorado */
+  --success: oklch(0.60 0.18 140);
+  --success-foreground: oklch(0.08 0.01 140);
+  --warning: oklch(0.65 0.15 45);
+  --warning-foreground: oklch(0.08 0.01 45);
+  --info: oklch(0.60 0.15 220);
+  --info-foreground: oklch(0.08 0.01 220);
   
-  /* Colores para estados de gastos - modo oscuro */
-  --paid: oklch(0.696 0.17 162.48);
-  --paid-foreground: oklch(0.145 0 0);
-  --pending: oklch(0.769 0.188 70.08);
-  --pending-foreground: oklch(0.145 0 0);
+  /* Estados de gastos - MÁS CONTRASTE EN OSCURO */
+  --paid: oklch(0.55 0.20 140);        /* Verde brillante */
+  --paid-foreground: oklch(0.08 0.01 140);
+  --pending: oklch(0.65 0.18 35);     /* Naranja brillante */
+  --pending-foreground: oklch(0.08 0.01 35);
   
-  /* Colores para categorías - modo oscuro */
-  --category-hogar: oklch(0.488 0.243 264.376);
-  --category-transporte: oklch(0.696 0.17 162.48);
-  --category-alimentacion: oklch(0.769 0.188 70.08);
-  --category-servicios: oklch(0.645 0.246 16.439);
-  --category-entretenimiento: oklch(0.627 0.265 303.9);
-  --category-salud: oklch(0.645 0.246 16.439);
-  --category-otros: oklch(0.708 0 0);
+  /* Colores para categorías - modo oscuro mejorado */
+  --category-hogar: oklch(0.60 0.15 200);        /* Azul brillante */
+  --category-transporte: oklch(0.55 0.18 280);   /* Púrpura brillante */
+  --category-alimentacion: oklch(0.65 0.20 60);  /* Amarillo brillante */
+  --category-servicios: oklch(0.50 0.20 320);    /* Rosa brillante */
+  --category-entretenimiento: oklch(0.60 0.18 300); /* Magenta brillante */
+  --category-salud: oklch(0.55 0.20 10);         /* Rojo brillante */
+  --category-otros: oklch(0.50 0.05 250);        /* Gris azulado */
 }
 
 @theme inline {

@@ -116,8 +116,11 @@ export function ExpensesTable({
 
       {/* Formulario de agregar - Estilo moderno */}
       {isAdding && (
-        <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl p-6 border border-primary/20">
-          <h3 className="font-medium text-primary mb-4">Nuevo Gasto</h3>
+        <div className="bg-gradient-to-br from-primary/8 via-primary/5 to-primary/3 rounded-xl p-6 border border-primary/30 shadow-lg backdrop-blur-sm">
+          <h3 className="font-medium text-primary mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 bg-primary rounded-full"></span>
+            Nuevo Gasto
+          </h3>
             <div className="space-y-4">
               <Input
                 ref={nameInputRef}
@@ -190,16 +193,19 @@ export function ExpensesTable({
           .map((expense) => (
           <div
             key={expense.id}
-            className={`group rounded-lg border transition-all duration-200 hover:shadow-sm ${
-              expense.paid
-                ? "bg-paid/5 border-paid/20 hover:border-paid/30"
-                : "bg-pending/5 border-pending/20 hover:border-pending/30"
+            className={`group rounded-lg border transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${
+              expense.paid 
+                ? "bg-gradient-to-br from-paid/10 via-paid/5 to-paid/3 border-paid/30 hover:border-paid/40 shadow-md" 
+                : "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border-pending/30 hover:border-pending/40 shadow-md"
             }`}
           >
             {editingId === expense.id ? (
               // Modo edición
-              <div className="p-4 bg-warning/10 rounded-lg border border-warning/20">
-                <h3 className="font-medium text-warning mb-4">Editando Gasto</h3>
+              <div className="p-4 bg-gradient-to-br from-warning/15 via-warning/8 to-warning/5 rounded-lg border border-warning/30 shadow-md">
+                <h3 className="font-medium text-warning mb-4 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-warning rounded-full animate-pulse"></span>
+                  Editando Gasto
+                </h3>
                 <div className="space-y-4">
                   <Input
                     placeholder="Descripción del gasto"
@@ -264,10 +270,10 @@ export function ExpensesTable({
                       <h3 className="font-medium text-slate-900 dark:text-slate-100 truncate">{expense.name}</h3>
                       <Badge 
                         variant={expense.paid ? "default" : "secondary"}
-                        className={`text-xs ${
+                        className={`text-xs font-semibold shadow-sm ${
                           expense.paid 
-                            ? "bg-paid/20 text-paid" 
-                            : "bg-pending/20 text-pending"
+                            ? "bg-gradient-to-r from-paid/25 to-paid/15 text-paid border border-paid/40" 
+                            : "bg-gradient-to-r from-pending/25 to-pending/15 text-pending border border-pending/40"
                         }`}
                       >
                         {expense.paid ? "Pagado" : "Pendiente"}
@@ -295,10 +301,10 @@ export function ExpensesTable({
                         <Button
                           size="default"
                           variant={expense.paid ? "outline" : "default"}
-                          className={`h-10 px-4 font-medium ${
+                          className={`h-10 px-4 font-medium transition-all duration-200 ${
                             expense.paid 
-                              ? "border-pending/30 text-pending hover:bg-pending/10" 
-                              : "bg-paid hover:bg-paid/90 text-paid-foreground shadow-sm"
+                              ? "border-pending/40 text-pending hover:bg-gradient-to-r hover:from-pending/15 hover:to-pending/10 hover:border-pending/50 hover:shadow-md" 
+                              : "bg-gradient-to-r from-paid to-paid/90 text-paid-foreground shadow-md hover:shadow-lg hover:scale-105"
                           }`}
                         >
                           {expense.paid ? "Pendiente" : "Pagar"}
