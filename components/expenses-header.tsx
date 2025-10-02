@@ -127,7 +127,10 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
         <div className="flex items-start justify-between">
           {/* Lado izquierdo - Título y saludo */}
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground mb-1">Control-Gastos</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-1 flex items-center gap-2">
+              Control-Gastos
+              <div className={`w-2 h-2 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            </h1>
             <p className="text-sm text-muted-foreground">
               {user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales'}
             </p>
