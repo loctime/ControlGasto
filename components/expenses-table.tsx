@@ -6,6 +6,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface Expense {
   id: string
@@ -14,6 +25,8 @@ interface Expense {
   paid: boolean
   userId: string
   createdAt: any
+  paidAt?: any
+  unpaidAt?: any
 }
 
 interface ExpensesTableProps {
@@ -106,34 +119,36 @@ export function ExpensesTable({
               placeholder="Descripción del gasto"
               value={newExpense.name}
               onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
-              className="border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500"
+              className="h-12 text-lg border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500"
             />
-            <div className="flex gap-3">
-              <div className="relative flex-1">
+            <div className="space-y-3">
+              <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="number"
                   placeholder="0.00"
                   value={newExpense.amount}
                   onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                  className="pl-9 border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500"
+                  className="pl-9 h-12 text-lg border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500"
                 />
               </div>
-              <Button
-                onClick={handleAddExpense}
-                className="bg-emerald-600 hover:bg-emerald-700"
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Guardar
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setIsAdding(false)}
-                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Cancelar
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleAddExpense}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-12"
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Guardar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAdding(false)}
+                  className="flex-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50 h-12"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancelar
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -150,39 +165,41 @@ export function ExpensesTable({
               // Modo edición
               <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                 <h3 className="font-medium text-amber-900 dark:text-amber-100 mb-4">Editando Gasto</h3>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <Input
                     placeholder="Descripción del gasto"
                     value={editingExpense.name}
                     onChange={(e) => setEditingExpense({ ...editingExpense, name: e.target.value })}
-                    className="border-amber-300 focus:border-amber-500 focus:ring-amber-500"
+                    className="h-12 text-lg border-amber-300 focus:border-amber-500 focus:ring-amber-500"
                   />
-                  <div className="flex gap-3">
-                    <div className="relative flex-1">
+                  <div className="space-y-3">
+                    <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         type="number"
                         placeholder="0.00"
                         value={editingExpense.amount}
                         onChange={(e) => setEditingExpense({ ...editingExpense, amount: e.target.value })}
-                        className="pl-9 border-amber-300 focus:border-amber-500 focus:ring-amber-500"
+                        className="pl-9 h-12 text-lg border-amber-300 focus:border-amber-500 focus:ring-amber-500"
                       />
                     </div>
-                    <Button
-                      onClick={handleSaveEdit}
-                      className="bg-amber-600 hover:bg-amber-700"
-                    >
-                      <Check className="w-4 h-4 mr-2" />
-                      Guardar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleCancelEdit}
-                      className="border-amber-300 text-amber-700 hover:bg-amber-50"
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Cancelar
-                    </Button>
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={handleSaveEdit}
+                        className="flex-1 bg-amber-600 hover:bg-amber-700 h-12"
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Guardar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        className="flex-1 border-amber-300 text-amber-700 hover:bg-amber-50 h-12"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Cancelar
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -210,18 +227,43 @@ export function ExpensesTable({
                     </Badge>
                     
                     <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      <Button
-                        size="sm"
-                        onClick={() => onTogglePaid(expense.id, expense.paid)}
-                        variant={expense.paid ? "outline" : "default"}
-                        className={`${
-                          expense.paid 
-                            ? "border-slate-300 text-slate-700 hover:bg-slate-50" 
-                            : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                        }`}
-                      >
-                        {expense.paid ? "Pagar" : "Pagado"}
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant={expense.paid ? "outline" : "default"}
+                            className={`${
+                              expense.paid 
+                                ? "border-slate-300 text-slate-700 hover:bg-slate-50" 
+                                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                            }`}
+                          >
+                            {expense.paid ? "Pagar" : "Pagado"}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {expense.paid ? "¿Marcar como pendiente?" : "¿Marcar como pagado?"}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {expense.paid 
+                                ? `¿Estás seguro de que quieres marcar "${expense.name}" como pendiente?`
+                                : `¿Estás seguro de que quieres marcar "${expense.name}" como pagado?`
+                              }
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => onTogglePaid(expense.id, expense.paid)}
+                              className={expense.paid ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"}
+                            >
+                              {expense.paid ? "Marcar como Pendiente" : "Marcar como Pagado"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -230,14 +272,34 @@ export function ExpensesTable({
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onDeleteExpense(expense.id)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar gasto?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              ¿Estás seguro de que quieres eliminar "{expense.name}"? Esta acción no se puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => onDeleteExpense(expense.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>

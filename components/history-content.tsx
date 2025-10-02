@@ -16,6 +16,8 @@ interface Expense {
   amount: number
   paid: boolean
   createdAt: any
+  paidAt?: any
+  unpaidAt?: any
 }
 
 export function HistoryContent() {

@@ -24,6 +24,8 @@ interface Expense {
   paid: boolean
   userId: string
   createdAt: any
+  paidAt?: any
+  unpaidAt?: any
 }
 
 export function ExpensesDashboard() {
@@ -78,7 +80,20 @@ export function ExpensesDashboard() {
   }
 
   const togglePaid = async (id: string, currentPaid: boolean) => {
-    await updateExpense(id, { paid: !currentPaid })
+    const newPaidStatus = !currentPaid
+    const updates: Partial<Expense> = { paid: newPaidStatus }
+    
+    if (newPaidStatus) {
+      // Si se marca como pagado, guardar fecha de pago
+      updates.paidAt = serverTimestamp()
+      updates.unpaidAt = null
+    } else {
+      // Si se desmarca como pagado, guardar fecha de desmarcado
+      updates.unpaidAt = serverTimestamp()
+      updates.paidAt = null
+    }
+    
+    await updateExpense(id, updates)
   }
 
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)

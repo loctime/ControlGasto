@@ -36,6 +36,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icon-192.jpg" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense fallback={<div>Cargando...</div>}>
