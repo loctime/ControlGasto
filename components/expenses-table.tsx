@@ -209,7 +209,7 @@ export function ExpensesTable({
                       {expense.paid ? "Pagado" : "Pendiente"}
                     </Badge>
                     
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <Button
                         size="sm"
                         onClick={() => onTogglePaid(expense.id, expense.paid)}

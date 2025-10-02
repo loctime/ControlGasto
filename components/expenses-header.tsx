@@ -1,6 +1,8 @@
 "use client"
 
-import { CheckCircle, Clock, DollarSign } from "lucide-react"
+import { CheckCircle, Clock, DollarSign, Download } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { usePWAInstall } from "@/hooks/use-pwa-install"
 
 interface ExpensesHeaderProps {
   totalPaid: number
@@ -9,12 +11,33 @@ interface ExpensesHeaderProps {
 }
 
 export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: ExpensesHeaderProps) {
+  const { isInstallable, installPWA } = usePWAInstall()
+
+  const handleInstall = async () => {
+    await installPWA()
+  }
+
   return (
     <div className="space-y-6">
       {/* Título elegante */}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-foreground mb-1">Gastos Fijos</h1>
         <p className="text-sm text-muted-foreground">Gestiona tus gastos mensuales</p>
+        
+        {/* Botón de instalación PWA */}
+        {isInstallable && (
+          <div className="mt-4">
+            <Button
+              onClick={handleInstall}
+              variant="outline"
+              size="sm"
+              className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-600"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Instalar App
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Resumen integrado y elegante */}
