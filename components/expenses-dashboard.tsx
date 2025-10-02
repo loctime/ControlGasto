@@ -21,6 +21,7 @@ interface Expense {
   id: string
   name: string
   amount: number
+  category: 'hogar' | 'transporte' | 'alimentacion' | 'servicios' | 'entretenimiento' | 'salud' | 'otros'
   paid: boolean
   userId: string
   createdAt: any
@@ -47,13 +48,14 @@ export function ExpensesDashboard() {
     return () => unsubscribe()
   }, [user])
 
-  const addExpense = async (name: string, amount: number) => {
+  const addExpense = async (name: string, amount: number, category: string) => {
     if (!user) return
 
     try {
       await addDoc(collection(db, "expenses"), {
         name,
         amount,
+        category,
         paid: false,
         userId: user.uid,
         createdAt: serverTimestamp(),

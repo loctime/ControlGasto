@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +23,7 @@ interface Expense {
   id: string
   name: string
   amount: number
+  category: 'hogar' | 'transporte' | 'alimentacion' | 'servicios' | 'entretenimiento' | 'salud' | 'otros'
   paid: boolean
   userId: string
   createdAt: any
@@ -31,7 +33,7 @@ interface Expense {
 
 interface ExpensesTableProps {
   expenses: Expense[]
-  onAddExpense: (name: string, amount: number) => void
+  onAddExpense: (name: string, amount: number, category: string) => void
   onUpdateExpense: (id: string, updates: Partial<Expense>) => void
   onDeleteExpense: (id: string) => void
   onTogglePaid: (id: string, currentPaid: boolean) => void
@@ -45,9 +47,9 @@ export function ExpensesTable({
   onTogglePaid 
 }: ExpensesTableProps) {
   const [isAdding, setIsAdding] = useState(false)
-  const [newExpense, setNewExpense] = useState({ name: "", amount: "" })
+  const [newExpense, setNewExpense] = useState({ name: "", amount: "", category: "hogar" })
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingExpense, setEditingExpense] = useState({ name: "", amount: "" })
+  const [editingExpense, setEditingExpense] = useState({ name: "", amount: "", category: "hogar" })
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   // Auto-focus en el input cuando se abre el formulario
@@ -63,8 +65,8 @@ export function ExpensesTable({
 
   const handleAddExpense = () => {
     if (newExpense.name && newExpense.amount) {
-      onAddExpense(newExpense.name, Number.parseFloat(newExpense.amount))
-      setNewExpense({ name: "", amount: "" })
+      onAddExpense(newExpense.name, Number.parseFloat(newExpense.amount), newExpense.category)
+      setNewExpense({ name: "", amount: "", category: "hogar" })
       setIsAdding(false)
     }
   }
@@ -74,6 +76,7 @@ export function ExpensesTable({
     setEditingExpense({
       name: expense.name,
       amount: expense.amount.toString(),
+      category: expense.category,
     })
   }
 
@@ -82,6 +85,7 @@ export function ExpensesTable({
       onUpdateExpense(editingId!, {
         name: editingExpense.name,
         amount: Number.parseFloat(editingExpense.amount),
+        category: editingExpense.category as any,
       })
       setEditingId(null)
     }
@@ -89,7 +93,7 @@ export function ExpensesTable({
 
   const handleCancelEdit = () => {
     setEditingId(null)
-    setEditingExpense({ name: "", amount: "" })
+    setEditingExpense({ name: "", amount: "", category: "hogar" })
   }
 
   return (
@@ -113,25 +117,42 @@ export function ExpensesTable({
       {isAdding && (
         <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800">
           <h3 className="font-medium text-emerald-900 dark:text-emerald-100 mb-4">Nuevo Gasto</h3>
-          <div className="space-y-4">
-            <Input
-              ref={nameInputRef}
-              placeholder="Descripción del gasto"
-              value={newExpense.name}
-              onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
-              className="h-12 text-lg border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500"
-            />
-            <div className="space-y-3">
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="number"
-                  placeholder="0.00"
-                  value={newExpense.amount}
-                  onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                  className="pl-9 h-12 text-lg border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500"
-                />
-              </div>
+            <div className="space-y-4">
+              <Input
+                ref={nameInputRef}
+                placeholder="Descripción del gasto"
+                value={newExpense.name}
+                onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
+                className="h-12 text-lg border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500"
+              />
+              <Select
+                value={newExpense.category}
+                onValueChange={(value) => setNewExpense({ ...newExpense, category: value })}
+              >
+                <SelectTrigger className="h-12 text-lg border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500">
+                  <SelectValue placeholder="Selecciona una categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hogar">🏠 Hogar</SelectItem>
+                  <SelectItem value="transporte">🚗 Transporte</SelectItem>
+                  <SelectItem value="alimentacion">🍽️ Alimentación</SelectItem>
+                  <SelectItem value="servicios">⚡ Servicios</SelectItem>
+                  <SelectItem value="entretenimiento">🎬 Entretenimiento</SelectItem>
+                  <SelectItem value="salud">🏥 Salud</SelectItem>
+                  <SelectItem value="otros">📦 Otros</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="space-y-3">
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={newExpense.amount}
+                    onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                    className="pl-9 h-12 text-lg border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500"
+                  />
+                </div>
               <div className="flex gap-3">
                 <Button
                   onClick={handleAddExpense}
@@ -181,6 +202,23 @@ export function ExpensesTable({
                     onChange={(e) => setEditingExpense({ ...editingExpense, name: e.target.value })}
                     className="h-12 text-lg border-amber-300 focus:border-amber-500 focus:ring-amber-500"
                   />
+                  <Select
+                    value={editingExpense.category}
+                    onValueChange={(value) => setEditingExpense({ ...editingExpense, category: value })}
+                  >
+                    <SelectTrigger className="h-12 text-lg border-amber-300 focus:border-amber-500 focus:ring-amber-500">
+                      <SelectValue placeholder="Selecciona una categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hogar">🏠 Hogar</SelectItem>
+                      <SelectItem value="transporte">🚗 Transporte</SelectItem>
+                      <SelectItem value="alimentacion">🍽️ Alimentación</SelectItem>
+                      <SelectItem value="servicios">⚡ Servicios</SelectItem>
+                      <SelectItem value="entretenimiento">🎬 Entretenimiento</SelectItem>
+                      <SelectItem value="salud">🏥 Salud</SelectItem>
+                      <SelectItem value="otros">📦 Otros</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <div className="space-y-3">
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -217,8 +255,19 @@ export function ExpensesTable({
               <div className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <h3 className="font-medium text-slate-900 dark:text-slate-100">{expense.name}</h3>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-medium text-slate-900 dark:text-slate-100">{expense.name}</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {expense.category === 'hogar' && '🏠 Hogar'}
+                        {expense.category === 'transporte' && '🚗 Transporte'}
+                        {expense.category === 'alimentacion' && '🍽️ Alimentación'}
+                        {expense.category === 'servicios' && '⚡ Servicios'}
+                        {expense.category === 'entretenimiento' && '🎬 Entretenimiento'}
+                        {expense.category === 'salud' && '🏥 Salud'}
+                        {expense.category === 'otros' && '📦 Otros'}
+                      </Badge>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                       ${expense.amount.toFixed(2)}
                     </p>
                   </div>
