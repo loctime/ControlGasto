@@ -1,0 +1,11 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Host
+Host: https://gastos-app.vercel.app
+
+# Sitemaps
+Sitemap: https://gastos-app.vercel.app/sitemap.xml
