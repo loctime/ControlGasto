@@ -190,7 +190,11 @@ export function ExpensesTable({
           .map((expense) => (
           <div
             key={expense.id}
-            className="group bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 hover:shadow-sm"
+            className={`group rounded-lg border transition-all duration-200 hover:shadow-sm ${
+              expense.paid
+                ? "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:border-emerald-300 dark:hover:border-emerald-700"
+                : "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700"
+            }`}
           >
             {editingId === expense.id ? (
               // Modo edición
@@ -254,10 +258,22 @@ export function ExpensesTable({
             ) : (
               // Vista normal.
               <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h3 className="font-medium text-slate-900 dark:text-slate-100 truncate">{expense.name}</h3>
+                      <Badge 
+                        variant={expense.paid ? "default" : "secondary"}
+                        className={`text-xs ${
+                          expense.paid 
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400" 
+                            : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                        }`}
+                      >
+                        {expense.paid ? "Pagado" : "Pendiente"}
+                      </Badge>
+                    </div>
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium text-slate-900 dark:text-slate-100">{expense.name}</h3>
                       <Badge variant="outline" className="text-xs">
                         {expense.category === 'hogar' && '🏠 Hogar'}
                         {expense.category === 'transporte' && '🚗 Transporte'}
@@ -273,56 +289,46 @@ export function ExpensesTable({
                     </p>
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <Badge 
-                      variant={expense.paid ? "default" : "secondary"}
-                      className={`${
-                        expense.paid 
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400" 
-                          : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                      }`}
-                    >
-                      {expense.paid ? "Pagado" : "Pendiente"}
-                    </Badge>
-                    
-                    <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant={expense.paid ? "outline" : "default"}
-                            className={`${
-                              expense.paid 
-                                ? "border-slate-300 text-slate-700 hover:bg-slate-50" 
-                                : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                            }`}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="default"
+                          variant={expense.paid ? "outline" : "default"}
+                          className={`h-10 px-4 font-medium ${
+                            expense.paid 
+                              ? "border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20" 
+                              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                          }`}
+                        >
+                          {expense.paid ? "Pendiente" : "Pagar"}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            {expense.paid ? "¿Marcar como pendiente?" : "¿Marcar como pagado?"}
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {expense.paid 
+                              ? `¿Estás seguro de que quieres marcar "${expense.name}" como pendiente?`
+                              : `¿Estás seguro de que quieres marcar "${expense.name}" como pagado?`
+                            }
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => onTogglePaid(expense.id, expense.paid)}
+                            className={expense.paid ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"}
                           >
-                            {expense.paid ? "Pendiente" : "Pagar"}
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              {expense.paid ? "¿Marcar como pendiente?" : "¿Marcar como pagado?"}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {expense.paid 
-                                ? `¿Estás seguro de que quieres marcar "${expense.name}" como pendiente?`
-                                : `¿Estás seguro de que quieres marcar "${expense.name}" como pagado?`
-                              }
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => onTogglePaid(expense.id, expense.paid)}
-                              className={expense.paid ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"}
-                            >
-                              {expense.paid ? "Marcar como Pendiente" : "Marcar como Pagado"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                            {expense.paid ? "Marcar como Pendiente" : "Marcar como Pagado"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    
+                    <div className="flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <Button
                         size="sm"
                         variant="ghost"

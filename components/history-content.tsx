@@ -56,6 +56,8 @@ export function HistoryContent() {
   const [view, setView] = useState<"week" | "month">("month")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hasMoreData, setHasMoreData] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   
   // ✅ OPTIMIZACIÓN: Hooks de optimización
   const { retryWithBackoff } = useRetry()
@@ -79,13 +81,20 @@ export function HistoryContent() {
 
       try {
         await retryWithBackoff(async () => {
-          const q = query(collection(db, "expenses"), where("userId", "==", user.uid), orderBy("createdAt", "desc"))
+          // ✅ OPTIMIZACIÓN: Limitar resultados iniciales para carga más rápida
+          const q = query(
+            collection(db, "expenses"), 
+            where("userId", "==", user.uid), 
+            orderBy("createdAt", "desc"),
+            limit(50) // Limitar a 50 gastos más recientes inicialmente
+          )
           const snapshot = await getDocs(q)
           const expensesData = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           })) as Expense[]
           setExpenses(expensesData)
+          setHasMoreData(snapshot.docs.length === 50) // Si hay exactamente 50, puede haber más
         })
       } catch (error) {
         console.error("Error fetching expenses:", error)
@@ -236,6 +245,43 @@ export function HistoryContent() {
     { name: "Pagado", value: totals.totalPaid, color: "#10b981" },
     { name: "Pendiente", value: totals.totalPending, color: "#f59e0b" },
   ], [totals])
+
+  // ✅ OPTIMIZACIÓN: Función para cargar más gastos
+  const loadMoreExpenses = async () => {
+    if (!user || !hasMoreData || isLoadingMore) return
+
+    setIsLoadingMore(true)
+    try {
+      const lastExpense = expenses[expenses.length - 1]
+      const q = query(
+        collection(db, "expenses"),
+        where("userId", "==", user.uid),
+        orderBy("createdAt", "desc"),
+        limit(50)
+      )
+      const snapshot = await getDocs(q)
+      const newExpenses = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Expense[]
+      
+      // Filtrar gastos que ya tenemos para evitar duplicados
+      const existingIds = new Set(expenses.map(e => e.id))
+      const uniqueNewExpenses = newExpenses.filter(e => !existingIds.has(e.id))
+      
+      if (uniqueNewExpenses.length > 0) {
+        setExpenses(prev => [...prev, ...uniqueNewExpenses])
+        setHasMoreData(uniqueNewExpenses.length === 50)
+      } else {
+        setHasMoreData(false)
+      }
+    } catch (error) {
+      console.error("Error loading more expenses:", error)
+      toast.error("Error al cargar más gastos")
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
 
   // ✅ OPTIMIZACIÓN: Memoizar datos por categoría
   const categoryChartData = useMemo(() => {
@@ -423,6 +469,27 @@ export function HistoryContent() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Load More Button */}
+        {hasMoreData && (
+          <div className="flex justify-center pt-4">
+            <Button
+              onClick={loadMoreExpenses}
+              disabled={isLoadingMore}
+              variant="outline"
+              className="w-full max-w-sm"
+            >
+              {isLoadingMore ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600 mr-2"></div>
+                  Cargando más gastos...
+                </>
+              ) : (
+                "Cargar más gastos"
+              )}
+            </Button>
+          </div>
+        )}
       </div>
       <BottomNav />
 
