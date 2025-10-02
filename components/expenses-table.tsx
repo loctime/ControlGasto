@@ -174,7 +174,7 @@ export function ExpensesTable({
                 </div>
               </div>
             ) : (
-              // Vista normal
+              // Vista normal.
               <div className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
