@@ -156,7 +156,16 @@ export function ExpensesTable({
 
       {/* Lista de gastos - Estilo moderno */}
       <div className="space-y-3">
-        {expenses.map((expense) => (
+        {expenses
+          .sort((a, b) => {
+            // Primero los no pagados (paid: false), luego los pagados (paid: true)
+            if (a.paid !== b.paid) {
+              return a.paid ? 1 : -1
+            }
+            // Si tienen el mismo estado de pago, ordenar por nombre alfabéticamente
+            return a.name.localeCompare(b.name)
+          })
+          .map((expense) => (
           <div
             key={expense.id}
             className="group bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 hover:shadow-sm"
@@ -238,7 +247,7 @@ export function ExpensesTable({
                                 : "bg-emerald-600 hover:bg-emerald-700 text-white"
                             }`}
                           >
-                            {expense.paid ? "Pagar" : "Pagado"}
+                            {expense.paid ? "Pendiente" : "Pagar"}
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
