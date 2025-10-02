@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut, setPersistence, browserLocalPersistence } from 'firebase/auth'
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut, setPersistence, browserLocalPersistence, signInWithCredential, signInWithRedirect, getRedirectResult } from 'firebase/auth'
 
 // Configuración de ControlFile
 const CONTROLFILE_CONFIG = {
@@ -47,6 +47,32 @@ export class ControlFileService {
     }
   }
 
+  // Verificar si hay un resultado de redirect pendiente
+  async checkRedirectResult(): Promise<{ success: boolean; user?: any; error?: string }> {
+    try {
+      const result = await getRedirectResult(this.auth)
+      if (result) {
+        const user = result.user
+        return {
+          success: true,
+          user: {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL
+          }
+        }
+      }
+      return { success: false }
+    } catch (error: any) {
+      console.error('Error verificando redirect result:', error)
+      return {
+        success: false,
+        error: error.message || 'Error verificando redirect'
+      }
+    }
+  }
+
   // Obtener usuario actual
   async getCurrentUser() {
     return this.auth.currentUser
@@ -87,6 +113,92 @@ export class ControlFileService {
       return {
         success: false,
         error: error.message || 'Error desconocido al conectar'
+      }
+    }
+  }
+
+  // Conectar automáticamente usando las credenciales del usuario principal
+  async connectWithMainUserCredentials(mainUser: any): Promise<{ success: boolean; user?: any; error?: string }> {
+    try {
+      // Verificar si ya hay una sesión activa en ControlFile
+      const currentUser = this.auth.currentUser
+      if (currentUser && currentUser.email === mainUser.email) {
+        return {
+          success: true,
+          user: {
+            uid: currentUser.uid,
+            email: currentUser.email,
+            displayName: currentUser.displayName,
+            photoURL: currentUser.photoURL
+          }
+        }
+      }
+
+      // Si no hay sesión activa, intentar conectar usando popup
+      // pero de manera más silenciosa
+      const provider = new GoogleAuthProvider()
+      
+      // Configurar parámetros adicionales
+      provider.addScope('email')
+      provider.addScope('profile')
+      
+      // Configurar para que use la misma cuenta si es posible
+      provider.setCustomParameters({
+        'login_hint': mainUser.email
+      })
+      
+      const result = await signInWithPopup(this.auth, provider)
+      const user = result.user
+      
+      return {
+        success: true,
+        user: {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL
+        }
+      }
+    } catch (error: any) {
+      console.error('Error conectando automáticamente con ControlFile:', error)
+      
+      // Si el popup es bloqueado, no mostrar error al usuario
+      if (error.code === 'auth/popup-blocked') {
+        return {
+          success: false,
+          error: 'POPUP_BLOCKED' // Código especial para manejar en el hook
+        }
+      }
+      
+      return {
+        success: false,
+        error: error.message || 'Error desconocido al conectar automáticamente'
+      }
+    }
+  }
+
+  // Conectar usando redirect (alternativa cuando popup es bloqueado)
+  async connectWithRedirect(mainUser: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      const provider = new GoogleAuthProvider()
+      
+      // Configurar parámetros adicionales
+      provider.addScope('email')
+      provider.addScope('profile')
+      
+      // Configurar para que use la misma cuenta si es posible
+      provider.setCustomParameters({
+        'login_hint': mainUser.email
+      })
+      
+      await signInWithRedirect(this.auth, provider)
+      
+      return { success: true }
+    } catch (error: any) {
+      console.error('Error conectando con redirect:', error)
+      return {
+        success: false,
+        error: error.message || 'Error desconocido al conectar con redirect'
       }
     }
   }

@@ -7,6 +7,7 @@ import { ExpensesTable } from "@/components/expenses-table"
 import { ErrorBoundary, ChartErrorFallback } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
 import { useRetry, useRateLimit, useMemoizedCalculations } from "@/lib/optimization"
+import { useControlFileSync } from "@/hooks/use-controlfile-sync"
 import { toast } from "sonner"
 import {
   collection,
@@ -45,6 +46,14 @@ export function ExpensesDashboard() {
   // ✅ OPTIMIZACIÓN: Hooks de optimización
   const { retryWithBackoff } = useRetry()
   const { canMakeRequest, makeRequest } = useRateLimit(20, 60000) // 20 requests por minuto
+  
+  // ✅ SINCRONIZACIÓN CON CONTROLFILE: Hook para manejar conexión con ControlFile
+  const { 
+    isControlFileConnected, 
+    isSyncing, 
+    connectManually, 
+    connectWithRedirect 
+  } = useControlFileSync()
 
   // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados
   const totals = useMemoizedCalculations(
@@ -219,6 +228,48 @@ export function ExpensesDashboard() {
   return (
     <ErrorBoundary>
       <div className="max-w-6xl mx-auto p-4 space-y-6">
+        {/* Indicador de sincronización con ControlFile */}
+        {isSyncing && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+            <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            <span className="text-blue-800 text-sm">Conectando con ControlFile...</span>
+          </div>
+        )}
+        
+        {isControlFileConnected && !isSyncing && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+            <span className="text-green-800 text-sm">ControlFile conectado</span>
+          </div>
+        )}
+
+        {!isControlFileConnected && !isSyncing && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
+                <span className="text-orange-800 text-sm">ControlFile no conectado</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={connectManually}
+                  disabled={isSyncing}
+                  className="px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 disabled:opacity-50"
+                >
+                  Conectar
+                </button>
+                <button
+                  onClick={connectWithRedirect}
+                  disabled={isSyncing}
+                  className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 disabled:opacity-50"
+                >
+                  Conectar (redirect)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header con totales */}
         <ExpensesHeader 
           totalPaid={totals.totalPaid}

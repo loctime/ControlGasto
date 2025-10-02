@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import type { User } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 import { onAuthStateChanged } from "firebase/auth"
+import { useControlFileSync } from "@/hooks/use-controlfile-sync"
 
 interface AuthContextType {
   user: User | null
@@ -45,6 +46,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>
+}
+
+// Componente interno que maneja la sincronización automática
+function AuthProviderWithSync({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  
+  // Activar sincronización automática con ControlFile
+  useControlFileSync()
+
+  return <>{children}</>
+}
+
+// Wrapper que combina AuthProvider con sincronización automática
+export function AuthProviderWithControlFileSync({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <AuthProviderWithSync>
+        {children}
+      </AuthProviderWithSync>
+    </AuthProvider>
+  )
 }
 
 export const useAuth = () => useContext(AuthContext)

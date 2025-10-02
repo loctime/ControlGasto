@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
-import { AuthProvider } from "@/components/auth-provider"
+import { AuthProviderWithControlFileSync } from "@/components/auth-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { Toaster } from "@/components/ui/sonner"
@@ -49,10 +49,10 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <AuthProvider>
+              <AuthProviderWithControlFileSync>
                 {children}
                 <Toaster />
-              </AuthProvider>
+              </AuthProviderWithControlFileSync>
             </ThemeProvider>
           </Suspense>
         </ErrorBoundary>
