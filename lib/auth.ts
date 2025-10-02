@@ -10,7 +10,17 @@ import { auth } from "./firebase"
 
 const googleProvider = new GoogleAuthProvider()
 
+// Verificar si Firebase Auth está configurado
+const isFirebaseAuthConfigured = () => {
+  return auth && typeof auth === 'object' && 'onAuthStateChanged' in auth
+}
+
 export async function signInWithGoogle() {
+  if (!isFirebaseAuthConfigured()) {
+    console.warn("Firebase Auth no está configurado. Usando modo mock.")
+    throw new Error("Firebase Auth no está disponible en modo desarrollo")
+  }
+  
   try {
     const result = await signInWithPopup(auth, googleProvider)
     return result.user
@@ -21,6 +31,11 @@ export async function signInWithGoogle() {
 }
 
 export async function signUpWithEmail(email: string, password: string) {
+  if (!isFirebaseAuthConfigured()) {
+    console.warn("Firebase Auth no está configurado. Usando modo mock.")
+    throw new Error("Firebase Auth no está disponible en modo desarrollo")
+  }
+  
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password)
     return result.user
@@ -31,6 +46,11 @@ export async function signUpWithEmail(email: string, password: string) {
 }
 
 export async function signInWithEmail(email: string, password: string) {
+  if (!isFirebaseAuthConfigured()) {
+    console.warn("Firebase Auth no está configurado. Usando modo mock.")
+    throw new Error("Firebase Auth no está disponible en modo desarrollo")
+  }
+  
   try {
     const result = await signInWithEmailAndPassword(auth, email, password)
     return result.user
@@ -41,6 +61,11 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function resetPassword(email: string) {
+  if (!isFirebaseAuthConfigured()) {
+    console.warn("Firebase Auth no está configurado. Usando modo mock.")
+    throw new Error("Firebase Auth no está disponible en modo desarrollo")
+  }
+  
   try {
     await sendPasswordResetEmail(auth, email)
   } catch (error) {
@@ -50,6 +75,11 @@ export async function resetPassword(email: string) {
 }
 
 export async function signOut() {
+  if (!isFirebaseAuthConfigured()) {
+    console.warn("Firebase Auth no está configurado. Usando modo mock.")
+    return
+  }
+  
   try {
     await firebaseSignOut(auth)
   } catch (error) {

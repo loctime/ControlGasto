@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Plus, Pencil, Trash2, Check, X, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +35,18 @@ export function ExpensesTable({
   const [newExpense, setNewExpense] = useState({ name: "", amount: "" })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingExpense, setEditingExpense] = useState({ name: "", amount: "" })
+  const nameInputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-focus en el input cuando se abre el formulario
+  useEffect(() => {
+    if (isAdding && nameInputRef.current) {
+      nameInputRef.current.focus()
+    }
+  }, [isAdding])
+
+  const handleToggleAdding = () => {
+    setIsAdding(!isAdding)
+  }
 
   const handleAddExpense = () => {
     if (newExpense.name && newExpense.amount) {
@@ -76,11 +88,11 @@ export function ExpensesTable({
           <p className="text-sm text-muted-foreground">{expenses.length} gastos registrados</p>
         </div>
         <Button
-          onClick={() => setIsAdding(true)}
+          onClick={handleToggleAdding}
           className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Agregar
+          {isAdding ? "Cancelar" : "Agregar"}
         </Button>
       </div>
 
@@ -90,6 +102,7 @@ export function ExpensesTable({
           <h3 className="font-medium text-emerald-900 dark:text-emerald-100 mb-4">Nuevo Gasto</h3>
           <div className="space-y-4">
             <Input
+              ref={nameInputRef}
               placeholder="Descripción del gasto"
               value={newExpense.name}
               onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
@@ -246,7 +259,7 @@ export function ExpensesTable({
               Comienza agregando tu primer gasto fijo
             </p>
             <Button
-              onClick={() => setIsAdding(true)}
+              onClick={handleToggleAdding}
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               <Plus className="w-4 h-4 mr-2" />

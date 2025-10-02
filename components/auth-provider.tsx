@@ -22,12 +22,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user)
+    // Verificar si Firebase está configurado correctamente
+    const isFirebaseConfigured = auth && typeof auth === 'object' && 'onAuthStateChanged' in auth
+    
+    if (isFirebaseConfigured) {
+      try {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          setUser(user)
+          setLoading(false)
+        })
+        return () => unsubscribe()
+      } catch (error) {
+        console.warn('Firebase Auth error:', error)
+        setLoading(false)
+      }
+    } else {
+      // Modo desarrollo sin Firebase
+      console.log('🔧 Using mock authentication for development')
+      setUser(null)
       setLoading(false)
-    })
-
-    return () => unsubscribe()
+    }
   }, [])
 
   return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>
