@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { ExpensesHeader } from "@/components/expenses-header"
 import { ExpensesTable } from "@/components/expenses-table"
-import { ReceiptsSummary } from "@/components/receipts-summary"
 import { ErrorBoundary, ChartErrorFallback } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
 import { useRetry, useRateLimit, useMemoizedCalculations } from "@/lib/optimization"
@@ -138,8 +137,13 @@ export function ExpensesDashboard() {
 
     try {
       makeRequest()
+      // Filtrar campos undefined antes de enviar a Firebase
+      const cleanUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+      )
+      
       await retryWithBackoff(async () => {
-        await updateDoc(doc(db, "expenses", id), updates)
+        await updateDoc(doc(db, "expenses", id), cleanUpdates)
       })
       toast.success("Gasto actualizado correctamente")
     } catch (error) {
@@ -181,7 +185,10 @@ export function ExpensesDashboard() {
     } else {
       updates.unpaidAt = serverTimestamp()
       updates.paidAt = null
-      updates.receiptImageId = undefined // Limpiar comprobante si se marca como pendiente
+      // No incluir receiptImageId si es undefined - Firebase no lo acepta
+      if (receiptImageId !== undefined) {
+        updates.receiptImageId = null // Usar null en lugar de undefined
+      }
     }
     
     await updateExpense(id, updates)
@@ -218,11 +225,6 @@ export function ExpensesDashboard() {
           totalPending={totals.totalPending}
           totalExpenses={totals.totalExpenses}
         />
-
-        {/* Resumen de comprobantes */}
-        <ErrorBoundary fallback={ChartErrorFallback}>
-          <ReceiptsSummary expenses={expenses} />
-        </ErrorBoundary>
 
         {/* Tabla de gastos */}
         <ErrorBoundary fallback={ChartErrorFallback}>
