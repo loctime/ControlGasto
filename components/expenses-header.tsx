@@ -1,10 +1,14 @@
 "use client"
 
-import { CheckCircle, Clock, DollarSign, Download } from "lucide-react"
+import { CheckCircle, Clock, DollarSign, Download, Calendar, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggleCompact } from "@/components/theme-toggle"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
+import { useAuth } from "@/components/auth-provider"
 import { formatCurrency } from "@/lib/utils"
+import { useState, useEffect } from "react"
+import { controlFileService } from "@/lib/controlfile"
+import { useToast } from "@/hooks/use-toast"
 
 interface ExpensesHeaderProps {
   totalPaid: number
@@ -14,40 +18,147 @@ interface ExpensesHeaderProps {
 
 export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: ExpensesHeaderProps) {
   const { isInstallable, installPWA } = usePWAInstall()
+  const { user } = useAuth()
+  const [currentTime, setCurrentTime] = useState(new Date())
+  const [isControlFileConnected, setIsControlFileConnected] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const { toast } = useToast()
+
+  // Actualizar fecha y hora cada segundo
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  // Verificar conexión con ControlFile
+  useEffect(() => {
+    const checkControlFileConnection = async () => {
+      try {
+        const connected = await controlFileService.isConnected()
+        setIsControlFileConnected(connected)
+      } catch (error) {
+        console.error('Error verificando ControlFile:', error)
+      }
+    }
+    
+    checkControlFileConnection()
+  }, [])
 
   const handleInstall = async () => {
     await installPWA()
   }
 
+  const handleExportToControlFile = async () => {
+    if (!isControlFileConnected) {
+      toast({
+        title: "No conectado con ControlFile",
+        description: "Ve a tu perfil para conectar con ControlFile primero",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsExporting(true)
+    try {
+      // Crear un resumen de gastos en formato JSON
+      const expensesData = {
+        totalPaid,
+        totalPending,
+        totalExpenses,
+        exportDate: new Date().toISOString(),
+        user: user?.email
+      }
+
+      const jsonString = JSON.stringify(expensesData, null, 2)
+      const blob = new Blob([jsonString], { type: 'application/json' })
+      const file = new File([blob], `gastos-${new Date().toISOString().split('T')[0]}.json`, { type: 'application/json' })
+
+      const result = await controlFileService.uploadFile(file, 'GastosApp')
+      
+      if (result.success) {
+        toast({
+          title: "Exportado exitosamente",
+          description: "Los datos se han guardado en ControlFile",
+        })
+      } else {
+        toast({
+          title: "Error al exportar",
+          description: result.error || "No se pudo exportar a ControlFile",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error al exportar",
+        description: "Ocurrió un error inesperado",
+        variant: "destructive"
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // Formatear fecha y hora
+  const formatDateTime = (date: Date) => {
+    return {
+      date: date.toLocaleDateString('es-ES', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
+      time: date.toLocaleTimeString('es-ES', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      })
+    }
+  }
+
+  const { date, time } = formatDateTime(currentTime)
+
   return (
     <div className="space-y-6">
       {/* Título elegante */}
-      <div className="text-center">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex-1" />
-          <div className="flex-1 text-center">
+      <div className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 rounded-xl p-6 border border-primary/20 shadow-lg backdrop-blur-sm">
+        <div className="flex items-start justify-between">
+          {/* Lado izquierdo - Título y saludo */}
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground mb-1">Control-Gastos</h1>
-            <p className="text-sm text-muted-foreground">Gestiona tus gastos mensuales</p>
+            <p className="text-sm text-muted-foreground">
+              {user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales'}
+            </p>
           </div>
+
+          {/* Lado derecho - Fecha y hora */}
           <div className="flex-1 flex justify-end">
-            <ThemeToggleCompact />
+            <div className="text-right">
+              <div className="mb-2">
+                <Button
+                  onClick={handleInstall}
+                  variant="outline"
+                  size="sm"
+                  className="bg-secondary hover:bg-accent border-border"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Instalar App
+                </Button>
+              </div>
+              <div className="flex items-center justify-end space-x-2 text-sm text-muted-foreground mb-1">
+                <Calendar className="w-4 h-4" />
+                <span className="capitalize">{date}</span>
+              </div>
+              <div className="flex items-center justify-end space-x-2 text-sm text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span className="font-mono">{time}</span>
+                <ThemeToggleCompact />
+              </div>
+            </div>
           </div>
         </div>
-        
-        {/* Botón de instalación PWA */}
-        {isInstallable && (
-          <div className="mt-4">
-            <Button
-              onClick={handleInstall}
-              variant="outline"
-              size="sm"
-              className="bg-secondary hover:bg-accent border-border"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Instalar App
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Resumen integrado y elegante */}

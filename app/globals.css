@@ -12,9 +12,9 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 106);
   
-  /* Primary más vibrante */
-  --primary: oklch(0.25 0.15 250);
-  --primary-foreground: oklch(0.98 0.01 250);
+  /* Primary más legible con ALTO CONTRASTE */
+  --primary: oklch(0.30 0.15 220);
+  --primary-foreground: oklch(0.98 0.01 220);
   
   /* Secondary con más personalidad */
   --secondary: oklch(0.95 0.05 280);
@@ -65,85 +65,85 @@
   --pending: oklch(0.60 0.18 35);     /* Naranja vibrante */
   --pending-foreground: oklch(0.15 0.02 35);
   
-  /* Colores para categorías - MÁS PERSONALIDAD */
-  --category-hogar: oklch(0.55 0.15 200);        /* Azul hogar */
-  --category-transporte: oklch(0.50 0.18 280);    /* Púrpura transporte */
-  --category-alimentacion: oklch(0.60 0.20 60);  /* Amarillo alimentación */
-  --category-servicios: oklch(0.45 0.20 320);    /* Rosa servicios */
-  --category-entretenimiento: oklch(0.55 0.18 300); /* Magenta entretenimiento */
-  --category-salud: oklch(0.50 0.20 10);         /* Rojo salud */
-  --category-otros: oklch(0.45 0.05 106);        /* Gris otros */
+  /* Colores para categorías - MEJOR CONTRASTE */
+  --category-hogar: oklch(0.50 0.12 200);        /* Azul más claro */
+  --category-transporte: oklch(0.45 0.15 280);    /* Púrpura más claro */
+  --category-alimentacion: oklch(0.55 0.18 60);  /* Amarillo más claro */
+  --category-servicios: oklch(0.40 0.18 320);    /* Rosa más claro */
+  --category-entretenimiento: oklch(0.50 0.15 300); /* Magenta más claro */
+  --category-salud: oklch(0.45 0.18 10);         /* Rojo más claro */
+  --category-otros: oklch(0.40 0.05 106);        /* Gris más claro */
 }
 
 .dark {
-  /* Modo oscuro con más personalidad y contraste */
-  --background: oklch(0.08 0.01 250);
-  --foreground: oklch(0.95 0.02 250);
-  --card: oklch(0.12 0.02 250);
-  --card-foreground: oklch(0.95 0.02 250);
-  --popover: oklch(0.12 0.02 250);
-  --popover-foreground: oklch(0.95 0.02 250);
+  /* Modo oscuro con ALTO CONTRASTE y marcos celestes */
+  --background: oklch(0.05 0.01 220);
+  --foreground: oklch(0.98 0.01 220);
+  --card: oklch(0.08 0.02 220);
+  --card-foreground: oklch(0.98 0.01 220);
+  --popover: oklch(0.08 0.02 220);
+  --popover-foreground: oklch(0.98 0.01 220);
   
-  /* Primary más vibrante en oscuro */
-  --primary: oklch(0.70 0.15 250);
-  --primary-foreground: oklch(0.08 0.01 250);
+  /* Primary CELESTE vibrante con ALTO CONTRASTE */
+  --primary: oklch(0.80 0.25 200);
+  --primary-foreground: oklch(0.02 0.01 200);
   
-  /* Secondary con más carácter */
-  --secondary: oklch(0.20 0.05 280);
-  --secondary-foreground: oklch(0.90 0.02 280);
+  /* Secondary con marco celeste */
+  --secondary: oklch(0.15 0.08 200);
+  --secondary-foreground: oklch(0.85 0.05 200);
   
-  /* Muted más visible */
-  --muted: oklch(0.18 0.03 250);
-  --muted-foreground: oklch(0.65 0.05 250);
+  /* Muted con tinte celeste */
+  --muted: oklch(0.12 0.05 200);
+  --muted-foreground: oklch(0.70 0.08 200);
   
-  /* Accent más llamativo */
-  --accent: oklch(0.25 0.08 320);
-  --accent-foreground: oklch(0.90 0.02 320);
+  /* Accent CELESTE brillante */
+  --accent: oklch(0.20 0.10 200);
+  --accent-foreground: oklch(0.90 0.05 200);
   
   /* Destructive más impactante */
-  --destructive: oklch(0.50 0.20 15);
+  --destructive: oklch(0.60 0.25 15);
   --destructive-foreground: oklch(0.95 0.01 15);
   
-  /* Bordes más definidos */
-  --border: oklch(0.25 0.05 250);
-  --input: oklch(0.25 0.05 250);
-  --ring: oklch(0.70 0.15 250);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Bordes CELESTES más definidos */
+  --border: oklch(0.30 0.10 200);
+  --input: oklch(0.30 0.10 200);
+  --ring: oklch(0.75 0.20 200);
+  --chart-1: oklch(0.75 0.20 200);        /* CELESTE principal */
+  --chart-2: oklch(0.70 0.18 220);        /* CELESTE secundario */
+  --chart-3: oklch(0.80 0.20 60);         /* CELESTE terciario */
+  --chart-4: oklch(0.75 0.20 180);        /* CELESTE cuaternario */
+  --chart-5: oklch(0.70 0.18 300);        /* CELESTE quinto */
+  --sidebar: oklch(0.08 0.02 220);
+  --sidebar-foreground: oklch(0.95 0.01 220);
+  --sidebar-primary: oklch(0.75 0.20 200);
+  --sidebar-primary-foreground: oklch(0.05 0.01 200);
+  --sidebar-accent: oklch(0.15 0.08 200);
+  --sidebar-accent-foreground: oklch(0.85 0.05 200);
+  --sidebar-border: oklch(0.30 0.10 200);
+  --sidebar-ring: oklch(0.75 0.20 200);
   
-  /* Colores semánticos - modo oscuro mejorado */
-  --success: oklch(0.60 0.18 140);
-  --success-foreground: oklch(0.08 0.01 140);
-  --warning: oklch(0.65 0.15 45);
-  --warning-foreground: oklch(0.08 0.01 45);
-  --info: oklch(0.60 0.15 220);
-  --info-foreground: oklch(0.08 0.01 220);
+  /* Colores semánticos - CELESTES VIBRANTES */
+  --success: oklch(0.75 0.25 160);        /* Verde CELESTE */
+  --success-foreground: oklch(0.05 0.01 160);
+  --warning: oklch(0.80 0.20 50);        /* Naranja CELESTE */
+  --warning-foreground: oklch(0.05 0.01 50);
+  --info: oklch(0.75 0.20 200);          /* Azul CELESTE */
+  --info-foreground: oklch(0.05 0.01 200);
   
-  /* Estados de gastos - MÁS CONTRASTE EN OSCURO */
-  --paid: oklch(0.55 0.20 140);        /* Verde brillante */
-  --paid-foreground: oklch(0.08 0.01 140);
-  --pending: oklch(0.65 0.18 35);     /* Naranja brillante */
-  --pending-foreground: oklch(0.08 0.01 35);
+  /* Estados de gastos - ALTO CONTRASTE CELESTE */
+  --paid: oklch(0.70 0.25 160);        /* Verde CELESTE brillante */
+  --paid-foreground: oklch(0.05 0.01 160);
+  --pending: oklch(0.75 0.20 40);     /* Naranja CELESTE brillante */
+  --pending-foreground: oklch(0.05 0.01 40);
   
-  /* Colores para categorías - modo oscuro mejorado */
-  --category-hogar: oklch(0.60 0.15 200);        /* Azul brillante */
-  --category-transporte: oklch(0.55 0.18 280);   /* Púrpura brillante */
-  --category-alimentacion: oklch(0.65 0.20 60);  /* Amarillo brillante */
-  --category-servicios: oklch(0.50 0.20 320);    /* Rosa brillante */
-  --category-entretenimiento: oklch(0.60 0.18 300); /* Magenta brillante */
-  --category-salud: oklch(0.55 0.20 10);         /* Rojo brillante */
-  --category-otros: oklch(0.50 0.05 250);        /* Gris azulado */
+  /* Colores para categorías - CELESTES VIBRANTES */
+  --category-hogar: oklch(0.75 0.20 200);        /* CELESTE hogar */
+  --category-transporte: oklch(0.70 0.18 220);   /* CELESTE transporte */
+  --category-alimentacion: oklch(0.80 0.20 60);  /* CELESTE alimentación */
+  --category-servicios: oklch(0.75 0.20 180);    /* CELESTE servicios */
+  --category-entretenimiento: oklch(0.70 0.18 300); /* CELESTE entretenimiento */
+  --category-salud: oklch(0.75 0.20 10);         /* CELESTE salud */
+  --category-otros: oklch(0.65 0.10 200);        /* CELESTE otros */
 }
 
 @theme inline {
@@ -192,5 +192,41 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Estilos específicos para modales - COLORES BÁSICOS QUE SE VEN */
+@layer components {
+  /* Botones de acción en modales - AZUL OSCURO CON BLANCO */
+  [data-slot="alert-dialog-action"] {
+    @apply font-semibold transition-all duration-200;
+    background-color: #1e40af !important;  /* Azul oscuro básico */
+    color: #ffffff !important;             /* Blanco puro */
+    border: 2px solid #1e40af !important;  /* Borde azul */
+    padding: 8px 16px !important;
+    border-radius: 6px !important;
+  }
+  
+  /* Botones de cancelar en modales - GRIS CON NEGRO */
+  [data-slot="alert-dialog-cancel"] {
+    @apply font-medium transition-all duration-200;
+    background-color: #f3f4f6 !important; /* Gris claro */
+    color: #1f2937 !important;             /* Negro */
+    border: 2px solid #d1d5db !important; /* Borde gris */
+    padding: 8px 16px !important;
+    border-radius: 6px !important;
+  }
+  
+  /* Modo oscuro - CELESTE BRILLANTE CON NEGRO */
+  .dark [data-slot="alert-dialog-action"] {
+    background-color: #3b82f6 !important; /* Azul brillante */
+    color: #000000 !important;             /* Negro puro */
+    border: 2px solid #3b82f6 !important;  /* Borde azul */
+  }
+  
+  .dark [data-slot="alert-dialog-cancel"] {
+    background-color: #374151 !important; /* Gris oscuro */
+    color: #ffffff !important;             /* Blanco */
+    border: 2px solid #6b7280 !important;  /* Borde gris */
   }
 }

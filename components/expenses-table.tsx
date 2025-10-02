@@ -326,7 +326,15 @@ export function ExpensesTable({
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => onTogglePaid(expense.id, expense.paid)}
-                            className={expense.paid ? "bg-pending hover:bg-pending/90" : "bg-paid hover:bg-paid/90"}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold border-2 border-blue-600 px-4 py-2 rounded-md"
+                            style={{
+                              backgroundColor: '#2563eb !important',
+                              color: '#ffffff !important',
+                              border: '2px solid #2563eb !important',
+                              fontWeight: '600 !important',
+                              padding: '8px 16px !important',
+                              borderRadius: '6px !important'
+                            }}
                           >
                             {expense.paid ? "Marcar como Pendiente" : "Marcar como Pagado"}
                           </AlertDialogAction>
