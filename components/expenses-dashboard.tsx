@@ -179,7 +179,7 @@ export function ExpensesDashboard() {
     } else {
       updates.unpaidAt = serverTimestamp()
       updates.paidAt = null
-      updates.receiptImageId = null // Limpiar comprobante si se marca como pendiente
+      updates.receiptImageId = undefined // Limpiar comprobante si se marca como pendiente
     }
     
     await updateExpense(id, updates)
