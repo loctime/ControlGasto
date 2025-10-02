@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Plus, Pencil, Trash2, Check, X, DollarSign } from "lucide-react"
+import { Plus, Pencil, Trash2, Check, X, DollarSign, Receipt } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +19,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { PaymentReceiptDialog } from "@/components/payment-receipt-dialog"
+import { ReceiptViewer } from "@/components/receipt-viewer"
+import { controlFileService } from "@/lib/controlfile"
 
 interface Expense {
   id: string
@@ -30,6 +33,7 @@ interface Expense {
   createdAt: any
   paidAt?: any
   unpaidAt?: any
+  receiptImageId?: string
 }
 
 interface ExpensesTableProps {
@@ -37,7 +41,7 @@ interface ExpensesTableProps {
   onAddExpense: (name: string, amount: number, category: string) => void
   onUpdateExpense: (id: string, updates: Partial<Expense>) => void
   onDeleteExpense: (id: string) => void
-  onTogglePaid: (id: string, currentPaid: boolean) => void
+  onTogglePaid: (id: string, currentPaid: boolean, receiptImageId?: string) => void
 }
 
 export function ExpensesTable({ 
@@ -51,6 +55,9 @@ export function ExpensesTable({
   const [newExpense, setNewExpense] = useState({ name: "", amount: "", category: "hogar" })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingExpense, setEditingExpense] = useState({ name: "", amount: "", category: "hogar" })
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false)
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
+  const [isConnectedToControlFile, setIsConnectedToControlFile] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   // Auto-focus en el input cuando se abre el formulario
@@ -59,6 +66,15 @@ export function ExpensesTable({
       nameInputRef.current.focus()
     }
   }, [isAdding])
+
+  // Verificar conexión con ControlFile
+  useEffect(() => {
+    const checkConnection = async () => {
+      const connected = await controlFileService.isConnected()
+      setIsConnectedToControlFile(connected)
+    }
+    checkConnection()
+  }, [])
 
   const handleToggleAdding = () => {
     setIsAdding(!isAdding)
@@ -95,6 +111,30 @@ export function ExpensesTable({
   const handleCancelEdit = () => {
     setEditingId(null)
     setEditingExpense({ name: "", amount: "", category: "hogar" })
+  }
+
+  const handleTogglePaidClick = (expense: Expense) => {
+    if (!expense.paid) {
+      // Si va a marcar como pagado, mostrar diálogo de comprobante
+      setSelectedExpense(expense)
+      setShowReceiptDialog(true)
+    } else {
+      // Si va a marcar como pendiente, hacerlo directamente
+      onTogglePaid(expense.id, expense.paid)
+    }
+  }
+
+  const handleReceiptConfirm = (receiptImageId?: string) => {
+    if (selectedExpense) {
+      onTogglePaid(selectedExpense.id, selectedExpense.paid, receiptImageId)
+    }
+    setShowReceiptDialog(false)
+    setSelectedExpense(null)
+  }
+
+  const handleReceiptClose = () => {
+    setShowReceiptDialog(false)
+    setSelectedExpense(null)
   }
 
   return (
@@ -278,6 +318,12 @@ export function ExpensesTable({
                       >
                         {expense.paid ? "Pagado" : "Pendiente"}
                       </Badge>
+                      {expense.paid && expense.receiptImageId && (
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                          <Receipt className="w-3 h-3 mr-1" />
+                          Comprobante
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className="text-xs">
@@ -296,53 +342,64 @@ export function ExpensesTable({
                   </div>
                   
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          size="default"
-                          variant={expense.paid ? "outline" : "default"}
-                          className={`h-10 px-4 font-medium transition-all duration-200 ${
-                            expense.paid 
-                              ? "border-pending/40 text-pending hover:bg-gradient-to-r hover:from-pending/15 hover:to-pending/10 hover:border-pending/50 hover:shadow-md" 
-                              : "bg-gradient-to-r from-paid to-paid/90 text-paid-foreground shadow-md hover:shadow-lg hover:scale-105"
-                          }`}
-                        >
-                          {expense.paid ? "Pendiente" : "Pagar"}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            {expense.paid ? "¿Marcar como pendiente?" : "¿Marcar como pagado?"}
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {expense.paid 
-                              ? `¿Estás seguro de que quieres marcar "${expense.name}" como pendiente?`
-                              : `¿Estás seguro de que quieres marcar "${expense.name}" como pagado?`
-                            }
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => onTogglePaid(expense.id, expense.paid)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold border-2 border-blue-600 px-4 py-2 rounded-md"
-                            style={{
-                              backgroundColor: '#2563eb !important',
-                              color: '#ffffff !important',
-                              border: '2px solid #2563eb !important',
-                              fontWeight: '600 !important',
-                              padding: '8px 16px !important',
-                              borderRadius: '6px !important'
-                            }}
+                    {expense.paid ? (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="default"
+                            variant="outline"
+                            className="h-10 px-4 font-medium transition-all duration-200 border-pending/40 text-pending hover:bg-gradient-to-r hover:from-pending/15 hover:to-pending/10 hover:border-pending/50 hover:shadow-md"
                           >
-                            {expense.paid ? "Marcar como Pendiente" : "Marcar como Pagado"}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            Pendiente
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Marcar como pendiente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              ¿Estás seguro de que quieres marcar "{expense.name}" como pendiente?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => onTogglePaid(expense.id, expense.paid)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold border-2 border-blue-600 px-4 py-2 rounded-md"
+                              style={{
+                                backgroundColor: '#2563eb !important',
+                                color: '#ffffff !important',
+                                border: '2px solid #2563eb !important',
+                                fontWeight: '600 !important',
+                                padding: '8px 16px !important',
+                                borderRadius: '6px !important'
+                              }}
+                            >
+                              Marcar como Pendiente
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    ) : (
+                      <Button
+                        size="default"
+                        variant="default"
+                        onClick={() => handleTogglePaidClick(expense)}
+                        className="h-10 px-4 font-medium transition-all duration-200 bg-gradient-to-r from-paid to-paid/90 text-paid-foreground shadow-md hover:shadow-lg hover:scale-105"
+                      >
+                        Pagar
+                      </Button>
+                    )}
                     
                     <div className="flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      {/* Botón para ver comprobante si existe */}
+                      {expense.paid && expense.receiptImageId && (
+                        <ReceiptViewer
+                          receiptImageId={expense.receiptImageId}
+                          expenseName={expense.name}
+                          expenseAmount={expense.amount}
+                        />
+                      )}
+                      
                       <Button
                         size="sm"
                         variant="ghost"
@@ -409,6 +466,19 @@ export function ExpensesTable({
           </div>
         )}
       </div>
+
+      {/* Diálogo de comprobante de pago */}
+      {selectedExpense && (
+        <PaymentReceiptDialog
+          isOpen={showReceiptDialog}
+          onClose={handleReceiptClose}
+          onConfirm={handleReceiptConfirm}
+          expenseName={selectedExpense.name}
+          expenseAmount={selectedExpense.amount}
+          isConnectedToControlFile={isConnectedToControlFile}
+          onConnectionChange={setIsConnectedToControlFile}
+        />
+      )}
     </div>
   )
 }

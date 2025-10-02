@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { ExpensesHeader } from "@/components/expenses-header"
 import { ExpensesTable } from "@/components/expenses-table"
+import { ReceiptsSummary } from "@/components/receipts-summary"
 import { ErrorBoundary, ChartErrorFallback } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
 import { useRetry, useRateLimit, useMemoizedCalculations } from "@/lib/optimization"
@@ -31,6 +32,7 @@ interface Expense {
   createdAt: any
   paidAt?: any
   unpaidAt?: any
+  receiptImageId?: string
 }
 
 export function ExpensesDashboard() {
@@ -164,16 +166,20 @@ export function ExpensesDashboard() {
     }
   }, [canMakeRequest, makeRequest, retryWithBackoff])
 
-  const togglePaid = useCallback(async (id: string, currentPaid: boolean) => {
+  const togglePaid = useCallback(async (id: string, currentPaid: boolean, receiptImageId?: string) => {
     const newPaidStatus = !currentPaid
     const updates: Partial<Expense> = { paid: newPaidStatus }
     
     if (newPaidStatus) {
       updates.paidAt = serverTimestamp()
       updates.unpaidAt = null
+      if (receiptImageId) {
+        updates.receiptImageId = receiptImageId
+      }
     } else {
       updates.unpaidAt = serverTimestamp()
       updates.paidAt = null
+      updates.receiptImageId = null // Limpiar comprobante si se marca como pendiente
     }
     
     await updateExpense(id, updates)
@@ -210,6 +216,11 @@ export function ExpensesDashboard() {
           totalPending={totals.totalPending}
           totalExpenses={totals.totalExpenses}
         />
+
+        {/* Resumen de comprobantes */}
+        <ErrorBoundary fallback={ChartErrorFallback}>
+          <ReceiptsSummary expenses={expenses} />
+        </ErrorBoundary>
 
         {/* Tabla de gastos */}
         <ErrorBoundary fallback={ChartErrorFallback}>
