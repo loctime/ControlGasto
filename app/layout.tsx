@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/components/auth-provider"
+import { ThemeProvider } from "@/components/theme-provider"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { Toaster } from "@/components/ui/sonner"
 import { Suspense } from "react"
@@ -42,10 +43,17 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <ErrorBoundary>
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
-            <AuthProvider>
-              {children}
-              <Toaster />
-            </AuthProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <AuthProvider>
+                {children}
+                <Toaster />
+              </AuthProvider>
+            </ThemeProvider>
           </Suspense>
         </ErrorBoundary>
         <Analytics />

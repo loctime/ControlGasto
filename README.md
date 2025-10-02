@@ -93,6 +93,19 @@ npm run setup-firebase # Configurar Firebase
 - **Formularios contextuales** con colores semánticos
 - **Estados vacíos atractivos** con call-to-action
 - **Transiciones suaves** y micro-interacciones
+- **Sistema de colores centralizado** con soporte completo para modo claro/oscuro
+
+### 🎨 Sistema de Colores
+
+La aplicación utiliza un sistema de colores semántico y centralizado:
+
+- **Colores base**: `primary`, `secondary`, `muted`, `accent`
+- **Estados de gastos**: `paid` (verde), `pending` (amarillo)
+- **Colores de estado**: `success`, `warning`, `destructive`, `info`
+- **Categorías**: Colores específicos por tipo de gasto
+- **Modo oscuro**: Adaptación automática de todos los colores
+
+**Documentación completa**: Ver `COLORS_SYSTEM.md` para detalles técnicos.
 
 ## 🔒 Seguridad
 
@@ -116,7 +129,10 @@ ControlGasto/
 ├── lib/                  # Utilidades y configuración
 │   ├── firebase.ts       # Configuración de Firebase
 │   └── auth.ts           # Funciones de autenticación
-└── public/               # Archivos estáticos
+├── public/               # Archivos estáticos
+├── COLORS_SYSTEM.md      # Documentación del sistema de colores
+├── COLORS_QUICK_REFERENCE.md # Referencia rápida de colores
+└── COLORS_EXAMPLES.md    # Ejemplos de implementación
 ```
 
 ## 🚀 Deployment

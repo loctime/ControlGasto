@@ -73,6 +73,11 @@ export function ExpensesDashboard() {
             id: doc.id,
             ...doc.data(),
           })) as Expense[]
+          console.log("🔍 DEBUG - Gastos cargados desde Firestore:", expensesData.map(exp => ({ 
+            name: exp.name, 
+            category: exp.category, 
+            amount: exp.amount 
+          })))
           setExpenses(expensesData)
           setError(null)
         } catch (err) {
@@ -102,14 +107,16 @@ export function ExpensesDashboard() {
     try {
       makeRequest()
       await retryWithBackoff(async () => {
-        await addDoc(collection(db, "expenses"), {
+        const expenseData = {
           name,
           amount,
           category,
           paid: false,
           userId: user.uid,
           createdAt: serverTimestamp(),
-        })
+        }
+        console.log("🔍 DEBUG - Guardando gasto:", expenseData)
+        await addDoc(collection(db, "expenses"), expenseData)
       })
       toast.success("Gasto agregado correctamente")
     } catch (error) {

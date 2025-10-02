@@ -210,8 +210,16 @@ export function HistoryContent() {
 
   // ✅ OPTIMIZACIÓN: Memoizar datos por categoría
   const categoryChartData = useMemo(() => {
+    // 🔍 DEBUG: Log para ver qué categorías tenemos
+    console.log("🔍 DEBUG - Gastos actuales:", currentExpenses.map(exp => ({ 
+      name: exp.name, 
+      category: exp.category, 
+      amount: exp.amount 
+    })))
+    
     const categoryData = currentExpenses.reduce((acc, expense) => {
       const category = expense.category
+      console.log("🔍 DEBUG - Procesando categoría:", category)
       if (!acc[category]) {
         acc[category] = { category, total: 0, paid: 0, pending: 0 }
       }
@@ -224,6 +232,8 @@ export function HistoryContent() {
       return acc
     }, {} as Record<string, { category: string; total: number; paid: number; pending: number }>)
 
+    console.log("🔍 DEBUG - Datos de categorías:", categoryData)
+
     return Object.values(categoryData).map(item => ({
       name: item.category === 'hogar' ? '🏠 Hogar' :
             item.category === 'transporte' ? '🚗 Transporte' :
@@ -235,6 +245,52 @@ export function HistoryContent() {
       paid: item.paid,
       pending: item.pending
     }))
+  }, [currentExpenses])
+
+  // ✅ NUEVO: Memoizar datos por items individuales
+  const itemsChartData = useMemo(() => {
+    const itemsData = currentExpenses.reduce((acc, expense) => {
+      const itemName = expense.name
+      if (!acc[itemName]) {
+        acc[itemName] = { 
+          name: itemName, 
+          total: 0, 
+          paid: 0, 
+          pending: 0, 
+          count: 0,
+          category: expense.category
+        }
+      }
+      acc[itemName].total += expense.amount
+      acc[itemName].count += 1
+      if (expense.paid) {
+        acc[itemName].paid += expense.amount
+      } else {
+        acc[itemName].pending += expense.amount
+      }
+      return acc
+    }, {} as Record<string, { 
+      name: string; 
+      total: number; 
+      paid: number; 
+      pending: number; 
+      count: number;
+      category: string;
+    }>)
+
+    // Ordenar por total descendente y tomar los top 10
+    return Object.values(itemsData)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10)
+      .map(item => ({
+        name: item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name,
+        fullName: item.name,
+        total: item.total,
+        paid: item.paid,
+        pending: item.pending,
+        count: item.count,
+        category: item.category
+      }))
   }, [currentExpenses])
 
   // ✅ OPTIMIZACIÓN: Estados de carga optimizados
@@ -394,6 +450,60 @@ export function HistoryContent() {
                           backgroundColor: "hsl(var(--card))",
                           border: "1px solid hsl(var(--border))",
                           borderRadius: "8px",
+                        }}
+                      />
+                      <Bar dataKey="paid" stackId="a" fill="#10b981" name="Pagado" />
+                      <Bar dataKey="pending" stackId="a" fill="#f59e0b" name="Pendiente" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Suspense>
+              </CardContent>
+            </Card>
+          </ErrorBoundary>
+        )}
+
+        {/* Gráfico por Items Individuales */}
+        {itemsChartData.length > 0 && (
+          <ErrorBoundary fallback={ChartErrorFallback}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Gastos por Items (Top 10)</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Los gastos individuales más costosos
+                </p>
+              </CardHeader>
+              <CardContent>
+                <Suspense fallback={<ChartSkeleton />}>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={itemsChartData} layout="horizontal">
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        stroke="hsl(var(--muted-foreground))"
+                        width={120}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                        }}
+                        formatter={(value, name, props) => {
+                          const data = props.payload
+                          return [
+                            `$${value.toLocaleString()}`,
+                            name === 'paid' ? 'Pagado' : 'Pendiente'
+                          ]
+                        }}
+                        labelFormatter={(label, payload) => {
+                          if (payload && payload[0]) {
+                            const data = payload[0].payload
+                            return `${data.fullName} (${data.count} veces)`
+                          }
+                          return label
                         }}
                       />
                       <Bar dataKey="paid" stackId="a" fill="#10b981" name="Pagado" />

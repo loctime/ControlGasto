@@ -4,6 +4,7 @@ import { Home, History, User } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { ThemeToggleCompact } from "@/components/theme-toggle"
 
 export function BottomNav() {
   const pathname = usePathname()
@@ -34,6 +35,11 @@ export function BottomNav() {
             </Link>
           )
         })}
+        {/* Toggle de tema */}
+        <div className="flex flex-col items-center justify-center gap-1 flex-1 h-full">
+          <ThemeToggleCompact />
+          <span className="text-xs font-medium">Tema</span>
+        </div>
       </div>
     </nav>
   )

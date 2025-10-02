@@ -2,6 +2,7 @@
 
 import { CheckCircle, Clock, DollarSign, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ThemeToggleCompact } from "@/components/theme-toggle"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
 import { formatCurrency } from "@/lib/utils"
 
@@ -22,8 +23,16 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
     <div className="space-y-6">
       {/* Título elegante */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-1">Gastos Fijos</h1>
-        <p className="text-sm text-muted-foreground">Gestiona tus gastos mensuales</p>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1" />
+          <div className="flex-1 text-center">
+            <h1 className="text-2xl font-bold text-foreground mb-1">Gastos Fijos</h1>
+            <p className="text-sm text-muted-foreground">Gestiona tus gastos mensuales</p>
+          </div>
+          <div className="flex-1 flex justify-end">
+            <ThemeToggleCompact />
+          </div>
+        </div>
         
         {/* Botón de instalación PWA */}
         {isInstallable && (
