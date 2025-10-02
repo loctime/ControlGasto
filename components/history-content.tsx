@@ -25,6 +25,16 @@ import {
 import { collection, query, where, getDocs, orderBy, limit, updateDoc, doc, writeBatch, Timestamp, FieldValue } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
+// Helper function to safely convert Firebase timestamp to Date
+const getDateFromTimestamp = (timestamp: Timestamp | FieldValue | null | undefined): Date => {
+  if (!timestamp) return new Date()
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate()
+  }
+  // If it's a FieldValue (like serverTimestamp), return current date
+  return new Date()
+}
+
 // ✅ LAZY LOADING: Cargar gráficos solo cuando se necesiten
 const BarChart = lazy(() => import("recharts").then(module => ({ default: module.BarChart })))
 const Bar = lazy(() => import("recharts").then(module => ({ default: module.Bar })))
@@ -119,7 +129,7 @@ export function HistoryContent() {
     }
 
     const filtered = expenses.filter(expense => {
-      const expenseDate = expense.createdAt?.toDate ? expense.createdAt.toDate() : new Date(expense.createdAt)
+      const expenseDate = getDateFromTimestamp(expense.createdAt)
       return expenseDate >= startDate
     })
 
@@ -149,7 +159,7 @@ export function HistoryContent() {
     const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     
     const lastMonthExpenses = expenses.filter(expense => {
-      const expenseDate = expense.createdAt?.toDate ? expense.createdAt.toDate() : new Date(expense.createdAt)
+      const expenseDate = getDateFromTimestamp(expense.createdAt)
       return expenseDate >= lastMonth && expenseDate < currentMonth && expense.paid
     })
     
