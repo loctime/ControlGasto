@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { formatCurrency } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -268,7 +269,7 @@ export function ExpensesTable({
                       </Badge>
                     </div>
                     <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                      ${expense.amount.toFixed(2)}
+                      {formatCurrency(expense.amount)}
                     </p>
                   </div>
                   

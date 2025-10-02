@@ -1,9 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { ExpensesHeader } from "@/components/expenses-header"
 import { ExpensesTable } from "@/components/expenses-table"
+import { ErrorBoundary, ChartErrorFallback } from "@/components/ui/error-boundary"
+import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
+import { useRetry, useRateLimit, useMemoizedCalculations } from "@/lib/optimization"
+import { toast } from "sonner"
 import {
   collection,
   addDoc,
@@ -32,93 +36,185 @@ interface Expense {
 export function ExpensesDashboard() {
   const { user } = useAuth()
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // ✅ OPTIMIZACIÓN: Hooks de optimización
+  const { retryWithBackoff } = useRetry()
+  const { canMakeRequest, makeRequest } = useRateLimit(20, 60000) // 20 requests por minuto
+
+  // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados
+  const totals = useMemoizedCalculations(
+    expenses,
+    (expenses) => {
+      const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
+      const totalPaid = expenses.filter((exp) => exp.paid).reduce((sum, exp) => sum + exp.amount, 0)
+      const totalPending = totalExpenses - totalPaid
+      return { totalExpenses, totalPaid, totalPending }
+    }
+  )
 
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
 
     const q = query(collection(db, "expenses"), where("userId", "==", user.uid))
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const expensesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Expense[]
-      setExpenses(expensesData)
-    })
+    
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        try {
+          const expensesData = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Expense[]
+          setExpenses(expensesData)
+          setError(null)
+        } catch (err) {
+          console.error("Error loading expenses:", err)
+          setError("Error al cargar gastos")
+        } finally {
+          setIsLoading(false)
+        }
+      },
+      (error) => {
+        console.error("Firestore error:", error)
+        setError("Error de conexión")
+        setIsLoading(false)
+      }
+    )
 
     return () => unsubscribe()
   }, [user])
 
-  const addExpense = async (name: string, amount: number, category: string) => {
-    if (!user) return
+  // ✅ OPTIMIZACIÓN: Funciones memoizadas con retry logic
+  const addExpense = useCallback(async (name: string, amount: number, category: string) => {
+    if (!user || !canMakeRequest) {
+      toast.error("Demasiadas solicitudes. Espera un momento.")
+      return
+    }
 
     try {
-      await addDoc(collection(db, "expenses"), {
-        name,
-        amount,
-        category,
-        paid: false,
-        userId: user.uid,
-        createdAt: serverTimestamp(),
+      makeRequest()
+      await retryWithBackoff(async () => {
+        await addDoc(collection(db, "expenses"), {
+          name,
+          amount,
+          category,
+          paid: false,
+          userId: user.uid,
+          createdAt: serverTimestamp(),
+        })
       })
+      toast.success("Gasto agregado correctamente")
     } catch (error) {
-      console.error("[v0] Error adding expense:", error)
+      console.error("Error adding expense:", error)
+      toast.error("Error al agregar gasto")
+      throw error
     }
-  }
+  }, [user, canMakeRequest, makeRequest, retryWithBackoff])
 
-  const updateExpense = async (id: string, updates: Partial<Expense>) => {
+  const updateExpense = useCallback(async (id: string, updates: Partial<Expense>) => {
+    if (!canMakeRequest) {
+      toast.error("Demasiadas solicitudes. Espera un momento.")
+      return
+    }
+
     try {
-      await updateDoc(doc(db, "expenses", id), updates)
+      makeRequest()
+      await retryWithBackoff(async () => {
+        await updateDoc(doc(db, "expenses", id), updates)
+      })
+      toast.success("Gasto actualizado correctamente")
     } catch (error) {
-      console.error("[v0] Error updating expense:", error)
+      console.error("Error updating expense:", error)
+      toast.error("Error al actualizar gasto")
+      throw error
     }
-  }
+  }, [canMakeRequest, makeRequest, retryWithBackoff])
 
-  const deleteExpense = async (id: string) => {
+  const deleteExpense = useCallback(async (id: string) => {
+    if (!canMakeRequest) {
+      toast.error("Demasiadas solicitudes. Espera un momento.")
+      return
+    }
+
     try {
-      await deleteDoc(doc(db, "expenses", id))
+      makeRequest()
+      await retryWithBackoff(async () => {
+        await deleteDoc(doc(db, "expenses", id))
+      })
+      toast.success("Gasto eliminado correctamente")
     } catch (error) {
-      console.error("[v0] Error deleting expense:", error)
+      console.error("Error deleting expense:", error)
+      toast.error("Error al eliminar gasto")
+      throw error
     }
-  }
+  }, [canMakeRequest, makeRequest, retryWithBackoff])
 
-  const togglePaid = async (id: string, currentPaid: boolean) => {
+  const togglePaid = useCallback(async (id: string, currentPaid: boolean) => {
     const newPaidStatus = !currentPaid
     const updates: Partial<Expense> = { paid: newPaidStatus }
     
     if (newPaidStatus) {
-      // Si se marca como pagado, guardar fecha de pago
       updates.paidAt = serverTimestamp()
       updates.unpaidAt = null
     } else {
-      // Si se desmarca como pagado, guardar fecha de desmarcado
       updates.unpaidAt = serverTimestamp()
       updates.paidAt = null
     }
     
     await updateExpense(id, updates)
+  }, [updateExpense])
+
+  // ✅ OPTIMIZACIÓN: Estados de carga y error
+  if (isLoading) {
+    return <DashboardSkeleton />
   }
 
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
-  const totalPaid = expenses.filter((exp) => exp.paid).reduce((sum, exp) => sum + exp.amount, 0)
-  const totalPending = totalExpenses - totalPaid
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h3 className="text-red-800 font-medium mb-2">Error al cargar gastos</h3>
+          <p className="text-red-600 text-sm mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-6">
-      {/* Header con totales */}
-      <ExpensesHeader 
-        totalPaid={totalPaid}
-        totalPending={totalPending}
-        totalExpenses={totalExpenses}
-      />
+    <ErrorBoundary>
+      <div className="max-w-6xl mx-auto p-4 space-y-6">
+        {/* Header con totales */}
+        <ExpensesHeader 
+          totalPaid={totals.totalPaid}
+          totalPending={totals.totalPending}
+          totalExpenses={totals.totalExpenses}
+        />
 
-      {/* Tabla de gastos */}
-      <ExpensesTable
-        expenses={expenses}
-        onAddExpense={addExpense}
-        onUpdateExpense={updateExpense}
-        onDeleteExpense={deleteExpense}
-        onTogglePaid={togglePaid}
-      />
-    </div>
+        {/* Tabla de gastos */}
+        <ErrorBoundary fallback={ChartErrorFallback}>
+          <ExpensesTable
+            expenses={expenses}
+            onAddExpense={addExpense}
+            onUpdateExpense={updateExpense}
+            onDeleteExpense={deleteExpense}
+            onTogglePaid={togglePaid}
+          />
+        </ErrorBoundary>
+      </div>
+    </ErrorBoundary>
   )
 }

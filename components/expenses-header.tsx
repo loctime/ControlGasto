@@ -3,6 +3,7 @@
 import { CheckCircle, Clock, DollarSign, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
+import { formatCurrency } from "@/lib/utils"
 
 interface ExpensesHeaderProps {
   totalPaid: number
@@ -49,7 +50,7 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
               <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
             </div>
             <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Pagado</p>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">${totalPaid.toFixed(2)}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{formatCurrency(totalPaid)}</p>
           </div>
 
           {/* Pendiente */}
@@ -58,7 +59,7 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
               <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
             </div>
             <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Pendiente</p>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">${totalPending.toFixed(2)}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{formatCurrency(totalPending)}</p>
           </div>
 
           {/* Total */}
@@ -67,7 +68,7 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
               <DollarSign className="w-6 h-6 text-slate-600 dark:text-slate-400" />
             </div>
             <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Total</p>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">${totalExpenses.toFixed(2)}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{formatCurrency(totalExpenses)}</p>
           </div>
         </div>
       </div>

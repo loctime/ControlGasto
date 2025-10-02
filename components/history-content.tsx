@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useMemo, Suspense, lazy } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { BottomNav } from "@/components/bottom-nav"
@@ -8,6 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ErrorBoundary, ChartErrorFallback } from "@/components/ui/error-boundary"
+import { HistorySkeleton, ChartSkeleton, PieChartSkeleton } from "@/components/ui/skeleton-loaders"
+import { useDebouncedCallback, useRetry, useMemoizedCalculations } from "@/lib/optimization"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +24,18 @@ import {
 } from "@/components/ui/alert-dialog"
 import { collection, query, where, getDocs, orderBy, limit, updateDoc, doc, writeBatch } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts"
+
+// ✅ LAZY LOADING: Cargar gráficos solo cuando se necesiten
+const BarChart = lazy(() => import("recharts").then(module => ({ default: module.BarChart })))
+const Bar = lazy(() => import("recharts").then(module => ({ default: module.Bar })))
+const XAxis = lazy(() => import("recharts").then(module => ({ default: module.XAxis })))
+const YAxis = lazy(() => import("recharts").then(module => ({ default: module.YAxis })))
+const CartesianGrid = lazy(() => import("recharts").then(module => ({ default: module.CartesianGrid })))
+const Tooltip = lazy(() => import("recharts").then(module => ({ default: module.Tooltip })))
+const ResponsiveContainer = lazy(() => import("recharts").then(module => ({ default: module.ResponsiveContainer })))
+const PieChart = lazy(() => import("recharts").then(module => ({ default: module.PieChart })))
+const Pie = lazy(() => import("recharts").then(module => ({ default: module.Pie })))
+const Cell = lazy(() => import("recharts").then(module => ({ default: module.Cell })))
 
 interface Expense {
   id: string
@@ -39,6 +54,12 @@ export function HistoryContent() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([])
   const [view, setView] = useState<"week" | "month">("month")
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // ✅ OPTIMIZACIÓN: Hooks de optimización
+  const { retryWithBackoff } = useRetry()
+  const debouncedSetView = useDebouncedCallback(setView, 300)
 
   useEffect(() => {
     if (!user && !loading) {
@@ -47,20 +68,36 @@ export function HistoryContent() {
   }, [user, loading, router])
 
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setIsLoading(false)
+      return
+    }
 
     const fetchExpenses = async () => {
-      const q = query(collection(db, "expenses"), where("userId", "==", user.uid), orderBy("createdAt", "desc"))
-      const snapshot = await getDocs(q)
-      const expensesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Expense[]
-      setExpenses(expensesData)
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        await retryWithBackoff(async () => {
+          const q = query(collection(db, "expenses"), where("userId", "==", user.uid), orderBy("createdAt", "desc"))
+          const snapshot = await getDocs(q)
+          const expensesData = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Expense[]
+          setExpenses(expensesData)
+        })
+      } catch (error) {
+        console.error("Error fetching expenses:", error)
+        setError("Error al cargar historial")
+        toast.error("Error al cargar historial")
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     fetchExpenses()
-  }, [user])
+  }, [user, retryWithBackoff])
 
   // Filtrar gastos por período
   useEffect(() => {
@@ -88,10 +125,26 @@ export function HistoryContent() {
     setFilteredExpenses(filtered)
   }, [expenses, view])
 
-  if (loading) {
+  // ✅ OPTIMIZACIÓN: Estados de carga optimizados
+  if (loading || isLoading) {
+    return <HistorySkeleton />
+  }
+
+  if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse">Cargando...</div>
+      <div className="min-h-screen bg-background pb-20">
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <h3 className="text-red-800 font-medium mb-2">Error al cargar historial</h3>
+            <p className="text-red-600 text-sm mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -100,11 +153,21 @@ export function HistoryContent() {
     return null
   }
 
-  // Usar gastos filtrados para los cálculos
-  const currentExpenses = filteredExpenses.length > 0 ? filteredExpenses : expenses
-  const totalExpenses = currentExpenses.reduce((sum, exp) => sum + exp.amount, 0)
-  const totalPaid = currentExpenses.filter((exp) => exp.paid).reduce((sum, exp) => sum + exp.amount, 0)
-  const totalPending = totalExpenses - totalPaid
+  // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados
+  const currentExpenses = useMemo(() => 
+    filteredExpenses.length > 0 ? filteredExpenses : expenses, 
+    [filteredExpenses, expenses]
+  )
+
+  const totals = useMemoizedCalculations(
+    currentExpenses,
+    (expenses) => {
+      const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
+      const totalPaid = expenses.filter((exp) => exp.paid).reduce((sum, exp) => sum + exp.amount, 0)
+      const totalPending = totalExpenses - totalPaid
+      return { totalExpenses, totalPaid, totalPending }
+    }
+  )
 
   // Detectar si es un nuevo mes y hay gastos pagados del mes anterior
   const isNewMonth = () => {
@@ -162,43 +225,46 @@ export function HistoryContent() {
     }
   }, [expenses])
 
-  const barData = [
-    { name: "Total", amount: totalExpenses },
-    { name: "Pagado", amount: totalPaid },
-    { name: "Pendiente", amount: totalPending },
-  ]
+  // ✅ OPTIMIZACIÓN: Memoizar datos de gráficos
+  const barData = useMemo(() => [
+    { name: "Total", amount: totals.totalExpenses },
+    { name: "Pagado", amount: totals.totalPaid },
+    { name: "Pendiente", amount: totals.totalPending },
+  ], [totals])
 
-  const pieData = [
-    { name: "Pagado", value: totalPaid, color: "#10b981" },
-    { name: "Pendiente", value: totalPending, color: "#f59e0b" },
-  ]
+  const pieData = useMemo(() => [
+    { name: "Pagado", value: totals.totalPaid, color: "#10b981" },
+    { name: "Pendiente", value: totals.totalPending, color: "#f59e0b" },
+  ], [totals])
 
-  // Datos por categoría
-  const categoryData = currentExpenses.reduce((acc, expense) => {
-    const category = expense.category
-    if (!acc[category]) {
-      acc[category] = { category, total: 0, paid: 0, pending: 0 }
-    }
-    acc[category].total += expense.amount
-    if (expense.paid) {
-      acc[category].paid += expense.amount
-    } else {
-      acc[category].pending += expense.amount
-    }
-    return acc
-  }, {} as Record<string, { category: string; total: number; paid: number; pending: number }>)
+  // ✅ OPTIMIZACIÓN: Memoizar datos por categoría
+  const categoryChartData = useMemo(() => {
+    const categoryData = currentExpenses.reduce((acc, expense) => {
+      const category = expense.category
+      if (!acc[category]) {
+        acc[category] = { category, total: 0, paid: 0, pending: 0 }
+      }
+      acc[category].total += expense.amount
+      if (expense.paid) {
+        acc[category].paid += expense.amount
+      } else {
+        acc[category].pending += expense.amount
+      }
+      return acc
+    }, {} as Record<string, { category: string; total: number; paid: number; pending: number }>)
 
-  const categoryChartData = Object.values(categoryData).map(item => ({
-    name: item.category === 'hogar' ? '🏠 Hogar' :
-          item.category === 'transporte' ? '🚗 Transporte' :
-          item.category === 'alimentacion' ? '🍽️ Alimentación' :
-          item.category === 'servicios' ? '⚡ Servicios' :
-          item.category === 'entretenimiento' ? '🎬 Entretenimiento' :
-          item.category === 'salud' ? '🏥 Salud' : '📦 Otros',
-    total: item.total,
-    paid: item.paid,
-    pending: item.pending
-  }))
+    return Object.values(categoryData).map(item => ({
+      name: item.category === 'hogar' ? '🏠 Hogar' :
+            item.category === 'transporte' ? '🚗 Transporte' :
+            item.category === 'alimentacion' ? '🍽️ Alimentación' :
+            item.category === 'servicios' ? '⚡ Servicios' :
+            item.category === 'entretenimiento' ? '🎬 Entretenimiento' :
+            item.category === 'salud' ? '🏥 Salud' : '📦 Otros',
+      total: item.total,
+      paid: item.paid,
+      pending: item.pending
+    }))
+  }, [currentExpenses])
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -244,88 +310,100 @@ export function HistoryContent() {
         </div>
 
         {/* Bar Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Resumen de Gastos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={barData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Bar dataKey="amount" fill="#10b981" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <ErrorBoundary fallback={ChartErrorFallback}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumen de Gastos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={<ChartSkeleton />}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={barData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar dataKey="amount" fill="#10b981" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Suspense>
+            </CardContent>
+          </Card>
+        </ErrorBoundary>
 
         {/* Pie Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Estado de Pagos</CardTitle>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <ErrorBoundary fallback={ChartErrorFallback}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Estado de Pagos</CardTitle>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <Suspense fallback={<PieChartSkeleton />}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Suspense>
+            </CardContent>
+          </Card>
+        </ErrorBoundary>
 
         {/* Gráfico por Categorías */}
         {categoryChartData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Gastos por Categoría</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={categoryChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar dataKey="paid" stackId="a" fill="#10b981" name="Pagado" />
-                  <Bar dataKey="pending" stackId="a" fill="#f59e0b" name="Pendiente" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <ErrorBoundary fallback={ChartErrorFallback}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Gastos por Categoría</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Suspense fallback={<ChartSkeleton />}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={categoryChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Bar dataKey="paid" stackId="a" fill="#10b981" name="Pagado" />
+                      <Bar dataKey="pending" stackId="a" fill="#f59e0b" name="Pendiente" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Suspense>
+              </CardContent>
+            </Card>
+          </ErrorBoundary>
         )}
 
         {/* Summary Stats */}

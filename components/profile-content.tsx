@@ -25,7 +25,7 @@ export function ProfileContent() {
       await signOut()
       router.push("/")
     } catch (error) {
-      console.error("[v0] Error signing out:", error)
+      console.error("Error signing out:", error)
     }
   }
 

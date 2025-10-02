@@ -1,17 +1,38 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // ✅ PRODUCCIÓN: Remover configuraciones de desarrollo
+  // eslint: { ignoreDuringBuilds: true }, // ❌ REMOVIDO
+  // typescript: { ignoreBuildErrors: true }, // ❌ REMOVIDO
+  
+  // ✅ OPTIMIZADO: Configuración de imágenes
   images: {
-    unoptimized: true,
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  // Optimizaciones para Vercel
+  
+  // ✅ OPTIMIZADO: Compresión y performance
+  compress: true,
+  poweredByHeader: false,
+  
+  // ✅ OPTIMIZADO: Optimizaciones avanzadas
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    optimizePackageImports: [
+      'lucide-react', 
+      '@radix-ui/react-icons',
+      'recharts',
+      'date-fns'
+    ],
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
+    optimizeCss: true,
+    scrollRestoration: true,
   },
   // Configuración para PWA
   async headers() {

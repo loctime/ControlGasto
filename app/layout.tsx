@@ -4,13 +4,14 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/components/auth-provider"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { Toaster } from "@/components/ui/sonner"
 import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
   title: "GastosApp - Gestor de Gastos Fijos",
   description: "Gestiona tus gastos fijos con facilidad",
-  generator: "v0.app",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -39,9 +40,14 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <Suspense fallback={<div>Cargando...</div>}>
-          <AuthProvider>{children}</AuthProvider>
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </Suspense>
+        </ErrorBoundary>
         <Analytics />
       </body>
     </html>
