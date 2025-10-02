@@ -32,7 +32,7 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
               onClick={handleInstall}
               variant="outline"
               size="sm"
-              className="bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-600"
+              className="bg-secondary hover:bg-accent border-border"
             >
               <Download className="w-4 h-4 mr-2" />
               Instalar App
@@ -42,33 +42,33 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
       </div>
 
       {/* Resumen integrado y elegante */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+      <div className="bg-gradient-to-r from-secondary to-accent rounded-xl p-6 border border-border">
         <div className="grid grid-cols-3 gap-6">
           {/* Pagado */}
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full mb-3">
-              <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-paid/10 rounded-full mb-3">
+              <CheckCircle className="w-6 h-6 text-paid" />
             </div>
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Pagado</p>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{formatCurrency(totalPaid)}</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Pagado</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(totalPaid)}</p>
           </div>
 
           {/* Pendiente */}
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full mb-3">
-              <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-pending/10 rounded-full mb-3">
+              <Clock className="w-6 h-6 text-pending" />
             </div>
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Pendiente</p>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{formatCurrency(totalPending)}</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Pendiente</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(totalPending)}</p>
           </div>
 
           {/* Total */}
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full mb-3">
-              <DollarSign className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-muted rounded-full mb-3">
+              <DollarSign className="w-6 h-6 text-muted-foreground" />
             </div>
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Total</p>
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{formatCurrency(totalExpenses)}</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Total</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(totalExpenses)}</p>
           </div>
         </div>
       </div>

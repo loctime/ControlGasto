@@ -56,8 +56,7 @@ export function HistoryContent() {
   const [view, setView] = useState<"week" | "month">("month")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [hasMoreData, setHasMoreData] = useState(true)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [showResetModal, setShowResetModal] = useState(false)
   
   // ✅ OPTIMIZACIÓN: Hooks de optimización
   const { retryWithBackoff } = useRetry()
@@ -81,20 +80,13 @@ export function HistoryContent() {
 
       try {
         await retryWithBackoff(async () => {
-          // ✅ OPTIMIZACIÓN: Limitar resultados iniciales para carga más rápida
-          const q = query(
-            collection(db, "expenses"), 
-            where("userId", "==", user.uid), 
-            orderBy("createdAt", "desc"),
-            limit(50) // Limitar a 50 gastos más recientes inicialmente
-          )
+          const q = query(collection(db, "expenses"), where("userId", "==", user.uid), orderBy("createdAt", "desc"))
           const snapshot = await getDocs(q)
           const expensesData = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           })) as Expense[]
           setExpenses(expensesData)
-          setHasMoreData(snapshot.docs.length === 50) // Si hay exactamente 50, puede haber más
         })
       } catch (error) {
         console.error("Error fetching expenses:", error)
@@ -134,35 +126,7 @@ export function HistoryContent() {
     setFilteredExpenses(filtered)
   }, [expenses, view])
 
-  // ✅ OPTIMIZACIÓN: Estados de carga optimizados
-  if (loading || isLoading) {
-    return <HistorySkeleton />
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="max-w-4xl mx-auto p-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <h3 className="text-red-800 font-medium mb-2">Error al cargar historial</h3>
-            <p className="text-red-600 text-sm mb-4">{error}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-            >
-              Reintentar
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return null
-  }
-
-  // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados
+  // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados (SIEMPRE antes de returns condicionales)
   const currentExpenses = useMemo(() => 
     filteredExpenses.length > 0 ? filteredExpenses : expenses, 
     [filteredExpenses, expenses]
@@ -191,8 +155,6 @@ export function HistoryContent() {
     
     return lastMonthExpenses.length > 0
   }
-
-  const [showResetModal, setShowResetModal] = useState(false)
 
   // Función para reiniciar todos los pagos
   const resetAllPayments = async () => {
@@ -246,43 +208,6 @@ export function HistoryContent() {
     { name: "Pendiente", value: totals.totalPending, color: "#f59e0b" },
   ], [totals])
 
-  // ✅ OPTIMIZACIÓN: Función para cargar más gastos
-  const loadMoreExpenses = async () => {
-    if (!user || !hasMoreData || isLoadingMore) return
-
-    setIsLoadingMore(true)
-    try {
-      const lastExpense = expenses[expenses.length - 1]
-      const q = query(
-        collection(db, "expenses"),
-        where("userId", "==", user.uid),
-        orderBy("createdAt", "desc"),
-        limit(50)
-      )
-      const snapshot = await getDocs(q)
-      const newExpenses = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Expense[]
-      
-      // Filtrar gastos que ya tenemos para evitar duplicados
-      const existingIds = new Set(expenses.map(e => e.id))
-      const uniqueNewExpenses = newExpenses.filter(e => !existingIds.has(e.id))
-      
-      if (uniqueNewExpenses.length > 0) {
-        setExpenses(prev => [...prev, ...uniqueNewExpenses])
-        setHasMoreData(uniqueNewExpenses.length === 50)
-      } else {
-        setHasMoreData(false)
-      }
-    } catch (error) {
-      console.error("Error loading more expenses:", error)
-      toast.error("Error al cargar más gastos")
-    } finally {
-      setIsLoadingMore(false)
-    }
-  }
-
   // ✅ OPTIMIZACIÓN: Memoizar datos por categoría
   const categoryChartData = useMemo(() => {
     const categoryData = currentExpenses.reduce((acc, expense) => {
@@ -311,6 +236,35 @@ export function HistoryContent() {
       pending: item.pending
     }))
   }, [currentExpenses])
+
+  // ✅ OPTIMIZACIÓN: Estados de carga optimizados
+  if (loading || isLoading) {
+    return <HistorySkeleton />
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <h3 className="text-red-800 font-medium mb-2">Error al cargar historial</h3>
+            <p className="text-red-600 text-sm mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -470,26 +424,6 @@ export function HistoryContent() {
           </Card>
         </div>
 
-        {/* Load More Button */}
-        {hasMoreData && (
-          <div className="flex justify-center pt-4">
-            <Button
-              onClick={loadMoreExpenses}
-              disabled={isLoadingMore}
-              variant="outline"
-              className="w-full max-w-sm"
-            >
-              {isLoadingMore ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600 mr-2"></div>
-                  Cargando más gastos...
-                </>
-              ) : (
-                "Cargar más gastos"
-              )}
-            </Button>
-          </div>
-        )}
       </div>
       <BottomNav />
 

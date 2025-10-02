@@ -107,7 +107,7 @@ export function ExpensesTable({
         </div>
         <Button
           onClick={handleToggleAdding}
-          className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+          className="bg-primary hover:bg-primary/90 shadow-sm"
         >
           <Plus className="w-4 h-4 mr-2" />
           {isAdding ? "Cancelar" : "Agregar"}
@@ -116,21 +116,21 @@ export function ExpensesTable({
 
       {/* Formulario de agregar - Estilo moderno */}
       {isAdding && (
-        <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800">
-          <h3 className="font-medium text-emerald-900 dark:text-emerald-100 mb-4">Nuevo Gasto</h3>
+        <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl p-6 border border-primary/20">
+          <h3 className="font-medium text-primary mb-4">Nuevo Gasto</h3>
             <div className="space-y-4">
               <Input
                 ref={nameInputRef}
                 placeholder="Descripción del gasto"
                 value={newExpense.name}
                 onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
-                className="h-12 text-lg border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500"
+                className="h-12 text-lg border-primary/30 focus:border-primary focus:ring-primary"
               />
               <Select
                 value={newExpense.category}
                 onValueChange={(value) => setNewExpense({ ...newExpense, category: value })}
               >
-                <SelectTrigger className="h-12 text-lg border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500">
+                <SelectTrigger className="h-12 text-lg border-primary/30 focus:border-primary focus:ring-primary">
                   <SelectValue placeholder="Selecciona una categoría" />
                 </SelectTrigger>
                 <SelectContent>
@@ -151,13 +151,13 @@ export function ExpensesTable({
                     placeholder="0.00"
                     value={newExpense.amount}
                     onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                    className="pl-9 h-12 text-lg border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500"
+                    className="pl-9 h-12 text-lg border-primary/30 focus:border-primary focus:ring-primary"
                   />
                 </div>
               <div className="flex gap-3">
                 <Button
                   onClick={handleAddExpense}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-12"
+                  className="flex-1 bg-primary hover:bg-primary/90 h-12"
                 >
                   <Check className="w-4 h-4 mr-2" />
                   Guardar
@@ -165,7 +165,7 @@ export function ExpensesTable({
                 <Button
                   variant="outline"
                   onClick={() => setIsAdding(false)}
-                  className="flex-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50 h-12"
+                  className="flex-1 border-primary/30 text-primary hover:bg-primary/10 h-12"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Cancelar
@@ -192,26 +192,26 @@ export function ExpensesTable({
             key={expense.id}
             className={`group rounded-lg border transition-all duration-200 hover:shadow-sm ${
               expense.paid
-                ? "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:border-emerald-300 dark:hover:border-emerald-700"
-                : "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700"
+                ? "bg-paid/5 border-paid/20 hover:border-paid/30"
+                : "bg-pending/5 border-pending/20 hover:border-pending/30"
             }`}
           >
             {editingId === expense.id ? (
               // Modo edición
-              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                <h3 className="font-medium text-amber-900 dark:text-amber-100 mb-4">Editando Gasto</h3>
+              <div className="p-4 bg-warning/10 rounded-lg border border-warning/20">
+                <h3 className="font-medium text-warning mb-4">Editando Gasto</h3>
                 <div className="space-y-4">
                   <Input
                     placeholder="Descripción del gasto"
                     value={editingExpense.name}
                     onChange={(e) => setEditingExpense({ ...editingExpense, name: e.target.value })}
-                    className="h-12 text-lg border-amber-300 focus:border-amber-500 focus:ring-amber-500"
+                    className="h-12 text-lg border-warning/30 focus:border-warning focus:ring-warning"
                   />
                   <Select
                     value={editingExpense.category}
                     onValueChange={(value) => setEditingExpense({ ...editingExpense, category: value })}
                   >
-                    <SelectTrigger className="h-12 text-lg border-amber-300 focus:border-amber-500 focus:ring-amber-500">
+                    <SelectTrigger className="h-12 text-lg border-warning/30 focus:border-warning focus:ring-warning">
                       <SelectValue placeholder="Selecciona una categoría" />
                     </SelectTrigger>
                     <SelectContent>
@@ -232,13 +232,13 @@ export function ExpensesTable({
                         placeholder="0.00"
                         value={editingExpense.amount}
                         onChange={(e) => setEditingExpense({ ...editingExpense, amount: e.target.value })}
-                        className="pl-9 h-12 text-lg border-amber-300 focus:border-amber-500 focus:ring-amber-500"
+                        className="pl-9 h-12 text-lg border-warning/30 focus:border-warning focus:ring-warning"
                       />
                     </div>
                     <div className="flex gap-3">
                       <Button
                         onClick={handleSaveEdit}
-                        className="flex-1 bg-amber-600 hover:bg-amber-700 h-12"
+                        className="flex-1 bg-warning hover:bg-warning/90 h-12"
                       >
                         <Check className="w-4 h-4 mr-2" />
                         Guardar
@@ -246,7 +246,7 @@ export function ExpensesTable({
                       <Button
                         variant="outline"
                         onClick={handleCancelEdit}
-                        className="flex-1 border-amber-300 text-amber-700 hover:bg-amber-50 h-12"
+                        className="flex-1 border-warning/30 text-warning hover:bg-warning/10 h-12"
                       >
                         <X className="w-4 h-4 mr-2" />
                         Cancelar
@@ -266,8 +266,8 @@ export function ExpensesTable({
                         variant={expense.paid ? "default" : "secondary"}
                         className={`text-xs ${
                           expense.paid 
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400" 
-                            : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                            ? "bg-paid/20 text-paid" 
+                            : "bg-pending/20 text-pending"
                         }`}
                       >
                         {expense.paid ? "Pagado" : "Pendiente"}
@@ -297,8 +297,8 @@ export function ExpensesTable({
                           variant={expense.paid ? "outline" : "default"}
                           className={`h-10 px-4 font-medium ${
                             expense.paid 
-                              ? "border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20" 
-                              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                              ? "border-pending/30 text-pending hover:bg-pending/10" 
+                              : "bg-paid hover:bg-paid/90 text-paid-foreground shadow-sm"
                           }`}
                         >
                           {expense.paid ? "Pendiente" : "Pagar"}
@@ -320,7 +320,7 @@ export function ExpensesTable({
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => onTogglePaid(expense.id, expense.paid)}
-                            className={expense.paid ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"}
+                            className={expense.paid ? "bg-pending hover:bg-pending/90" : "bg-paid hover:bg-paid/90"}
                           >
                             {expense.paid ? "Marcar como Pendiente" : "Marcar como Pagado"}
                           </AlertDialogAction>
@@ -387,7 +387,7 @@ export function ExpensesTable({
             </p>
             <Button
               onClick={handleToggleAdding}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-primary hover:bg-primary/90"
             >
               <Plus className="w-4 h-4 mr-2" />
               Agregar Primer Gasto
