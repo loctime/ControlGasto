@@ -282,6 +282,22 @@ export class ControlFileService {
       }
     } catch (error: any) {
       console.error('Error subiendo archivo:', error)
+      
+      // Manejar diferentes tipos de errores
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        return {
+          success: false,
+          error: 'Error de conexión. Verifica tu conexión a internet e intenta de nuevo.'
+        }
+      }
+      
+      if (error.message?.includes('CORS') || error.message?.includes('Access-Control-Allow-Origin')) {
+        return {
+          success: false,
+          error: 'Error de configuración del servidor. Contacta al administrador.'
+        }
+      }
+      
       return {
         success: false,
         error: error.message || 'Error desconocido al subir archivo'
@@ -323,12 +339,29 @@ export class ControlFileService {
       }
     } catch (error: any) {
       console.error('Error creando carpeta:', error)
+      
+      // Manejar diferentes tipos de errores
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        return {
+          success: false,
+          error: 'Error de conexión. Verifica tu conexión a internet e intenta de nuevo.'
+        }
+      }
+      
+      if (error.message?.includes('CORS') || error.message?.includes('Access-Control-Allow-Origin')) {
+        return {
+          success: false,
+          error: 'Error de configuración del servidor. Contacta al administrador.'
+        }
+      }
+      
       return {
         success: false,
         error: error.message || 'Error desconocido al crear carpeta'
       }
     }
   }
+
 
   // Obtener URL de ControlFile con autenticación automática
   getControlFileUrl(): string {
