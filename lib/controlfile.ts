@@ -231,7 +231,7 @@ export class ControlFileService {
     }
   }
 
-  // Subir archivo a ControlFile
+  // Subir archivo a ControlFile usando el flujo correcto
   async uploadFile(file: File, folderName?: string): Promise<{ success: boolean; fileId?: string; error?: string }> {
     try {
       const token = await this.getAuthToken()
@@ -243,42 +243,91 @@ export class ControlFileService {
       }
 
       // Crear carpeta si no existe
-      let folderId = null
+      let parentId = null
       if (folderName) {
         const folderResult = await this.createFolder(folderName)
         if (folderResult.success) {
-          folderId = folderResult.folderId
+          parentId = folderResult.folderId
         }
       }
 
-      // Preparar FormData
-      const formData = new FormData()
-      formData.append('file', file)
-      if (folderId) {
-        formData.append('folderId', folderId)
-      }
+      console.log('🚀 Iniciando subida de archivo:', file.name)
 
-      // Subir archivo
-      const response = await fetch(`${this.backendUrl}/api/files/upload`, {
+      // Paso 1: Obtener URL presignada
+      const presignResponse = await fetch(`${this.backendUrl}/api/uploads/presign`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify({
+          name: file.name,
+          size: file.size,
+          mime: file.type,
+          parentId: parentId
+        })
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
+      if (!presignResponse.ok) {
+        const errorData = await presignResponse.json()
+        console.error('Error obteniendo URL presignada:', errorData)
         return {
           success: false,
-          error: errorData.message || 'Error subiendo archivo'
+          error: errorData.message || 'Error obteniendo URL de subida'
         }
       }
 
-      const result = await response.json()
+      const { uploadSessionId, url } = await presignResponse.json()
+      console.log('✅ URL presignada obtenida:', uploadSessionId)
+
+      // Paso 2: Subir archivo a la URL presignada
+      const uploadResponse = await fetch(url, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      })
+
+      if (!uploadResponse.ok) {
+        console.error('Error subiendo archivo:', uploadResponse.status, uploadResponse.statusText)
+        return {
+          success: false,
+          error: `Error subiendo archivo: ${uploadResponse.status} ${uploadResponse.statusText}`
+        }
+      }
+
+      const etag = uploadResponse.headers.get('etag')
+      console.log('✅ Archivo subido, ETag:', etag)
+
+      // Paso 3: Confirmar subida
+      const confirmResponse = await fetch(`${this.backendUrl}/api/uploads/confirm`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          uploadSessionId,
+          etag: etag
+        })
+      })
+
+      if (!confirmResponse.ok) {
+        const errorData = await confirmResponse.json()
+        console.error('Error confirmando subida:', errorData)
+        return {
+          success: false,
+          error: errorData.message || 'Error confirmando subida del archivo'
+        }
+      }
+
+      const result = await confirmResponse.json()
+      console.log('✅ Subida confirmada:', result)
+
       return {
         success: true,
-        fileId: result.fileId
+        fileId: result.fileId || result.id || uploadSessionId
       }
     } catch (error: any) {
       console.error('Error subiendo archivo:', error)

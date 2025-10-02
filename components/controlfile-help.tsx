@@ -101,7 +101,10 @@ export function ControlFileHelp({ className }: ControlFileHelpProps) {
           <AlertDescription className="text-xs">
             <strong>Servidor:</strong> https://controlfile.onrender.com<br/>
             <strong>Dominio permitido:</strong> https://gastos.controldoc.app<br/>
-            <strong>Estado CORS:</strong> Configurado correctamente
+            <strong>Estado CORS:</strong> Configurado correctamente<br/>
+            <strong>API Endpoints:</strong><br/>
+            • Crear carpeta: /api/folders/root<br/>
+            • Subir archivo: /api/uploads/presign → PUT → /api/uploads/confirm
           </AlertDescription>
         </Alert>
       </CardContent>
