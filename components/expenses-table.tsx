@@ -22,6 +22,7 @@ import {
 import { PaymentReceiptDialog } from "@/components/payment-receipt-dialog"
 import { ReceiptViewer } from "@/components/receipt-viewer"
 import { controlFileService } from "@/lib/controlfile"
+import { useControlFileSync } from "@/hooks/use-controlfile-sync"
 import { Timestamp, FieldValue } from "firebase/firestore"
 
 interface Expense {
@@ -58,8 +59,10 @@ export function ExpensesTable({
   const [editingExpense, setEditingExpense] = useState({ name: "", amount: "", category: "hogar" })
   const [showReceiptDialog, setShowReceiptDialog] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
-  const [isConnectedToControlFile, setIsConnectedToControlFile] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
+
+  // Usar el hook de sincronización con ControlFile
+  const { isControlFileConnected } = useControlFileSync()
 
   // Auto-focus en el input cuando se abre el formulario
   useEffect(() => {
@@ -67,15 +70,6 @@ export function ExpensesTable({
       nameInputRef.current.focus()
     }
   }, [isAdding])
-
-  // Verificar conexión con ControlFile
-  useEffect(() => {
-    const checkConnection = async () => {
-      const connected = await controlFileService.isConnected()
-      setIsConnectedToControlFile(connected)
-    }
-    checkConnection()
-  }, [])
 
   const handleToggleAdding = () => {
     setIsAdding(!isAdding)
@@ -468,8 +462,8 @@ export function ExpensesTable({
           onConfirm={handleReceiptConfirm}
           expenseName={selectedExpense.name}
           expenseAmount={selectedExpense.amount}
-          isConnectedToControlFile={isConnectedToControlFile}
-          onConnectionChange={setIsConnectedToControlFile}
+          isConnectedToControlFile={isControlFileConnected}
+          onConnectionChange={() => {}} // No necesario ya que se maneja globalmente
         />
       )}
     </div>
