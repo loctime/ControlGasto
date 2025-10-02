@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { collection, query, where, getDocs, orderBy, limit, updateDoc, doc, writeBatch } from "firebase/firestore"
+import { collection, query, where, getDocs, orderBy, limit, updateDoc, doc, writeBatch, Timestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 // ✅ LAZY LOADING: Cargar gráficos solo cuando se necesiten
@@ -43,9 +43,9 @@ interface Expense {
   amount: number
   category: 'hogar' | 'transporte' | 'alimentacion' | 'servicios' | 'entretenimiento' | 'salud' | 'otros'
   paid: boolean
-  createdAt: any
-  paidAt?: any
-  unpaidAt?: any
+  createdAt: Timestamp
+  paidAt?: Timestamp
+  unpaidAt?: Timestamp
 }
 
 export function HistoryContent() {
@@ -408,7 +408,7 @@ export function HistoryContent() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"

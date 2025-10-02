@@ -33,8 +33,9 @@ export function LoginPage() {
     try {
       setError("")
       await signInWithGoogle()
-    } catch (error: any) {
-      setError(error.message || "Error al iniciar sesión con Google")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Error al iniciar sesión con Google"
+      setError(errorMessage)
     }
   }
 
@@ -43,7 +44,7 @@ export function LoginPage() {
     try {
       setError("")
       await signInWithEmail(email, password)
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError("Email o contraseña incorrectos")
     }
   }
@@ -61,8 +62,8 @@ export function LoginPage() {
     try {
       setError("")
       await signUpWithEmail(email, password)
-    } catch (error: any) {
-      if (error.code === "auth/email-already-in-use") {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === "auth/email-already-in-use") {
         setError("Este email ya está registrado")
       } else {
         setError("Error al crear la cuenta")
@@ -76,7 +77,7 @@ export function LoginPage() {
       setError("")
       await resetPassword(email)
       setResetEmailSent(true)
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError("Error al enviar el email de recuperación")
     }
   }
