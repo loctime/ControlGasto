@@ -41,6 +41,22 @@ export function ReceiptViewer({
     }
   }
 
+  const handleViewInControlFile = async () => {
+    try {
+      // Intentar abrir directamente el archivo en ControlFile
+      const result = await controlFileService.getFileUrl(receiptImageId)
+      if (result.success && result.url) {
+        window.open(result.url, '_blank', 'noopener,noreferrer')
+      } else {
+        // Si no se puede obtener la URL directa, abrir ControlFile general
+        handleDownloadReceipt()
+      }
+    } catch (error) {
+      console.error('Error obteniendo URL del archivo:', error)
+      handleDownloadReceipt()
+    }
+  }
+
   return (
     <>
       <Button
@@ -101,9 +117,18 @@ export function ReceiptViewer({
                     </p>
                     <div className="flex gap-2">
                       <Button
+                        onClick={handleViewInControlFile}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver Comprobante
+                      </Button>
+                      <Button
                         onClick={handleDownloadReceipt}
                         size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
+                        variant="outline"
+                        className="border-blue-300 text-blue-700 hover:bg-blue-50"
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
                         Ir a ControlFile

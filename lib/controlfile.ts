@@ -222,6 +222,47 @@ export class ControlFileService {
   getControlFileUrl(): string {
     return `https://files.controldoc.app/`
   }
+
+  // Obtener URL directa de un archivo
+  async getFileUrl(fileId: string): Promise<{ success: boolean; url?: string; error?: string }> {
+    try {
+      const token = await this.getAuthToken()
+      if (!token) {
+        return {
+          success: false,
+          error: 'No hay sesión activa con ControlFile'
+        }
+      }
+
+      const response = await fetch(`${this.backendUrl}/api/files/${fileId}/url`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        return {
+          success: false,
+          error: errorData.message || 'Error obteniendo URL del archivo'
+        }
+      }
+
+      const result = await response.json()
+      return {
+        success: true,
+        url: result.url
+      }
+    } catch (error: any) {
+      console.error('Error obteniendo URL del archivo:', error)
+      return {
+        success: false,
+        error: error.message || 'Error desconocido al obtener URL del archivo'
+      }
+    }
+  }
 }
 
 // Instancia singleton

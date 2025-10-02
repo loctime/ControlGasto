@@ -156,7 +156,7 @@ export function PaymentReceiptDialog({
             Marcar como Pagado
           </DialogTitle>
           <DialogDescription>
-            ¿Deseas subir un comprobante de pago para "{expenseName}"?
+            Marca "{expenseName}" como pagado. Opcionalmente puedes subir un comprobante.
           </DialogDescription>
         </DialogHeader>
 
@@ -178,13 +178,33 @@ export function PaymentReceiptDialog({
             </CardContent>
           </Card>
 
+          {/* Opción de marcar sin comprobante */}
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="w-5 h-5 text-blue-500" />
+                <p className="font-medium text-blue-800">Marcar como pagado</p>
+              </div>
+              <p className="text-sm text-blue-700 mb-3">
+                Puedes marcar este gasto como pagado sin necesidad de subir un comprobante
+              </p>
+              <Button 
+                onClick={handleConfirm}
+                className="w-full bg-blue-500 hover:bg-blue-600"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Marcar como Pagado (Sin Comprobante)
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Estado de conexión con ControlFile */}
           {!isConnectedToControlFile && (
             <Card className="bg-orange-50 border-orange-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertCircle className="w-5 h-5 text-orange-500" />
-                  <p className="font-medium text-orange-800">Conexión requerida</p>
+                  <p className="font-medium text-orange-800">Subir comprobante (Opcional)</p>
                 </div>
                 <p className="text-sm text-orange-700 mb-3">
                   Para subir comprobantes necesitas conectar tu cuenta de ControlFile
@@ -203,6 +223,11 @@ export function PaymentReceiptDialog({
           {/* Opciones de imagen */}
           {isConnectedToControlFile && (
             <div className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-600 mb-3">
+                  <strong>Opcional:</strong> Subir comprobante de pago
+                </p>
+              </div>
               <div className="flex gap-2">
                 <Button
                   onClick={() => cameraInputRef.current?.click()}
@@ -284,14 +309,16 @@ export function PaymentReceiptDialog({
             <X className="w-4 h-4 mr-2" />
             Cancelar
           </Button>
-          <Button
-            onClick={handleConfirm}
-            className="bg-green-600 hover:bg-green-700"
-            disabled={isUploading}
-          >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Confirmar Pago
-          </Button>
+          {uploadedImageId && (
+            <Button
+              onClick={handleConfirm}
+              className="bg-green-600 hover:bg-green-700"
+              disabled={isUploading}
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Confirmar Pago con Comprobante
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -33,7 +33,7 @@ interface Expense {
   createdAt: Timestamp | FieldValue
   paidAt?: Timestamp | FieldValue | null
   unpaidAt?: Timestamp | FieldValue | null
-  receiptImageId?: string
+  receiptImageId?: string | null
 }
 
 export function ExpensesDashboard() {
