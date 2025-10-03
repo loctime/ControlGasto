@@ -33,8 +33,31 @@ export function ReceiptViewer({
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const { toast } = useToast()
 
-  const handleViewReceipt = () => {
+  const handleViewReceipt = async () => {
     setIsViewerOpen(true)
+    
+    // Cargar automáticamente la imagen al abrir el modal
+    if (!imageUrl) {
+      setIsLoadingUrl(true)
+      try {
+        console.log(`🔍 Obteniendo URL directa de BlackBlaze para archivo: ${receiptImageId}`)
+        
+        const result = await controlFileService.getFileUrl(receiptImageId)
+        
+        if (result.success && result.url) {
+          const isBlackBlaze = result.url.includes('backblazeb2.com') || result.url.includes('b2.')
+          
+          if (isBlackBlaze) {
+            console.log(`🚀 Cargando imagen automáticamente desde BlackBlaze B2`)
+            setImageUrl(result.url)
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando imagen automáticamente:', error)
+      } finally {
+        setIsLoadingUrl(false)
+      }
+    }
   }
 
   const handleDownloadReceipt = async () => {
@@ -89,58 +112,6 @@ export function ReceiptViewer({
     }
   }
 
-  const handleViewInControlFile = async () => {
-    setIsLoadingUrl(true)
-    try {
-      console.log(`🔍 Obteniendo URL directa de BlackBlaze para archivo: ${receiptImageId}`)
-      
-      // Intentar obtener URL directa de BlackBlaze B2
-      const result = await controlFileService.getFileUrl(receiptImageId)
-      
-      if (result.success && result.url) {
-        console.log(`✅ URL directa obtenida: ${result.url}`)
-        
-        // Verificar si es una URL de BlackBlaze
-        const isBlackBlaze = result.url.includes('backblazeb2.com') || result.url.includes('b2.')
-        
-        if (isBlackBlaze) {
-          console.log(`🚀 Mostrando imagen en modal desde BlackBlaze B2`)
-          toast({
-            title: "Cargando comprobante",
-            description: "Obteniendo imagen desde BlackBlaze B2...",
-          })
-          setImageUrl(result.url)
-        } else {
-          console.log(`📁 Abriendo URL de ControlFile`)
-          toast({
-            title: "Abriendo comprobante",
-            description: "Redirigiendo a ControlFile...",
-          })
-          window.open(result.url, '_blank', 'noopener,noreferrer')
-        }
-      } else {
-        console.log(`❌ No se pudo obtener URL directa: ${result.error}`)
-        
-        // Si no se puede obtener la URL directa, abrir ControlFile general
-        toast({
-          title: "Abriendo ControlFile",
-          description: "No se pudo obtener URL directa, abriendo ControlFile...",
-          variant: "default"
-        })
-        handleDownloadReceipt()
-      }
-    } catch (error) {
-      console.error('Error obteniendo URL del archivo:', error)
-      toast({
-        title: "Error al abrir comprobante",
-        description: "No se pudo acceder al archivo. Intentando abrir ControlFile...",
-        variant: "destructive"
-      })
-      handleDownloadReceipt()
-    } finally {
-      setIsLoadingUrl(false)
-    }
-  }
 
   return (
     <>
@@ -166,41 +137,31 @@ export function ReceiptViewer({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 overflow-y-auto flex-1 pr-2">
-            {/* Mensaje informativo mejorado */}
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Eye className="w-4 h-4 text-blue-600" />
+            <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+            {/* Estado de carga */}
+            {isLoadingUrl && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-center gap-3">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                    <p className="text-blue-700">Cargando comprobante...</p>
                   </div>
-                  <div>
-                    
-                    <p className="text-sm text-blue-700 mb-3">
-                      Tu comprobante se ha guardado de forma segura en ControlFile.
-                    </p>
-                    <p className="text-sm text-blue-700 mb-3">
-                      Puedes acceder directamente al archivo o a través de tu panel de ControlFile.
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleViewInControlFile}
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                        disabled={isLoadingUrl}
-                      >
-                        {isLoadingUrl ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Obteniendo URL...
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="w-4 h-4 mr-2" />
-                            Ver Comprobante Directo
-                          </>
-                        )}
-                      </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Mensaje cuando no hay imagen */}
+            {!imageUrl && !isLoadingUrl && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Eye className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-blue-700 mb-3">
+                        Tu comprobante se ha guardado de forma segura en ControlFile.
+                      </p>
                       <Button
                         onClick={handleDownloadReceipt}
                         size="sm"
@@ -212,9 +173,9 @@ export function ReceiptViewer({
                       </Button>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Mostrar imagen del comprobante si está disponible */}
             {imageUrl && (
