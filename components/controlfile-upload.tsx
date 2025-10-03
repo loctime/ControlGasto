@@ -20,7 +20,7 @@ interface ControlFileUploadProps {
 export function ControlFileUpload({
   file,
   fileName,
-  folderName = "GastosApp",
+  folderName = "ControlGastos",
   onUploaded,
   disabled = false,
   size = "default",
@@ -109,7 +109,7 @@ interface ControlFileUploadFromUrlProps {
 export function ControlFileUploadFromUrl({
   fileUrl,
   fileName,
-  folderName = "GastosApp",
+  folderName = "ControlGastos",
   onUploaded,
   disabled = false,
   size = "default",

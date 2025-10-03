@@ -88,7 +88,7 @@ export function PaymentReceiptDialog({
     try {
       const result = await controlFileService.uploadFile(
         selectedImage, 
-        `Comprobantes de Pago - ${new Date().getFullYear()}`
+        "ControlGastos"
       )
 
       if (result.success && result.fileId) {

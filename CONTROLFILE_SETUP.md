@@ -43,7 +43,7 @@ import { ControlFileUpload } from "@/components/controlfile-upload"
 
 <ControlFileUpload 
   file={file} 
-  folderName="GastosApp"
+  folderName="ControlGastos"
   onUploaded={(result) => console.log(result)}
 />
 ```
@@ -55,7 +55,7 @@ import { ControlFileUploadFromUrl } from "@/components/controlfile-upload"
 <ControlFileUploadFromUrl 
   fileUrl="https://example.com/file.pdf"
   fileName="documento.pdf"
-  folderName="GastosApp"
+  folderName="ControlGastos"
   onUploaded={(result) => console.log(result)}
 />
 ```

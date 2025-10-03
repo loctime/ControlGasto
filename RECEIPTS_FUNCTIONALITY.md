@@ -13,7 +13,7 @@ Esta funcionalidad permite a los usuarios subir comprobantes de pago cuando marc
 ### 2. Subida de Comprobante
 - **Opción 1: Tomar foto** - Usa la cámara del dispositivo
 - **Opción 2: Galería** - Selecciona imagen existente
-- La imagen se sube automáticamente a ControlFile en la carpeta "Comprobantes de Pago - [Año]"
+- La imagen se sube automáticamente a ControlFile en la carpeta "ControlGastos"
 - Se guarda el ID de la imagen en la base de datos
 
 ### 3. Visualización de Comprobantes
