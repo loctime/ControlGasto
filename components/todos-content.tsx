@@ -251,7 +251,7 @@ export function TodosContent() {
         <div className="pt-4">
           <h1 className="text-3xl font-bold text-foreground mb-2">Todos los Gastos</h1>
           <p className="text-muted-foreground">
-            Lista completa de todos los pagos realizados ({filteredExpenses.length} de {expenses.length})
+            Registros de todos los pagos realizados ({filteredExpenses.length} de {expenses.length})
           </p>
         </div>
 
@@ -263,60 +263,58 @@ export function TodosContent() {
               Filtros y Ordenamiento
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Búsqueda */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por descripción..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+           <CardContent className="space-y-4">
+             {/* Filtros en grid 2x2 */}
+             <div className="grid grid-cols-2 gap-4">
+               {/* Primera fila */}
+               <div className="relative">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                 <Input
+                   placeholder="Buscar por descripción..."
+                   value={searchTerm}
+                   onChange={(e) => setSearchTerm(e.target.value)}
+                   className="pl-10"
+                 />
+               </div>
+               
+               <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as FilterCategory)}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Todas las categorías" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">Todas las categorías</SelectItem>
+                   <SelectItem value="hogar">🏠 Hogar</SelectItem>
+                   <SelectItem value="transporte">🚗 Transporte</SelectItem>
+                   <SelectItem value="alimentacion">🍽️ Alimentación</SelectItem>
+                   <SelectItem value="servicios">⚡ Servicios</SelectItem>
+                   <SelectItem value="entretenimiento">🎬 Entretenimiento</SelectItem>
+                   <SelectItem value="salud">🏥 Salud</SelectItem>
+                   <SelectItem value="otros">📦 Otros</SelectItem>
+                 </SelectContent>
+               </Select>
 
-            {/* Filtros en grid responsive */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Filtro por categoría */}
-              <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as FilterCategory)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas las categorías" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las categorías</SelectItem>
-                  <SelectItem value="hogar">🏠 Hogar</SelectItem>
-                  <SelectItem value="transporte">🚗 Transporte</SelectItem>
-                  <SelectItem value="alimentacion">🍽️ Alimentación</SelectItem>
-                  <SelectItem value="servicios">⚡ Servicios</SelectItem>
-                  <SelectItem value="entretenimiento">🎬 Entretenimiento</SelectItem>
-                  <SelectItem value="salud">🏥 Salud</SelectItem>
-                  <SelectItem value="otros">📦 Otros</SelectItem>
-                </SelectContent>
-              </Select>
+               {/* Segunda fila */}
+               <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Ordenar por" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="date">Fecha</SelectItem>
+                   <SelectItem value="amount">Monto</SelectItem>
+                   <SelectItem value="name">Descripción</SelectItem>
+                   <SelectItem value="category">Categoría</SelectItem>
+                 </SelectContent>
+               </Select>
 
-              {/* Ordenar por */}
-              <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Ordenar por" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date">Fecha</SelectItem>
-                  <SelectItem value="amount">Monto</SelectItem>
-                  <SelectItem value="name">Descripción</SelectItem>
-                  <SelectItem value="category">Categoría</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Orden */}
-              <Button
-                variant="outline"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="flex items-center gap-2"
-              >
-                {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                {sortOrder === 'asc' ? 'Ascendente' : 'Descendente'}
-              </Button>
-            </div>
+               <Button
+                 variant="outline"
+                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                 className="flex items-center gap-2"
+               >
+                 {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                 {sortOrder === 'asc' ? 'Ascendente' : 'Descendente'}
+               </Button>
+             </div>
           </CardContent>
         </Card>
 
@@ -367,6 +365,7 @@ export function TodosContent() {
                              receiptImageId={expense.receiptImageId}
                              expenseName={expense.name}
                              expenseAmount={expense.amount}
+                             paidAt={expense.paidAt && 'toDate' in expense.paidAt ? expense.paidAt.toDate() : null}
                            />
                          )}
                        </div>

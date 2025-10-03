@@ -369,6 +369,7 @@ export function ExpensesTable({
                         receiptImageId={expense.receiptImageId}
                         expenseName={expense.name}
                         expenseAmount={expense.amount}
+                        paidAt={expense.paidAt && 'toDate' in expense.paidAt ? expense.paidAt.toDate() : null}
                       />
                     )}
                     

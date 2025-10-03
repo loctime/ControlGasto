@@ -19,15 +19,18 @@ interface ReceiptViewerProps {
   receiptImageId: string
   expenseName: string
   expenseAmount: number
+  paidAt?: Date | null
 }
 
 export function ReceiptViewer({ 
   receiptImageId, 
   expenseName, 
-  expenseAmount 
+  expenseAmount,
+  paidAt
 }: ReceiptViewerProps) {
   const [isViewerOpen, setIsViewerOpen] = useState(false)
   const [isLoadingUrl, setIsLoadingUrl] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const { toast } = useToast()
 
   const handleViewReceipt = () => {
@@ -41,6 +44,48 @@ export function ReceiptViewer({
       window.open(controlFileUrl, '_blank', 'noopener,noreferrer')
     } catch (error) {
       console.error('Error abriendo ControlFile:', error)
+    }
+  }
+
+  const handleDownloadImage = async () => {
+    if (!imageUrl) return
+    
+    try {
+      setIsLoadingUrl(true)
+      
+      // Usar un proxy interno para descargar la imagen
+      const response = await fetch(`/api/download-image?url=${encodeURIComponent(imageUrl)}`)
+      
+      if (!response.ok) {
+        throw new Error('Error en la descarga')
+      }
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `comprobante-${expenseName.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.jpg`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Limpiar la URL temporal
+      window.URL.revokeObjectURL(url)
+      
+      toast({
+        title: "Descarga completada",
+        description: "El comprobante se ha descargado exitosamente.",
+      })
+    } catch (error) {
+      console.error('Error descargando imagen:', error)
+      toast({
+        title: "Error al descargar",
+        description: "No se pudo descargar el comprobante. Intenta abrir ControlFile.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingUrl(false)
     }
   }
 
@@ -59,20 +104,20 @@ export function ReceiptViewer({
         const isBlackBlaze = result.url.includes('backblazeb2.com') || result.url.includes('b2.')
         
         if (isBlackBlaze) {
-          console.log(`🚀 Abriendo URL directa de BlackBlaze B2`)
+          console.log(`🚀 Mostrando imagen en modal desde BlackBlaze B2`)
           toast({
-            title: "Abriendo comprobante",
-            description: "Cargando imagen directamente desde BlackBlaze B2...",
+            title: "Cargando comprobante",
+            description: "Obteniendo imagen desde BlackBlaze B2...",
           })
+          setImageUrl(result.url)
         } else {
           console.log(`📁 Abriendo URL de ControlFile`)
           toast({
             title: "Abriendo comprobante",
             description: "Redirigiendo a ControlFile...",
           })
+          window.open(result.url, '_blank', 'noopener,noreferrer')
         }
-        
-        window.open(result.url, '_blank', 'noopener,noreferrer')
       } else {
         console.log(`❌ No se pudo obtener URL directa: ${result.error}`)
         
@@ -110,36 +155,18 @@ export function ReceiptViewer({
       </Button>
 
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Receipt className="w-5 h-5 text-green-500" />
               Comprobante de Pago
             </DialogTitle>
             <DialogDescription>
-              Comprobante para "{expenseName}" - ${expenseAmount.toLocaleString()}
+              Comprobante para "{expenseName}" - ${expenseAmount.toLocaleString()} {paidAt && `pagado el ${paidAt.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Información del gasto */}
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-green-800">{expenseName}</p>
-                    <p className="text-2xl font-bold text-green-900">
-                      ${expenseAmount.toLocaleString()}
-                    </p>
-                  </div>
-                  <Badge className="bg-green-500 text-white">
-                    <Receipt className="w-3 h-3 mr-1" />
-                    Comprobante Guardado
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="space-y-4 overflow-y-auto flex-1 pr-2">
             {/* Mensaje informativo mejorado */}
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-4">
@@ -148,11 +175,11 @@ export function ReceiptViewer({
                     <Eye className="w-4 h-4 text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-blue-800 mb-1">
-                      Comprobante guardado en ControlFile + BlackBlaze B2
-                    </h4>
+                    
                     <p className="text-sm text-blue-700 mb-3">
-                      Tu comprobante se ha guardado de forma segura en BlackBlaze B2 a través de ControlFile. 
+                      Tu comprobante se ha guardado de forma segura en ControlFile.
+                    </p>
+                    <p className="text-sm text-blue-700 mb-3">
                       Puedes acceder directamente al archivo o a través de tu panel de ControlFile.
                     </p>
                     <div className="flex gap-2">
@@ -188,6 +215,58 @@ export function ReceiptViewer({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Mostrar imagen del comprobante si está disponible */}
+            {imageUrl && (
+              <Card className="bg-white border-gray-200">
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-800">
+                        Comprobante de Pago
+                      </h4>
+                      <Button
+                        onClick={handleDownloadImage}
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-3 text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300"
+                        disabled={isLoadingUrl}
+                      >
+                        {isLoadingUrl ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            Descargando...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4 mr-1" />
+                            Descargar
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <img 
+                        src={imageUrl} 
+                        alt={`Comprobante de ${expenseName}`}
+                        className="w-full h-auto max-h-96 object-contain"
+                        onError={() => {
+                          toast({
+                            title: "Error al cargar imagen",
+                            description: "No se pudo cargar el comprobante. Intenta abrir ControlFile.",
+                            variant: "destructive"
+                          })
+                          setImageUrl(null)
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Imagen cargada desde BlackBlaze B2
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Información técnica (solo en desarrollo) */}
             {process.env.NODE_ENV === 'development' && (
