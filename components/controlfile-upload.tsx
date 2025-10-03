@@ -10,7 +10,7 @@ interface ControlFileUploadProps {
   file?: File
   fileName?: string
   folderName?: string
-  onUploaded?: (result: { success: boolean; fileId?: string; fileUrl?: string; fileName?: string; fileSize?: number; error?: string }) => void
+  onUploaded?: (result: { success: boolean; fileId?: string; fileUrl?: string; shareUrl?: string; shareToken?: string; fileName?: string; fileSize?: number; error?: string }) => void
   disabled?: boolean
   size?: "default" | "sm" | "lg"
   variant?: "default" | "outline" | "secondary"
@@ -47,8 +47,10 @@ export function ControlFileUpload({
       if (result.success) {
         toast({
           title: "Archivo subido exitosamente",
-          description: result.fileUrl 
-            ? `Archivo "${result.fileName || 'archivo'}" guardado en ControlFile${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. URL disponible por 5 minutos.`
+          description: result.shareUrl 
+            ? `Archivo "${result.fileName || 'archivo'}" guardado en ControlFile${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. Enlace permanente creado.`
+            : result.fileUrl 
+            ? `Archivo "${result.fileName || 'archivo'}" guardado en ControlFile${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. URL temporal disponible por 5 minutos.`
             : `El archivo se ha guardado en ControlFile`,
         })
         onUploaded?.(result)
@@ -99,7 +101,7 @@ interface ControlFileUploadFromUrlProps {
   fileUrl: string
   fileName: string
   folderName?: string
-  onUploaded?: (result: { success: boolean; fileId?: string; fileUrl?: string; fileName?: string; fileSize?: number; error?: string }) => void
+  onUploaded?: (result: { success: boolean; fileId?: string; fileUrl?: string; shareUrl?: string; shareToken?: string; fileName?: string; fileSize?: number; error?: string }) => void
   disabled?: boolean
   size?: "default" | "sm" | "lg"
   variant?: "default" | "outline" | "secondary"
@@ -145,8 +147,10 @@ export function ControlFileUploadFromUrl({
       if (result.success) {
         toast({
           title: "Archivo subido exitosamente",
-          description: result.fileUrl 
-            ? `Archivo "${result.fileName || fileName}" guardado en ControlFile${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. URL disponible por 5 minutos.`
+          description: result.shareUrl 
+            ? `Archivo "${result.fileName || fileName}" guardado en ControlFile${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. Enlace permanente creado.`
+            : result.fileUrl 
+            ? `Archivo "${result.fileName || fileName}" guardado en ControlFile${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. URL temporal disponible por 5 minutos.`
             : `El archivo "${fileName}" se ha guardado en ControlFile`,
         })
         onUploaded?.(result)

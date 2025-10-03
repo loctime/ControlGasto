@@ -239,7 +239,7 @@ export class ControlFileService {
   }
 
   // Subir archivo a ControlFile usando el flujo correcto
-  async uploadFile(file: File, folderName?: string): Promise<{ success: boolean; fileId?: string; fileUrl?: string; fileName?: string; fileSize?: number; error?: string }> {
+  async uploadFile(file: File, folderName?: string): Promise<{ success: boolean; fileId?: string; fileUrl?: string; shareUrl?: string; shareToken?: string; fileName?: string; fileSize?: number; error?: string }> {
     try {
       const token = await this.getAuthToken()
       if (!token) {
@@ -341,29 +341,47 @@ export class ControlFileService {
 
       const fileId = result.fileId || result.id || uploadSessionId
       
-      // Obtener URL real del archivo
-      console.log('🔍 Obteniendo URL del archivo:', fileId)
-      const urlResult = await this.getFileUrl(fileId)
+      // Crear enlace de compartir permanente (recomendado)
+      console.log('🔗 Creando enlace de compartir permanente para archivo:', fileId)
+      const shareResult = await this.createPermanentShare(fileId, 87600) // 10 años
       
-      if (urlResult.success) {
-        console.log('✅ URL del archivo obtenida:', urlResult.url)
-        console.log('📁 Archivo:', urlResult.fileName)
-        console.log('📏 Tamaño:', urlResult.fileSize)
+      if (shareResult.success) {
+        console.log('✅ Enlace de compartir creado:', shareResult.shareUrl)
         return {
           success: true,
           fileId: fileId,
-          fileUrl: urlResult.url,
-          fileName: urlResult.fileName,
-          fileSize: urlResult.fileSize
+          shareUrl: shareResult.shareUrl,
+          shareToken: shareResult.shareToken,
+          // Mantener compatibilidad con código existente
+          fileUrl: shareResult.shareUrl,
+          fileName: file.name,
+          fileSize: file.size
         }
       } else {
-        console.warn('⚠️ No se pudo obtener URL del archivo:', urlResult.error)
-        return {
-          success: true,
-          fileId: fileId,
-          fileUrl: undefined,
-          fileName: undefined,
-          fileSize: undefined
+        console.warn('⚠️ No se pudo crear enlace de compartir, usando URL temporal:', shareResult.error)
+        
+        // Fallback a URL temporal si falla el enlace de compartir
+        const urlResult = await this.getFileUrl(fileId)
+        if (urlResult.success) {
+          return {
+            success: true,
+            fileId: fileId,
+            fileUrl: urlResult.url,
+            fileName: urlResult.fileName,
+            fileSize: urlResult.fileSize,
+            shareUrl: undefined,
+            shareToken: undefined
+          }
+        } else {
+          return {
+            success: true,
+            fileId: fileId,
+            fileUrl: undefined,
+            fileName: file.name,
+            fileSize: file.size,
+            shareUrl: undefined,
+            shareToken: undefined
+          }
         }
       }
     } catch (error: any) {
@@ -469,7 +487,59 @@ export class ControlFileService {
     return blackBlazePatterns.some(pattern => url.includes(pattern))
   }
 
-  // Obtener URL de descarga de un archivo usando el endpoint correcto
+  // Crear enlace de compartir permanente (recomendado)
+  async createPermanentShare(fileId: string, expiresInHours: number = 87600): Promise<{ success: boolean; shareUrl?: string; shareToken?: string; error?: string }> {
+    try {
+      const token = await this.getAuthToken()
+      if (!token) {
+        return {
+          success: false,
+          error: 'No hay sesión activa con ControlFile'
+        }
+      }
+
+      console.log(`🔗 Creando enlace de compartir permanente para archivo: ${fileId}`)
+
+      const response = await fetch(`${this.backendUrl}/api/shares/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fileId: fileId,
+          expiresIn: expiresInHours // Por defecto 10 años
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Error creando enlace de compartir:', errorData)
+        return {
+          success: false,
+          error: errorData.message || `Error creando enlace de compartir: ${response.status}`
+        }
+      }
+
+      const result = await response.json()
+      console.log('✅ Enlace de compartir creado:', result.shareUrl)
+      console.log('🔑 Share Token:', result.shareToken)
+
+      return {
+        success: true,
+        shareUrl: result.shareUrl,
+        shareToken: result.shareToken
+      }
+    } catch (error: any) {
+      console.error('Error creando enlace de compartir:', error)
+      return {
+        success: false,
+        error: error.message || 'Error desconocido al crear enlace de compartir'
+      }
+    }
+  }
+
+  // Obtener URL de descarga de un archivo usando el endpoint correcto (método legacy)
   async getFileUrl(fileId: string): Promise<{ success: boolean; url?: string; fileName?: string; fileSize?: number; error?: string }> {
     try {
       const token = await this.getAuthToken()
