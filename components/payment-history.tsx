@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { PaymentService } from "@/lib/payment-service"
 import { InvoiceService } from "@/lib/invoice-service"
-import { PaymentWithInvoices, PaymentType } from "@/lib/types"
+import { PaymentWithInvoices, PaymentType, Invoice } from "@/lib/types"
 import { 
   CreditCard, 
   FileText, 
