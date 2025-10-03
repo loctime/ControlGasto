@@ -168,117 +168,115 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
   const { date, time } = formatDateTime(currentTime)
 
   return (
-    <div className="space-y-6">
-      {/* Título elegante */}
-      <div className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 rounded-xl p-6 border border-primary/20 shadow-lg backdrop-blur-sm">
-        <div className="flex items-start justify-between">
+    <div className="space-y-1">
+      {/* Título compacto */}
+      <div className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 rounded-lg p-4 border border-primary/20 shadow-md backdrop-blur-sm">
+        <div className="flex items-center justify-between">
           {/* Lado izquierdo. - Título y saludo */}
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground mb-1">
+            <h1 className="text-lg font-bold text-foreground mb-1">
               Control-Gastos
             </h1>
-            <p className="text-sm text-muted-foreground mb-2">
-              {user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales'}
-            </p>
-            <div className="relative controlfile-message-container">
-              <button 
-                onClick={handleControlFileClick}
-                disabled={isConnecting}
-                className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95"
-              >
-                <div className={`w-3 h-3 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
-                <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
-                </span>
-              </button>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-muted-foreground">
+                {user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales'}
+              </p>
+              <div className="relative controlfile-message-container">
+                <button 
+                  onClick={handleControlFileClick}
+                  disabled={isConnecting}
+                  className="flex items-center gap-1 hover:bg-muted/50 rounded-md px-2 py-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95"
+                >
+                  <div className={`w-2 h-2 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
+                  <span className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                    {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
+                  </span>
+                </button>
 
-              {/* Mensaje de conexión */}
-              {showConnectedMessage && (
-                <div className="absolute top-full left-0 mt-2 bg-card border border-border rounded-lg shadow-lg p-3 z-50 min-w-[200px]">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground mb-2">
-                        Estás conectado a ControlFile
-                      </p>
-                      <Button
-                        onClick={handleGoToControlFile}
-                        size="sm"
-                        className="w-full"
+                {/* Mensaje de conexión */}
+                {showConnectedMessage && (
+                  <div className="absolute top-full left-0 mt-2 bg-card border border-border rounded-lg shadow-lg p-3 z-50 min-w-[200px]">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground mb-2">
+                          Estás conectado a ControlFile
+                        </p>
+                        <Button
+                          onClick={handleGoToControlFile}
+                          size="sm"
+                          className="w-full"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          IR
+                        </Button>
+                      </div>
+                      <button
+                        onClick={handleCloseMessage}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        IR
-                      </Button>
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-                    <button
-                      onClick={handleCloseMessage}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
           {/* Lado derecho - Fecha y hora */}
-          <div className="flex-1 flex justify-end">
-            <div className="text-right">
-              {!isInstalled && isInstallable && (
-                <div className="mb-2">
-                  <Button
-                    onClick={handleInstall}
-                    variant="outline"
-                    size="sm"
-                    className="bg-secondary hover:bg-accent border-border"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Instalar App
-                  </Button>
-                </div>
-              )}
-              <div className="flex items-center justify-end space-x-2 text-sm text-muted-foreground mb-1">
-                <Calendar className="w-4 h-4" />
-                <span className="capitalize">{date}</span>
-              </div>
-              <div className="flex items-center justify-end space-x-2 text-sm text-muted-foreground">
-                <Clock className="w-4 h-4" />
-                <span className="font-mono">{time}</span>
-                <ThemeToggleCompact />
-              </div>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            {!isInstalled && isInstallable && (
+              <Button
+                onClick={handleInstall}
+                variant="outline"
+                size="sm"
+                className="bg-secondary hover:bg-accent border-border text-xs px-2 py-1 h-7"
+              >
+                <Download className="w-3 h-3 mr-1" />
+                Instalar
+              </Button>
+            )}
+            <div className="flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              <span className="capitalize text-xs">{date.split(',')[0]}</span>
             </div>
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              <span className="font-mono text-xs">{time.split(':')[0]}:{time.split(':')[1]}</span>
+            </div>
+            <ThemeToggleCompact />
           </div>
         </div>
       </div>
 
-      {/* Resumen integrado y elegante */}
-      <div className="bg-gradient-to-br from-primary/5 via-secondary/10 to-accent/5 rounded-xl p-6 border border-primary/20 shadow-lg backdrop-blur-sm">
-        <div className="grid grid-cols-3 gap-6">
+      {/* Resumen compacto */}
+      <div className="bg-gradient-to-br from-primary/5 via-secondary/10 to-accent/5 rounded-lg p-3 border border-primary/20 shadow-md backdrop-blur-sm">
+        <div className="grid grid-cols-3 gap-4">
           {/* Pagado */}
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-paid/20 to-paid/10 rounded-full mb-3 shadow-md border border-paid/30">
-              <CheckCircle className="w-6 h-6 text-paid drop-shadow-sm" />
+            <div className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-paid/20 to-paid/10 rounded-full mb-2 shadow-sm border border-paid/30">
+              <CheckCircle className="w-4 h-4 text-paid drop-shadow-sm" />
             </div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Pagado</p>
-            <p className="text-xl font-bold text-foreground">{formatCurrency(totalPaid)}</p>
+            <p className="text-sm font-bold text-foreground">{formatCurrency(totalPaid)}</p>
           </div>
 
           {/* Pendiente */}
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-pending/20 to-pending/10 rounded-full mb-3 shadow-md border border-pending/30">
-              <Clock className="w-6 h-6 text-pending drop-shadow-sm" />
+            <div className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-pending/20 to-pending/10 rounded-full mb-2 shadow-sm border border-pending/30">
+              <Clock className="w-4 h-4 text-pending drop-shadow-sm" />
             </div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Pendiente</p>
-            <p className="text-xl font-bold text-foreground">{formatCurrency(totalPending)}</p>
+            <p className="text-sm font-bold text-foreground">{formatCurrency(totalPending)}</p>
           </div>
 
           {/* Total */}
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full mb-3 shadow-md border border-primary/30">
-              <DollarSign className="w-6 h-6 text-primary drop-shadow-sm" />
+            <div className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full mb-2 shadow-sm border border-primary/30">
+              <DollarSign className="w-4 h-4 text-primary drop-shadow-sm" />
             </div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Total</p>
-            <p className="text-xl font-bold text-foreground">{formatCurrency(totalExpenses)}</p>
+            <p className="text-sm font-bold text-foreground">{formatCurrency(totalExpenses)}</p>
           </div>
         </div>
       </div>

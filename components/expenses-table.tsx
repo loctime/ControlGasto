@@ -133,12 +133,11 @@ export function ExpensesTable({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Header elegante */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Gastos</h2>
-          <p className="text-sm text-muted-foreground">{expenses.length} gastos registrados</p>
         </div>
         <Button
           onClick={handleToggleAdding}
@@ -151,12 +150,12 @@ export function ExpensesTable({
 
       {/* Formulario de agregar - Estilo moderno */}
       {isAdding && (
-        <div className="bg-gradient-to-br from-primary/8 via-primary/5 to-primary/3 rounded-xl p-6 border border-primary/30 shadow-lg backdrop-blur-sm">
-          <h3 className="font-medium text-primary mb-4 flex items-center gap-2">
+        <div className="bg-gradient-to-br from-primary/8 via-primary/5 to-primary/3 rounded-xl p-4 border border-primary/30 shadow-lg backdrop-blur-sm">
+          <h3 className="font-medium text-primary mb-3 flex items-center gap-2">
             <span className="w-2 h-2 bg-primary rounded-full"></span>
             Nuevo Gasto
           </h3>
-            <div className="space-y-4">
+            <div className="space-y-3">
               <Input
                 ref={nameInputRef}
                 placeholder="Descripción del gasto"
@@ -181,7 +180,7 @@ export function ExpensesTable({
                   <SelectItem value="otros">📦 Otros</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -215,7 +214,7 @@ export function ExpensesTable({
       )}
 
       {/* Lista de gastos - Estilo moderno */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {expenses
           .sort((a, b) => {
             // Primero los no pagados (paid: false), luego los pagados (paid: true)
@@ -237,11 +236,11 @@ export function ExpensesTable({
             {editingId === expense.id ? (
               // Modo edición
               <div className="p-4 bg-gradient-to-br from-warning/15 via-warning/8 to-warning/5 rounded-lg border border-warning/30 shadow-md">
-                <h3 className="font-medium text-warning mb-4 flex items-center gap-2">
+                <h3 className="font-medium text-warning mb-3 flex items-center gap-2">
                   <span className="w-2 h-2 bg-warning rounded-full animate-pulse"></span>
                   Editando Gasto
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <Input
                     placeholder="Descripción del gasto"
                     value={editingExpense.name}
@@ -265,7 +264,7 @@ export function ExpensesTable({
                       <SelectItem value="otros">📦 Otros</SelectItem>
                     </SelectContent>
                   </Select>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
