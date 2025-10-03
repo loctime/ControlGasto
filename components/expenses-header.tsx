@@ -125,7 +125,7 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
       {/* Título elegante */}
       <div className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 rounded-xl p-6 border border-primary/20 shadow-lg backdrop-blur-sm">
         <div className="flex items-start justify-between">
-          {/* Lado izquierdo - Título y saludo */}
+          {/* Lado izquierdo. - Título y saludo */}
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground mb-1 flex items-center gap-2">
               Control-Gastos
