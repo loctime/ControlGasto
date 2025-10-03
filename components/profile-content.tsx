@@ -7,8 +7,6 @@ import { BottomNav } from "@/components/bottom-nav"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ControlFileConnection } from "@/components/controlfile-connection"
-import { ControlFileHelp } from "@/components/controlfile-help"
 import { signOut } from "@/lib/auth"
 import { LogOut, Mail, UserIcon } from "lucide-react"
 
@@ -92,11 +90,6 @@ export function ProfileContent() {
           </CardContent>
         </Card>
 
-        {/* ControlFile Integration */}
-        <ControlFileConnection />
-        
-        {/* ControlFile Help */}
-        <ControlFileHelp />
 
         {/* Actions Card */}
         <Card>

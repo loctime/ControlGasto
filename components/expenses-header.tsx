@@ -21,7 +21,7 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
   const { user } = useAuth()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isControlFileConnected, setIsControlFileConnected] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(false)
   const { toast } = useToast()
 
   // Actualizar fecha y hora cada segundo
@@ -33,7 +33,7 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
     return () => clearInterval(timer)
   }, [])
 
-  // Verificar conexión con ControlFile
+  // Verificar conexión con ControlFile y mantener estado sincronizado
   useEffect(() => {
     const checkControlFileConnection = async () => {
       try {
@@ -45,61 +45,84 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
     }
     
     checkControlFileConnection()
+
+    // Verificar periódicamente el estado de conexión para mantener sincronización
+    const interval = setInterval(checkControlFileConnection, 30000) // Cada 30 segundos
+
+    return () => clearInterval(interval)
   }, [])
 
   const handleInstall = async () => {
     await installPWA()
   }
 
-  const handleExportToControlFile = async () => {
-    if (!isControlFileConnected) {
-      toast({
-        title: "No conectado con ControlFile",
-        description: "Ve a tu perfil para conectar con ControlFile primero",
-        variant: "destructive"
-      })
+  const handleControlFileClick = async () => {
+    if (isConnecting) return
+
+    if (isControlFileConnected) {
+      // Si ya está conectado, abrir ControlFile
+      const url = controlFileService.getControlFileUrl()
+      window.open(url, '_blank', 'noopener,noreferrer')
       return
     }
 
-    setIsExporting(true)
+    // Si no está conectado, conectar automáticamente
+    setIsConnecting(true)
+    
     try {
-      // Crear un resumen de gastos en formato JSON
-      const expensesData = {
-        totalPaid,
-        totalPending,
-        totalExpenses,
-        exportDate: new Date().toISOString(),
-        user: user?.email
-      }
-
-      const jsonString = JSON.stringify(expensesData, null, 2)
-      const blob = new Blob([jsonString], { type: 'application/json' })
-      const file = new File([blob], `gastos-${new Date().toISOString().split('T')[0]}.json`, { type: 'application/json' })
-
-      const result = await controlFileService.uploadFile(file, 'GastosApp')
-      
-      if (result.success) {
+      if (!user) {
         toast({
-          title: "Exportado exitosamente",
-          description: "Los datos se han guardado en ControlFile",
-        })
-      } else {
-        toast({
-          title: "Error al exportar",
-          description: result.error || "No se pudo exportar a ControlFile",
+          title: "Error",
+          description: "Debes estar autenticado para conectar con ControlFile",
           variant: "destructive"
         })
+        return
+      }
+
+      const result = await controlFileService.connectWithMainUserCredentials(user)
+      
+      if (result.success) {
+        setIsControlFileConnected(true)
+        toast({
+          title: "Conectado exitosamente",
+          description: "ControlFile se ha conectado con tu cuenta",
+        })
+      } else {
+        // Si falla el popup, intentar con redirect
+        if (result.error === 'POPUP_BLOCKED' || result.error === 'POPUP_CANCELLED') {
+          toast({
+            title: "Popup bloqueado",
+            description: "Redirigiendo a ControlFile para conectar...",
+          })
+          
+          const redirectResult = await controlFileService.connectWithRedirect(user)
+          if (!redirectResult.success) {
+            toast({
+              title: "Error de conexión",
+              description: "No se pudo conectar con ControlFile",
+              variant: "destructive"
+            })
+          }
+        } else {
+          toast({
+            title: "Error de conexión",
+            description: result.error || "No se pudo conectar con ControlFile",
+            variant: "destructive"
+          })
+        }
       }
     } catch (error) {
+      console.error('Error conectando con ControlFile:', error)
       toast({
-        title: "Error al exportar",
+        title: "Error de conexión",
         description: "Ocurrió un error inesperado",
         variant: "destructive"
       })
     } finally {
-      setIsExporting(false)
+      setIsConnecting(false)
     }
   }
+
 
   // Formatear fecha y hora
   const formatDateTime = (date: Date) => {
@@ -127,13 +150,22 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
         <div className="flex items-start justify-between">
           {/* Lado izquierdo. - Título y saludo */}
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground mb-1 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground mb-1">
               Control-Gastos
-              <div className={`w-2 h-2 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mb-2">
               {user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales'}
             </p>
+            <button 
+              onClick={handleControlFileClick}
+              disabled={isConnecting}
+              className="flex items-center gap-2 hover:bg-muted/50 rounded-md p-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className={`w-2 h-2 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
+              <span className="text-xs text-muted-foreground">
+                {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
+              </span>
+            </button>
           </div>
 
           {/* Lado derecho - Fecha y hora */}

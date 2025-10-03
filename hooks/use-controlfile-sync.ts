@@ -11,12 +11,12 @@ export function useControlFileSync() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [controlFileUser, setControlFileUser] = useState<any>(null)
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(() => {
-    // Verificar si la sincronización automática está deshabilitada en localStorage
+    // Sincronización automática deshabilitada por defecto
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('controlfile-auto-sync-disabled')
-      return stored !== 'true'
+      const stored = localStorage.getItem('controlfile-auto-sync-enabled')
+      return stored === 'true'
     }
-    return true
+    return false
   })
   const { toast } = useToast()
 
@@ -295,7 +295,7 @@ export function useControlFileSync() {
     
     // Guardar en localStorage
     if (typeof window !== 'undefined') {
-      localStorage.setItem('controlfile-auto-sync-disabled', (!enabled).toString())
+      localStorage.setItem('controlfile-auto-sync-enabled', enabled.toString())
     }
     
     if (!enabled) {
