@@ -154,54 +154,59 @@ export function UnifiedHeader({
 
   return (
     <div className="space-y-6">
-      {/* Título elegante */}
+      {/* Header principal mejorado */}
       <div className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 rounded-xl p-6 border border-primary/20 shadow-lg backdrop-blur-sm">
         <div className="flex items-start justify-between">
           {/* Lado izquierdo - Título y saludo */}
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground mb-1">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold text-foreground mb-2 tracking-tight">
               {title}
             </h1>
-            <p className="text-sm text-muted-foreground mb-2">
-              {subtitle || (user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales')}
-            </p>
-            <button 
-              onClick={handleControlFileClick}
-              disabled={isConnecting}
-              className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95"
-            >
-              <div className={`w-3 h-3 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
-              <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
-              </span>
-            </button>
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-muted-foreground">
+                {subtitle || (user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales')}
+              </p>
+              <button 
+                onClick={handleControlFileClick}
+                disabled={isConnecting}
+                className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95 w-fit"
+              >
+                <div className={`w-2.5 h-2.5 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
+                <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
+                </span>
+              </button>
+            </div>
           </div>
 
-          {/* Lado derecho - Fecha y hora */}
-          <div className="flex-1 flex justify-end">
-            <div className="text-right">
-              {!isInstalled && isInstallable && (
-                <div className="mb-2">
-                  <Button
-                    onClick={handleInstall}
-                    variant="outline"
-                    size="sm"
-                    className="bg-secondary hover:bg-accent border-border"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Instalar App
-                  </Button>
-                </div>
-              )}
-              <div className="flex items-center justify-end space-x-2 text-sm text-muted-foreground mb-1">
+          {/* Lado derecho - Fecha, hora y controles */}
+          <div className="flex flex-col items-end gap-4">
+            {/* Botón de instalación */}
+            {!isInstalled && isInstallable && (
+              <Button
+                onClick={handleInstall}
+                variant="outline"
+                size="sm"
+                className="bg-secondary hover:bg-accent border-border"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Instalar App
+              </Button>
+            )}
+            
+            {/* Fecha y tema */}
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+              <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span className="capitalize">{date}</span>
+                <span className="capitalize font-medium">{date.split(',')[0]}</span>
               </div>
-              <div className="flex items-center justify-end space-x-2 text-sm text-muted-foreground">
-                <Clock className="w-4 h-4" />
-                <span className="font-mono">{time}</span>
-                <ThemeToggleCompact />
-              </div>
+              <ThemeToggleCompact />
+            </div>
+            
+            {/* Hora */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span className="font-mono font-medium">{time.split(':')[0]}:{time.split(':')[1]}</span>
             </div>
           </div>
         </div>

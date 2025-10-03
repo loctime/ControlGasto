@@ -169,26 +169,26 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
 
   return (
     <div className="space-y-1">
-      {/* Título compacto */}
-      <div className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 rounded-lg p-4 border border-primary/20 shadow-md backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          {/* Lado izquierdo. - Título y saludo */}
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-foreground mb-1">
+      {/* Header principal mejorado */}
+      <div className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 rounded-xl p-5 border border-primary/20 shadow-lg backdrop-blur-sm">
+        <div className="flex items-start justify-between">
+          {/* Lado izquierdo - Título y saludo */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-foreground mb-2 tracking-tight">
               Control-Gastos
             </h1>
-            <div className="flex items-center gap-3">
-              <p className="text-xs text-muted-foreground">
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">
                 {user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales'}
               </p>
               <div className="relative controlfile-message-container">
                 <button 
                   onClick={handleControlFileClick}
                   disabled={isConnecting}
-                  className="flex items-center gap-1 hover:bg-muted/50 rounded-md px-2 py-1 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95"
+                  className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95"
                 >
-                  <div className={`w-2 h-2 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
-                  <span className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  <div className={`w-2.5 h-2.5 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
+                  <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                     {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
                   </span>
                 </button>
@@ -223,28 +223,35 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
             </div>
           </div>
 
-          {/* Lado derecho - Fecha y hora */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          {/* Lado derecho - Fecha, hora y controles */}
+          <div className="flex flex-col items-end gap-3">
+            {/* Botón de instalación */}
             {!isInstalled && isInstallable && (
               <Button
                 onClick={handleInstall}
                 variant="outline"
                 size="sm"
-                className="bg-secondary hover:bg-accent border-border text-xs px-2 py-1 h-7"
+                className="bg-secondary hover:bg-accent border-border text-xs px-3 py-1.5 h-8"
               >
                 <Download className="w-3 h-3 mr-1" />
                 Instalar
               </Button>
             )}
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              <span className="capitalize text-xs">{date.split(',')[0]}</span>
+            
+            {/* Fecha y tema */}
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <span className="capitalize font-medium">{date.split(',')[0]}</span>
+              </div>
+              <ThemeToggleCompact />
             </div>
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span className="font-mono text-xs">{time.split(':')[0]}:{time.split(':')[1]}</span>
+            
+            {/* Hora */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span className="font-mono font-medium">{time.split(':')[0]}:{time.split(':')[1]}</span>
             </div>
-            <ThemeToggleCompact />
           </div>
         </div>
       </div>

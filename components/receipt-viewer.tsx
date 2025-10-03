@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -11,9 +11,10 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog"
-import { Receipt, Eye, Download, ExternalLink, Loader2 } from "lucide-react"
+import { Receipt, Eye, Download, ExternalLink, Loader2, Upload } from "lucide-react"
 import { controlFileService } from "@/lib/controlfile"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/components/auth-provider"
 
 interface ReceiptViewerProps {
   receiptImageId: string
@@ -32,6 +33,30 @@ export function ReceiptViewer({
   const [isLoadingUrl, setIsLoadingUrl] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const { toast } = useToast()
+  const { user } = useAuth()
+  
+  // Estados para conexión con ControlFile (igual que el header)
+  const [isControlFileConnected, setIsControlFileConnected] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(false)
+
+  // Verificar conexión con ControlFile y mantener estado sincronizado (igual que el header)
+  useEffect(() => {
+    const checkControlFileConnection = async () => {
+      try {
+        const connected = await controlFileService.isConnected()
+        setIsControlFileConnected(connected)
+      } catch (error) {
+        console.error('Error verificando ControlFile:', error)
+      }
+    }
+    
+    checkControlFileConnection()
+
+    // Verificar periódicamente el estado de conexión para mantener sincronización
+    const interval = setInterval(checkControlFileConnection, 30000) // Cada 30 segundos
+
+    return () => clearInterval(interval)
+  }, [])
 
   const handleViewReceipt = async () => {
     setIsViewerOpen(true)
@@ -60,13 +85,71 @@ export function ReceiptViewer({
     }
   }
 
-  const handleDownloadReceipt = async () => {
+  // Handler de conexión con ControlFile (exactamente igual que el header)
+  const handleControlFileClick = async () => {
+    if (isConnecting) return
+
+    if (isControlFileConnected) {
+      // Si ya está conectado, abrir ControlFile
+      const url = controlFileService.getControlFileUrl()
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return
+    }
+
+    // Si no está conectado, conectar automáticamente
+    setIsConnecting(true)
+    
     try {
-      // Abrir ControlFile en una nueva pestaña para descargar
-      const controlFileUrl = controlFileService.getControlFileUrl()
-      window.open(controlFileUrl, '_blank', 'noopener,noreferrer')
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "Debes estar autenticado para conectar con ControlFile",
+          variant: "destructive"
+        })
+        return
+      }
+
+      const result = await controlFileService.connectWithMainUserCredentials(user)
+      
+      if (result.success) {
+        setIsControlFileConnected(true)
+        toast({
+          title: "Conectado exitosamente",
+          description: "ControlFile se ha conectado con tu cuenta",
+        })
+      } else {
+        // Si falla el popup, intentar con redirect
+        if (result.error === 'POPUP_BLOCKED' || result.error === 'POPUP_CANCELLED') {
+          toast({
+            title: "Popup bloqueado",
+            description: "Redirigiendo a ControlFile para conectar...",
+          })
+          
+          const redirectResult = await controlFileService.connectWithRedirect(user)
+          if (!redirectResult.success) {
+            toast({
+              title: "Error de conexión",
+              description: "No se pudo conectar con ControlFile",
+              variant: "destructive"
+            })
+          }
+        } else {
+          toast({
+            title: "Error de conexión",
+            description: result.error || "No se pudo conectar con ControlFile",
+            variant: "destructive"
+          })
+        }
+      }
     } catch (error) {
-      console.error('Error abriendo ControlFile:', error)
+      console.error('Error conectando con ControlFile:', error)
+      toast({
+        title: "Error de conexión",
+        description: "Ocurrió un error inesperado",
+        variant: "destructive"
+      })
+    } finally {
+      setIsConnecting(false)
     }
   }
 
@@ -162,15 +245,37 @@ export function ReceiptViewer({
                       <p className="text-sm text-blue-700 mb-3">
                         Tu comprobante se ha guardado de forma segura en ControlFile.
                       </p>
-                      <Button
-                        onClick={handleDownloadReceipt}
-                        size="sm"
-                        variant="outline"
-                        className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                      >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Ir a ControlFile
-                      </Button>
+                      {isControlFileConnected ? (
+                        <Button
+                          onClick={handleControlFileClick}
+                          size="sm"
+                          variant="outline"
+                          className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Ir a ControlFile
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={handleControlFileClick}
+                          size="sm"
+                          variant="outline"
+                          className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                          disabled={isConnecting}
+                        >
+                          {isConnecting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Conectando...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Conectar con ControlFile
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
