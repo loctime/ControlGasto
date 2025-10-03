@@ -237,7 +237,7 @@ export function PaymentReceiptDialog({
                           <Checkbox 
                             id="mark-paid"
                             checked={isMarkAsPaidSelected}
-                            onCheckedChange={setIsMarkAsPaidSelected}
+                            onCheckedChange={(checked) => setIsMarkAsPaidSelected(checked === true)}
                           />
                           <label htmlFor="mark-paid" className="text-sm font-medium text-blue-800 cursor-pointer">
                             Marcar Pagado
@@ -268,7 +268,7 @@ export function PaymentReceiptDialog({
                         <Checkbox 
                           id="mark-paid"
                           checked={isMarkAsPaidSelected}
-                          onCheckedChange={setIsMarkAsPaidSelected}
+                          onCheckedChange={(checked) => setIsMarkAsPaidSelected(checked === true)}
                         />
                         <label htmlFor="mark-paid" className="text-sm font-medium text-blue-800 cursor-pointer">
                           Marcar Pagado

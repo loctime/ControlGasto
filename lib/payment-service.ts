@@ -270,4 +270,24 @@ export class PaymentService {
       throw error
     }
   }
+
+  // Obtener meses disponibles con pagos
+  async getAvailableMonths(): Promise<string[]> {
+    try {
+      const payments = await this.getAllPayments()
+      const monthsSet = new Set<string>()
+      
+      payments.forEach(payment => {
+        const paymentDate = new Date(payment.paidAt)
+        const monthYear = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`
+        monthsSet.add(monthYear)
+      })
+      
+      // Convertir a array y ordenar de más reciente a más antiguo
+      return Array.from(monthsSet).sort().reverse()
+    } catch (error) {
+      console.error('Error obteniendo meses disponibles:', error)
+      return []
+    }
+  }
 }

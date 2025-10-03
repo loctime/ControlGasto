@@ -72,7 +72,12 @@ export function PaymentHistory() {
   const loadPaymentsByMonth = async (month: string) => {
     setIsLoading(true)
     try {
-      const paymentsData = await paymentService.getPaymentsWithInvoices(month)
+      const paymentsData = await paymentService.getPaymentsWithInvoices()
+      // Filtrar por mes si es necesario
+      if (month !== 'all') {
+        // TODO: Implementar filtrado por mes si es necesario
+        // Por ahora mostramos todos los pagos
+      }
       setPayments(paymentsData)
     } catch (error: any) {
       toast({
@@ -116,6 +121,9 @@ export function PaymentHistory() {
       maintenance: 'Mantenimiento',
       insurance: 'Seguros',
       taxes: 'Impuestos',
+      credit_card: 'Tarjeta de Crédito',
+      cash: 'Efectivo',
+      transfer: 'Transferencia',
       other: 'Otros'
     }
     return labels[type] || type
@@ -128,6 +136,9 @@ export function PaymentHistory() {
       maintenance: 'bg-orange-100 text-orange-800',
       insurance: 'bg-purple-100 text-purple-800',
       taxes: 'bg-red-100 text-red-800',
+      credit_card: 'bg-indigo-100 text-indigo-800',
+      cash: 'bg-yellow-100 text-yellow-800',
+      transfer: 'bg-teal-100 text-teal-800',
       other: 'bg-gray-100 text-gray-800'
     }
     return colors[type] || 'bg-gray-100 text-gray-800'
@@ -154,11 +165,16 @@ export function PaymentHistory() {
       maintenance: 0,
       insurance: 0,
       taxes: 0,
+      credit_card: 0,
+      cash: 0,
+      transfer: 0,
       other: 0
     }
 
     payments.forEach(payment => {
-      totals[payment.type] += payment.amount
+      if (payment.type && payment.type in totals) {
+        totals[payment.type] += payment.amount
+      }
     })
 
     return totals
@@ -249,7 +265,12 @@ export function PaymentHistory() {
             <div className="text-2xl font-bold">
               {formatCurrency(
                 payments
-                  .filter(p => p.month === new Date().toISOString().slice(0, 7))
+                  .filter(p => {
+                    const paymentDate = new Date(p.paidAt)
+                    const currentDate = new Date()
+                    return paymentDate.getMonth() === currentDate.getMonth() && 
+                           paymentDate.getFullYear() === currentDate.getFullYear()
+                  })
                   .reduce((sum, payment) => sum + payment.amount, 0)
               )}
             </div>
@@ -277,18 +298,20 @@ export function PaymentHistory() {
                   <div className="flex items-center gap-3">
                     <CreditCard className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <CardTitle className="text-lg">{payment.description}</CardTitle>
+                      <CardTitle className="text-lg">{payment.expenseName}</CardTitle>
                       <CardDescription>
-                        {formatDate(payment.date)} • {formatCurrency(payment.amount)}
+                        {formatDate(payment.paidAt.toString())} • {formatCurrency(payment.amount)}
                       </CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={getPaymentTypeColor(payment.type)}>
-                      {getPaymentTypeLabel(payment.type)}
-                    </Badge>
-                    <Badge className={getStatusColor(payment.status)}>
-                      {payment.status}
+                    {payment.type && (
+                      <Badge className={getPaymentTypeColor(payment.type)}>
+                        {getPaymentTypeLabel(payment.type)}
+                      </Badge>
+                    )}
+                    <Badge className={getStatusColor('paid')}>
+                      Pagado
                     </Badge>
                   </div>
                 </div>
@@ -306,16 +329,16 @@ export function PaymentHistory() {
                   <TabsContent value="details" className="space-y-4">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="font-medium">Tipo:</span> {getPaymentTypeLabel(payment.type)}
+                        <span className="font-medium">Tipo:</span> {payment.type ? getPaymentTypeLabel(payment.type) : 'No especificado'}
                       </div>
                       <div>
-                        <span className="font-medium">Estado:</span> {payment.status}
+                        <span className="font-medium">Estado:</span> Pagado
                       </div>
                       <div>
-                        <span className="font-medium">Mes:</span> {payment.month}
+                        <span className="font-medium">Mes:</span> {new Date(payment.paidAt).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}
                       </div>
                       <div>
-                        <span className="font-medium">Categoría:</span> {payment.category}
+                        <span className="font-medium">Categoría:</span> {payment.expenseName}
                       </div>
                     </div>
                   </TabsContent>
@@ -393,7 +416,7 @@ export function PaymentHistory() {
                     {/* Componente para subir facturas */}
                     <PaymentInvoiceUpload
                       paymentId={payment.id}
-                      paymentType={payment.type}
+                      paymentType={payment.type || 'other'}
                       onInvoiceUploaded={() => {
                         // Recargar pagos para mostrar la nueva factura
                         loadPayments()

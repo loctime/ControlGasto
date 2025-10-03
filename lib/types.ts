@@ -24,6 +24,7 @@ export interface Payment {
   receiptImageId?: string // ID del comprobante en ControlFile
   notes?: string // Notas adicionales
   createdAt: Date
+  type?: PaymentType // Tipo de pago (opcional para compatibilidad)
 }
 
 export interface Invoice {
@@ -55,6 +56,17 @@ export type ExpenseCategory =
 export type ExpenseStatus = 
   | 'pending'        // Pendiente
   | 'paid'           // Pagado (último pago completado)
+
+export type PaymentType = 
+  | 'rent'           // Alquiler
+  | 'utilities'      // Servicios
+  | 'maintenance'    // Mantenimiento
+  | 'insurance'      // Seguros
+  | 'taxes'          // Impuestos
+  | 'credit_card'    // Tarjeta de crédito
+  | 'cash'           // Efectivo
+  | 'transfer'       // Transferencia
+  | 'other'          // Otros
 
 // Pago con sus facturas asociadas
 export interface PaymentWithInvoices extends Payment {

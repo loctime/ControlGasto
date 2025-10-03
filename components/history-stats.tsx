@@ -1,14 +1,26 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
+import { Timestamp, FieldValue } from "firebase/firestore"
 
 interface Payment {
   amount: number
-  paidAt: any
+  paidAt: Timestamp | FieldValue | Date
 }
 
 interface HistoryStatsProps {
   payments: Payment[]
+}
+
+// Helper function to safely convert Firebase timestamp to Date
+const getDateFromTimestamp = (timestamp: any): Date => {
+  if (timestamp instanceof Timestamp) {
+    return timestamp.toDate()
+  }
+  if (timestamp instanceof Date) {
+    return timestamp
+  }
+  return new Date()
 }
 
 export function HistoryStats({ payments }: HistoryStatsProps) {
@@ -21,11 +33,19 @@ export function HistoryStats({ payments }: HistoryStatsProps) {
   const thisYear = now.getFullYear()
   
   const thisMonthPayments = payments.filter(payment => {
-    const paymentDate = new Date(payment.paidAt)
-    return paymentDate.getMonth() === thisMonth && paymentDate.getFullYear() === thisYear
+    const paymentDate = getDateFromTimestamp(payment.paidAt)
+    const isThisMonth = paymentDate.getMonth() === thisMonth && paymentDate.getFullYear() === thisYear
+    
+    // Debug log para verificar fechas
+    console.log(`🔍 Payment date: ${paymentDate.toLocaleDateString()}, Amount: $${payment.amount}, Is this month: ${isThisMonth}`)
+    
+    return isThisMonth
   })
   
   const thisMonthAmount = thisMonthPayments.reduce((sum, payment) => sum + payment.amount, 0)
+  
+  // Debug log para verificar resultados
+  console.log(`📊 Stats - Total payments: ${paymentsCount}, This month payments: ${thisMonthPayments.length}, This month amount: $${thisMonthAmount}`)
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
