@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckCircle, Clock, DollarSign, Download, Calendar, Upload } from "lucide-react"
+import { CheckCircle, Clock, DollarSign, Download, Calendar, Upload, ExternalLink, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggleCompact } from "@/components/theme-toggle"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
@@ -17,11 +17,12 @@ interface ExpensesHeaderProps {
 }
 
 export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: ExpensesHeaderProps) {
-  const { isInstallable, installPWA } = usePWAInstall()
+  const { isInstallable, isInstalled, installPWA } = usePWAInstall()
   const { user } = useAuth()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isControlFileConnected, setIsControlFileConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [showConnectedMessage, setShowConnectedMessage] = useState(false)
   const { toast } = useToast()
 
   // Actualizar fecha y hora cada segundo
@@ -52,6 +53,21 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
     return () => clearInterval(interval)
   }, [])
 
+  // Cerrar mensaje al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showConnectedMessage) {
+        const target = event.target as Element
+        if (!target.closest('.controlfile-message-container')) {
+          setShowConnectedMessage(false)
+        }
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showConnectedMessage])
+
   const handleInstall = async () => {
     await installPWA()
   }
@@ -60,9 +76,8 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
     if (isConnecting) return
 
     if (isControlFileConnected) {
-      // Si ya está conectado, abrir ControlFile
-      const url = controlFileService.getControlFileUrl()
-      window.open(url, '_blank', 'noopener,noreferrer')
+      // Si ya está conectado, mostrar mensaje y opción de ir a ControlFile
+      setShowConnectedMessage(true)
       return
     }
 
@@ -123,6 +138,15 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
     }
   }
 
+  const handleGoToControlFile = () => {
+    const url = controlFileService.getControlFileUrl()
+    window.open(url, '_blank', 'noopener,noreferrer')
+    setShowConnectedMessage(false)
+  }
+
+  const handleCloseMessage = () => {
+    setShowConnectedMessage(false)
+  }
 
   // Formatear fecha y hora
   const formatDateTime = (date: Date) => {
@@ -156,32 +180,63 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
             <p className="text-sm text-muted-foreground mb-2">
               {user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales'}
             </p>
-            <button 
-              onClick={handleControlFileClick}
-              disabled={isConnecting}
-              className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95"
-            >
-              <div className={`w-3 h-3 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
-              <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
-              </span>
-            </button>
+            <div className="relative controlfile-message-container">
+              <button 
+                onClick={handleControlFileClick}
+                disabled={isConnecting}
+                className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95"
+              >
+                <div className={`w-3 h-3 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
+                <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
+                </span>
+              </button>
+
+              {/* Mensaje de conexión */}
+              {showConnectedMessage && (
+                <div className="absolute top-full left-0 mt-2 bg-card border border-border rounded-lg shadow-lg p-3 z-50 min-w-[200px]">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground mb-2">
+                        Estás conectado a ControlFile
+                      </p>
+                      <Button
+                        onClick={handleGoToControlFile}
+                        size="sm"
+                        className="w-full"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        IR
+                      </Button>
+                    </div>
+                    <button
+                      onClick={handleCloseMessage}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Lado derecho - Fecha y hora */}
           <div className="flex-1 flex justify-end">
             <div className="text-right">
-              <div className="mb-2">
-                <Button
-                  onClick={handleInstall}
-                  variant="outline"
-                  size="sm"
-                  className="bg-secondary hover:bg-accent border-border"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Instalar App
-                </Button>
-              </div>
+              {!isInstalled && isInstallable && (
+                <div className="mb-2">
+                  <Button
+                    onClick={handleInstall}
+                    variant="outline"
+                    size="sm"
+                    className="bg-secondary hover:bg-accent border-border"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Instalar App
+                  </Button>
+                </div>
+              )}
               <div className="flex items-center justify-end space-x-2 text-sm text-muted-foreground mb-1">
                 <Calendar className="w-4 h-4" />
                 <span className="capitalize">{date}</span>
