@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, History, User } from "lucide-react"
+import { Home, History, User, List } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -12,6 +12,7 @@ export function BottomNav() {
   const links = [
     { href: "/dashboard", icon: Home, label: "Inicio" },
     { href: "/history", icon: History, label: "Historial" },
+    { href: "/todos", icon: List, label: "Todos" },
     { href: "/profile", icon: User, label: "Perfil" },
   ]
 
