@@ -357,7 +357,7 @@ export class ControlFileService {
         return {
           success: true,
           fileId: fileId,
-          fileUrl: null
+          fileUrl: undefined
         }
       }
     } catch (error: any) {
