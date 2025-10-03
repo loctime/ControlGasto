@@ -24,6 +24,7 @@ import {
   CheckCircle
 } from "lucide-react"
 import { PaymentInvoiceUpload } from "./payment-invoice-upload"
+import { InvoicePreviewDialog } from "./invoice-preview-dialog"
 
 export function PaymentHistory() {
   const [payments, setPayments] = useState<PaymentWithInvoices[]>([])
@@ -31,6 +32,8 @@ export function PaymentHistory() {
   const [selectedMonth, setSelectedMonth] = useState<string>("")
   const [availableMonths, setAvailableMonths] = useState<string[]>([])
   const [selectedPayment, setSelectedPayment] = useState<PaymentWithInvoices | null>(null)
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const { toast } = useToast()
 
   // TODO: Obtener userId del contexto de autenticación
@@ -352,18 +355,31 @@ export function PaymentHistory() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => window.open(invoice.shareUrl, '_blank')}
+                                onClick={() => {
+                                  setSelectedInvoice(invoice)
+                                  setIsPreviewOpen(true)
+                                }}
                               >
                                 <Eye className="w-4 h-4" />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => {
-                                  const link = document.createElement('a')
-                                  link.href = invoice.shareUrl
-                                  link.download = invoice.fileName
-                                  link.click()
+                                onClick={async () => {
+                                  try {
+                                    const invoiceService = new InvoiceService(invoice.userId)
+                                    await invoiceService.downloadFileDirectly(invoice.fileId, invoice.fileName)
+                                    toast({
+                                      title: "Descarga iniciada",
+                                      description: `El archivo "${invoice.fileName}" se está descargando.`,
+                                    })
+                                  } catch (error: any) {
+                                    toast({
+                                      title: "Error al descargar",
+                                      description: error.message || "No se pudo descargar el archivo",
+                                      variant: "destructive"
+                                    })
+                                  }
                                 }}
                               >
                                 <Download className="w-4 h-4" />
@@ -390,6 +406,18 @@ export function PaymentHistory() {
           ))
         )}
       </div>
+
+      {/* Diálogo de vista previa */}
+      {selectedInvoice && (
+        <InvoicePreviewDialog
+          invoice={selectedInvoice}
+          isOpen={isPreviewOpen}
+          onClose={() => {
+            setIsPreviewOpen(false)
+            setSelectedInvoice(null)
+          }}
+        />
+      )}
     </div>
   )
 }

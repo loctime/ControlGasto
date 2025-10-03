@@ -274,6 +274,112 @@ export class InvoiceService {
     return tags
   }
 
+  // Descarga directa sin página de compartir
+  async downloadFileDirectly(fileId: string, fileName: string): Promise<void> {
+    try {
+      console.log('📥 Descargando archivo directamente:', fileId)
+
+      // Obtener URL temporal de descarga
+      const response = await fetch(`${process.env.NEXT_PUBLIC_CONTROLFILE_BACKEND_URL || 'https://controlfile.onrender.com'}/api/files/presign-get`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${await this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ fileId })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error obteniendo URL de descarga: ${response.status}`)
+      }
+
+      const { downloadUrl } = await response.json()
+      
+      // Descarga directa
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = fileName
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      console.log('✅ Archivo descargado:', fileName)
+    } catch (error) {
+      console.error('Error descargando archivo:', error)
+      throw error
+    }
+  }
+
+  // Vista previa de imagen
+  async getImagePreviewUrl(fileId: string): Promise<string> {
+    try {
+      console.log('🖼️ Obteniendo vista previa de imagen:', fileId)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_CONTROLFILE_BACKEND_URL || 'https://controlfile.onrender.com'}/api/files/presign-get`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${await this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ fileId })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error obteniendo URL de vista previa: ${response.status}`)
+      }
+
+      const { downloadUrl } = await response.json()
+      return downloadUrl
+    } catch (error) {
+      console.error('Error obteniendo vista previa:', error)
+      throw error
+    }
+  }
+
+  // Vista previa de PDF
+  async getPdfPreviewUrl(fileId: string): Promise<string> {
+    try {
+      console.log('📄 Obteniendo vista previa de PDF:', fileId)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_CONTROLFILE_BACKEND_URL || 'https://controlfile.onrender.com'}/api/files/presign-get`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${await this.getAuthToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ fileId })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error obteniendo URL de vista previa: ${response.status}`)
+      }
+
+      const { downloadUrl } = await response.json()
+      return downloadUrl
+    } catch (error) {
+      console.error('Error obteniendo vista previa de PDF:', error)
+      throw error
+    }
+  }
+
+  // Verificar si un archivo es imagen
+  isImageFile(mimeType: string): boolean {
+    return mimeType.startsWith('image/')
+  }
+
+  // Verificar si un archivo es PDF
+  isPdfFile(mimeType: string): boolean {
+    return mimeType === 'application/pdf'
+  }
+
+  // Obtener token de autenticación
+  private async getAuthToken(): Promise<string> {
+    // TODO: Implementar obtención del token desde el contexto de autenticación
+    // Por ahora, retornar un token vacío que deberá ser implementado
+    return ''
+  }
+
   // Obtener estadísticas de facturas
   async getInvoiceStats(): Promise<{
     totalInvoices: number
