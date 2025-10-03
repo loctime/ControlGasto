@@ -104,7 +104,7 @@ export function ControlFileHelp({ className }: ControlFileHelpProps) {
             <strong>Estado CORS:</strong> Configurado correctamente<br/>
             <strong>API Endpoints:</strong><br/>
             • Crear carpeta: /api/folders/root<br/>
-            • Subir archivo: /api/uploads/presign → PUT → /api/uploads/confirm
+            • Subir archivo: /api/uploads/presign → /api/uploads/proxy-upload → /api/uploads/confirm
           </AlertDescription>
         </Alert>
       </CardContent>

@@ -280,27 +280,34 @@ export class ControlFileService {
       const { uploadSessionId, url } = await presignResponse.json()
       console.log('✅ URL presignada obtenida:', uploadSessionId)
 
-      // Paso 2: Subir archivo a la URL presignada
-      const uploadResponse = await fetch(url, {
-        method: 'PUT',
-        body: file,
+      // Paso 2: Subir archivo usando proxy para evitar CORS con B2
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('sessionId', uploadSessionId)
+
+      const uploadResponse = await fetch(`${this.backendUrl}/api/uploads/proxy-upload`, {
+        method: 'POST',
         headers: {
-          'Content-Type': file.type
-        }
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
       })
 
       if (!uploadResponse.ok) {
-        console.error('Error subiendo archivo:', uploadResponse.status, uploadResponse.statusText)
+        const errorData = await uploadResponse.json()
+        console.error('Error subiendo archivo via proxy:', errorData)
         return {
           success: false,
-          error: `Error subiendo archivo: ${uploadResponse.status} ${uploadResponse.statusText}`
+          error: errorData.message || `Error subiendo archivo: ${uploadResponse.status} ${uploadResponse.statusText}`
         }
       }
 
-      const etag = uploadResponse.headers.get('etag')
-      console.log('✅ Archivo subido, ETag:', etag)
+      const uploadResult = await uploadResponse.json()
+      console.log('✅ Archivo subido via proxy:', uploadResult)
 
       // Paso 3: Confirmar subida
+      const etag = uploadResult.etag || uploadResponse.headers.get('etag')
+      
       const confirmResponse = await fetch(`${this.backendUrl}/api/uploads/confirm`, {
         method: 'POST',
         headers: {
