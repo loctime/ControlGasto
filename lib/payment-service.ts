@@ -12,7 +12,7 @@ import {
   Timestamp
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { Payment, Invoice, PaymentType, PaymentStatus, PaymentWithInvoices } from './types'
+import { Payment, Invoice, ExpenseCategory, ExpenseStatus, PaymentWithInvoices, Expense } from './types'
 
 export class PaymentService {
   private userId: string
@@ -21,17 +21,16 @@ export class PaymentService {
     this.userId = userId
   }
 
-  // Crear un nuevo pago
-  async createPayment(paymentData: Omit<Payment, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  // Crear un nuevo pago (registro en el historial)
+  async createPayment(paymentData: any): Promise<string> {
     try {
-      const paymentRef = await addDoc(collection(db, 'users', this.userId, 'payments'), {
+      const paymentRef = await addDoc(collection(db, 'payments'), {
         ...paymentData,
         userId: this.userId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        createdAt: serverTimestamp()
       })
       
-      console.log('✅ Pago creado:', paymentRef.id)
+      console.log('✅ Pago registrado en historial:', paymentRef.id)
       return paymentRef.id
     } catch (error) {
       console.error('Error creando pago:', error)
@@ -39,46 +38,70 @@ export class PaymentService {
     }
   }
 
-  // Marcar un gasto como pagado
-  async markExpenseAsPaid(expenseId: string, paymentType: PaymentType): Promise<string> {
+  // Registrar pago de un gasto específico
+  async recordPayment(
+    expenseId: string, 
+    expenseName: string, 
+    amount: number, 
+    receiptImageId?: string,
+    notes?: string
+  ): Promise<string> {
     try {
-      // Obtener datos del gasto (esto debería venir del contexto)
-      // Por ahora, creamos el pago con datos básicos
       const paymentData = {
-        type: paymentType,
-        amount: 0, // Se debería obtener del gasto original
+        expenseId,
+        expenseName,
+        amount,
         currency: 'ARS',
-        date: new Date().toISOString().split('T')[0],
-        description: `Pago de ${paymentType}`,
-        status: 'paid' as PaymentStatus,
-        category: paymentType,
-        month: this.getCurrentMonth(),
-        year: new Date().getFullYear()
+        paidAt: serverTimestamp(),
+        ...(receiptImageId && { receiptImageId }),
+        ...(notes && { notes })
       }
 
       return await this.createPayment(paymentData)
     } catch (error) {
-      console.error('Error marcando gasto como pagado:', error)
+      console.error('Error registrando pago:', error)
       throw error
     }
   }
 
-  // Obtener pagos por tipo y mes
-  async getPaymentsByTypeAndMonth(type: PaymentType, month: string): Promise<Payment[]> {
+  // Obtener pagos por gasto específico
+  async getPaymentsByExpense(expenseId: string): Promise<Payment[]> {
     try {
       const q = query(
-        collection(db, 'users', this.userId, 'payments'),
-        where('type', '==', type),
-        where('month', '==', month),
-        orderBy('date', 'desc')
+        collection(db, 'payments'),
+        where('userId', '==', this.userId),
+        where('expenseId', '==', expenseId),
+        orderBy('paidAt', 'desc')
       )
 
       const querySnapshot = await getDocs(q)
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date()
+        paidAt: doc.data().paidAt?.toDate() || new Date(),
+        createdAt: doc.data().createdAt?.toDate() || new Date()
+      })) as Payment[]
+    } catch (error) {
+      console.error('Error obteniendo pagos del gasto:', error)
+      throw error
+    }
+  }
+
+  // Obtener todos los pagos del usuario
+  async getAllPayments(): Promise<Payment[]> {
+    try {
+      const q = query(
+        collection(db, 'payments'),
+        where('userId', '==', this.userId),
+        orderBy('paidAt', 'desc')
+      )
+
+      const querySnapshot = await getDocs(q)
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        paidAt: doc.data().paidAt?.toDate() || new Date(),
+        createdAt: doc.data().createdAt?.toDate() || new Date()
       })) as Payment[]
     } catch (error) {
       console.error('Error obteniendo pagos:', error)
@@ -86,58 +109,39 @@ export class PaymentService {
     }
   }
 
-  // Obtener todos los pagos de un mes
-  async getPaymentsByMonth(month: string): Promise<Payment[]> {
+  // Obtener pagos por rango de fechas
+  async getPaymentsByDateRange(startDate: Date, endDate: Date): Promise<Payment[]> {
     try {
       const q = query(
-        collection(db, 'users', this.userId, 'payments'),
-        where('month', '==', month),
-        orderBy('date', 'desc')
+        collection(db, 'payments'),
+        where('userId', '==', this.userId),
+        where('paidAt', '>=', startDate),
+        where('paidAt', '<=', endDate),
+        orderBy('paidAt', 'desc')
       )
 
       const querySnapshot = await getDocs(q)
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date()
+        paidAt: doc.data().paidAt?.toDate() || new Date(),
+        createdAt: doc.data().createdAt?.toDate() || new Date()
       })) as Payment[]
     } catch (error) {
-      console.error('Error obteniendo pagos del mes:', error)
+      console.error('Error obteniendo pagos por rango:', error)
       throw error
     }
   }
 
   // Obtener pagos con sus facturas
-  async getPaymentsWithInvoices(month?: string): Promise<PaymentWithInvoices[]> {
+  async getPaymentsWithInvoices(): Promise<PaymentWithInvoices[]> {
     try {
-      let q = query(
-        collection(db, 'users', this.userId, 'payments'),
-        orderBy('date', 'desc')
-      )
-
-      if (month) {
-        q = query(
-          collection(db, 'users', this.userId, 'payments'),
-          where('month', '==', month),
-          orderBy('date', 'desc')
-        )
-      }
-
-      const paymentsSnapshot = await getDocs(q)
-      const payments = paymentsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date()
-      })) as Payment[]
-
-      // Obtener facturas para cada pago
+      const payments = await this.getAllPayments()
       const paymentsWithInvoices: PaymentWithInvoices[] = []
       
       for (const payment of payments) {
         const invoicesQuery = query(
-          collection(db, 'users', this.userId, 'invoices'),
+          collection(db, 'invoices'),
           where('paymentId', '==', payment.id)
         )
         
@@ -161,28 +165,12 @@ export class PaymentService {
     }
   }
 
-  // Actualizar estado de pago
-  async updatePaymentStatus(paymentId: string, status: PaymentStatus): Promise<void> {
-    try {
-      const paymentRef = doc(db, 'users', this.userId, 'payments', paymentId)
-      await updateDoc(paymentRef, {
-        status,
-        updatedAt: serverTimestamp()
-      })
-      
-      console.log('✅ Estado de pago actualizado:', paymentId)
-    } catch (error) {
-      console.error('Error actualizando estado de pago:', error)
-      throw error
-    }
-  }
-
-  // Eliminar pago
+  // Eliminar pago del historial
   async deletePayment(paymentId: string): Promise<void> {
     try {
       // Primero eliminar facturas asociadas
       const invoicesQuery = query(
-        collection(db, 'users', this.userId, 'invoices'),
+        collection(db, 'invoices'),
         where('paymentId', '==', paymentId)
       )
       
@@ -192,69 +180,36 @@ export class PaymentService {
       }
 
       // Luego eliminar el pago
-      const paymentRef = doc(db, 'users', this.userId, 'payments', paymentId)
+      const paymentRef = doc(db, 'payments', paymentId)
       await deleteDoc(paymentRef)
       
-      console.log('✅ Pago eliminado:', paymentId)
+      console.log('✅ Pago eliminado del historial:', paymentId)
     } catch (error) {
       console.error('Error eliminando pago:', error)
       throw error
     }
   }
 
-  // Obtener resumen de pagos por mes
-  async getMonthlySummary(month: string): Promise<{ totalAmount: number; paymentCount: number; byType: Record<PaymentType, number> }> {
+  // Obtener estadísticas del dashboard
+  async getDashboardStats(): Promise<{ totalPayments: number; totalAmount: number; paymentsThisMonth: number }> {
     try {
-      const payments = await this.getPaymentsByMonth(month)
+      const payments = await this.getAllPayments()
+      const now = new Date()
+      const thisMonth = now.getMonth()
+      const thisYear = now.getFullYear()
       
-      const summary = {
+      const paymentsThisMonth = payments.filter(payment => {
+        const paymentDate = new Date(payment.paidAt)
+        return paymentDate.getMonth() === thisMonth && paymentDate.getFullYear() === thisYear
+      })
+      
+      return {
+        totalPayments: payments.length,
         totalAmount: payments.reduce((sum, payment) => sum + payment.amount, 0),
-        paymentCount: payments.length,
-        byType: {} as Record<PaymentType, number>
+        paymentsThisMonth: paymentsThisMonth.length
       }
-
-      // Agrupar por tipo
-      payments.forEach(payment => {
-        if (!summary.byType[payment.type]) {
-          summary.byType[payment.type] = 0
-        }
-        summary.byType[payment.type] += payment.amount
-      })
-
-      return summary
     } catch (error) {
-      console.error('Error obteniendo resumen mensual:', error)
-      throw error
-    }
-  }
-
-  // Utilidades
-  private getCurrentMonth(): string {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  }
-
-  // Obtener meses disponibles
-  async getAvailableMonths(): Promise<string[]> {
-    try {
-      const q = query(
-        collection(db, 'users', this.userId, 'payments'),
-        orderBy('month', 'desc')
-      )
-
-      const querySnapshot = await getDocs(q)
-      const months = new Set<string>()
-      
-      querySnapshot.docs.forEach(doc => {
-        const data = doc.data()
-        if (data.month) {
-          months.add(data.month)
-        }
-      })
-
-      return Array.from(months).sort().reverse()
-    } catch (error) {
-      console.error('Error obteniendo meses disponibles:', error)
+      console.error('Error obteniendo estadísticas:', error)
       throw error
     }
   }

@@ -28,12 +28,10 @@ interface Expense {
   name: string
   amount: number
   category: 'hogar' | 'transporte' | 'alimentacion' | 'servicios' | 'entretenimiento' | 'salud' | 'otros'
-  paid: boolean
+  status: 'pending' | 'paid'
   userId: string
   createdAt: Timestamp | FieldValue
-  paidAt?: Timestamp | FieldValue | null
-  unpaidAt?: Timestamp | FieldValue | null
-  receiptImageId?: string | null
+  updatedAt: Timestamp | FieldValue
 }
 
 export function ExpensesDashboard() {
@@ -52,7 +50,7 @@ export function ExpensesDashboard() {
     expenses,
     (expenses) => {
       const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
-      const totalPaid = expenses.filter((exp) => exp.paid).reduce((sum, exp) => sum + exp.amount, 0)
+      const totalPaid = expenses.filter((exp) => exp.status === 'paid').reduce((sum, exp) => sum + exp.amount, 0)
       const totalPending = totalExpenses - totalPaid
       return { totalExpenses, totalPaid, totalPending }
     }
@@ -115,9 +113,10 @@ export function ExpensesDashboard() {
           name,
           amount,
           category,
-          paid: false,
+          status: 'pending',
           userId: user.uid,
           createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
         }
         console.log("🔍 DEBUG - Guardando gasto:", expenseData)
         await addDoc(collection(db, "expenses"), expenseData)
@@ -144,7 +143,10 @@ export function ExpensesDashboard() {
       )
       
       await retryWithBackoff(async () => {
-        await updateDoc(doc(db, "expenses", id), cleanUpdates)
+        await updateDoc(doc(db, "expenses", id), {
+          ...cleanUpdates,
+          updatedAt: serverTimestamp()
+        })
       })
       toast.success("Gasto actualizado correctamente")
     } catch (error) {
@@ -173,27 +175,27 @@ export function ExpensesDashboard() {
     }
   }, [canMakeRequest, makeRequest, retryWithBackoff])
 
-  const togglePaid = useCallback(async (id: string, currentPaid: boolean, receiptImageId?: string) => {
-    const newPaidStatus = !currentPaid
-    const updates: Partial<Expense> = { paid: newPaidStatus }
+  const togglePaid = useCallback(async (id: string, currentStatus: 'pending' | 'paid', receiptImageId?: string) => {
+    const newStatus = currentStatus === 'pending' ? 'paid' : 'pending'
     
-    if (newPaidStatus) {
-      updates.paidAt = serverTimestamp()
-      updates.unpaidAt = null
-      if (receiptImageId) {
-        updates.receiptImageId = receiptImageId
-      }
-    } else {
-      updates.unpaidAt = serverTimestamp()
-      updates.paidAt = null
-      // No incluir receiptImageId si es undefined - Firebase no lo acepta
-      if (receiptImageId !== undefined) {
-        updates.receiptImageId = null // Usar null en lugar de undefined
+    if (newStatus === 'paid') {
+      // Crear registro de pago en el historial
+      const paymentService = new (await import('@/lib/payment-service')).PaymentService(user!.uid)
+      const expense = expenses.find(exp => exp.id === id)
+      
+      if (expense) {
+        await paymentService.recordPayment(
+          id,
+          expense.name,
+          expense.amount,
+          receiptImageId
+        )
       }
     }
     
-    await updateExpense(id, updates)
-  }, [updateExpense])
+    // Actualizar estado del gasto
+    await updateExpense(id, { status: newStatus })
+  }, [updateExpense, user, expenses])
 
   // ✅ OPTIMIZACIÓN: Estados de carga y error
   if (isLoading) {

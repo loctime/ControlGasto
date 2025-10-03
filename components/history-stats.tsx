@@ -2,49 +2,66 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 
-interface HistoryStatsProps {
-  expenses: Array<{ paid: boolean; amount: number }>
+interface Payment {
+  amount: number
+  paidAt: any
 }
 
-export function HistoryStats({ expenses }: HistoryStatsProps) {
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
-  const paidCount = expenses.filter(exp => exp.paid).length
-  const pendingCount = expenses.length - paidCount
-  const paymentRate = expenses.length > 0 ? Math.round((paidCount / expenses.length) * 100) : 0
+interface HistoryStatsProps {
+  payments: Payment[]
+}
+
+export function HistoryStats({ payments }: HistoryStatsProps) {
+  const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0)
+  const paymentsCount = payments.length
+  
+  // Calcular pagos de este mes
+  const now = new Date()
+  const thisMonth = now.getMonth()
+  const thisYear = now.getFullYear()
+  
+  const thisMonthPayments = payments.filter(payment => {
+    const paymentDate = new Date(payment.paidAt)
+    return paymentDate.getMonth() === thisMonth && paymentDate.getFullYear() === thisYear
+  })
+  
+  const thisMonthAmount = thisMonthPayments.reduce((sum, payment) => sum + payment.amount, 0)
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* Total de Gastos */}
+      {/* Total Pagado */}
       <Card>
         <CardContent className="p-6 text-center">
-          <p className="text-sm text-muted-foreground mb-1">Total Gastos</p>
+          <p className="text-sm text-muted-foreground mb-1">Total Pagado</p>
           <p className="text-2xl font-bold text-foreground">
-            ${totalExpenses.toLocaleString()}
+            ${totalAmount.toLocaleString()}
           </p>
         </CardContent>
       </Card>
 
-      {/* Gastos Pagados */}
+      {/* Total Pagos */}
       <Card>
         <CardContent className="p-6 text-center">
-          <p className="text-sm text-muted-foreground mb-1">Pagados</p>
-          <p className="text-2xl font-bold text-emerald-600">{paidCount}</p>
+          <p className="text-sm text-muted-foreground mb-1">Total Pagos</p>
+          <p className="text-2xl font-bold text-emerald-600">{paymentsCount}</p>
         </CardContent>
       </Card>
 
-      {/* Gastos Pendientes */}
+      {/* Este Mes */}
       <Card>
         <CardContent className="p-6 text-center">
-          <p className="text-sm text-muted-foreground mb-1">Pendientes</p>
-          <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
+          <p className="text-sm text-muted-foreground mb-1">Este Mes</p>
+          <p className="text-2xl font-bold text-blue-600">
+            ${thisMonthAmount.toLocaleString()}
+          </p>
         </CardContent>
       </Card>
 
-      {/* Tasa de Pago */}
+      {/* Pagos Este Mes */}
       <Card>
         <CardContent className="p-6 text-center">
-          <p className="text-sm text-muted-foreground mb-1">Tasa de Pago</p>
-          <p className="text-3xl font-bold text-emerald-600">{paymentRate}%</p>
+          <p className="text-sm text-muted-foreground mb-1">Pagos Este Mes</p>
+          <p className="text-2xl font-bold text-blue-600">{thisMonthPayments.length}</p>
         </CardContent>
       </Card>
     </div>

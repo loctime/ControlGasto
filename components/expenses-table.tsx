@@ -35,12 +35,10 @@ interface Expense {
   name: string
   amount: number
   category: 'hogar' | 'transporte' | 'alimentacion' | 'servicios' | 'entretenimiento' | 'salud' | 'otros'
-  paid: boolean
+  status: 'pending' | 'paid'
   userId: string
   createdAt: Timestamp | FieldValue
-  paidAt?: Timestamp | FieldValue | null
-  unpaidAt?: Timestamp | FieldValue | null
-  receiptImageId?: string | null
+  updatedAt: Timestamp | FieldValue
 }
 
 interface ExpensesTableProps {
@@ -48,7 +46,7 @@ interface ExpensesTableProps {
   onAddExpense: (name: string, amount: number, category: string) => void
   onUpdateExpense: (id: string, updates: Partial<Expense>) => void
   onDeleteExpense: (id: string) => void
-  onTogglePaid: (id: string, currentPaid: boolean, receiptImageId?: string) => void
+  onTogglePaid: (id: string, currentStatus: 'pending' | 'paid', receiptImageId?: string) => void
 }
 
 export function ExpensesTable({ 
@@ -114,19 +112,19 @@ export function ExpensesTable({
   }
 
   const handleTogglePaidClick = (expense: Expense) => {
-    if (!expense.paid) {
+    if (expense.status === 'pending') {
       // Si va a marcar como pagado, mostrar diálogo de comprobante
       setSelectedExpense(expense)
       setShowReceiptDialog(true)
     } else {
       // Si va a marcar como pendiente, hacerlo directamente
-      onTogglePaid(expense.id, expense.paid)
+      onTogglePaid(expense.id, expense.status)
     }
   }
 
   const handleReceiptConfirm = (receiptImageId?: string) => {
     if (selectedExpense) {
-      onTogglePaid(selectedExpense.id, selectedExpense.paid, receiptImageId)
+      onTogglePaid(selectedExpense.id, selectedExpense.status, receiptImageId)
     }
     setShowReceiptDialog(false)
     setSelectedExpense(null)
@@ -222,9 +220,9 @@ export function ExpensesTable({
       <div className="space-y-2">
         {expenses
           .sort((a, b) => {
-            // Primero los no pagados (paid: false), luego los pagados (paid: true)
-            if (a.paid !== b.paid) {
-              return a.paid ? 1 : -1
+            // Primero los pendientes (status: 'pending'), luego los pagados (status: 'paid')
+            if (a.status !== b.status) {
+              return a.status === 'paid' ? 1 : -1
             }
             // Si tienen el mismo estado de pago, ordenar por nombre alfabéticamente
             return a.name.localeCompare(b.name)
@@ -233,7 +231,7 @@ export function ExpensesTable({
           <div
             key={expense.id}
             className={`group rounded-lg border transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${
-              expense.paid 
+              expense.status === 'paid' 
                 ? "bg-gradient-to-br from-paid/10 via-paid/5 to-paid/3 border-paid/30 hover:border-paid/40 shadow-md" 
                 : "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border-pending/30 hover:border-pending/40 shadow-md"
             }`}
@@ -346,7 +344,7 @@ export function ExpensesTable({
                   </DropdownMenu>
                   
                   {/* Botón de estado de pago */}
-                  {expense.paid ? (
+                  {expense.status === 'paid' ? (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -367,7 +365,7 @@ export function ExpensesTable({
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => onTogglePaid(expense.id, expense.paid)}
+                            onClick={() => onTogglePaid(expense.id, expense.status)}
                             className="bg-blue-600 hover:bg-blue-700"
                           >
                             Marcar como Pendiente
@@ -394,13 +392,10 @@ export function ExpensesTable({
                   </div>
                   
                   {/* Ver comprobante si existe */}
-                  {expense.paid && expense.receiptImageId && (
-                    <ReceiptViewer
-                      receiptImageId={expense.receiptImageId}
-                      expenseName={expense.name}
-                      expenseAmount={expense.amount}
-                      paidAt={expense.paidAt && 'toDate' in expense.paidAt ? expense.paidAt.toDate() : null}
-                    />
+                  {expense.status === 'paid' && (
+                    <div className="text-sm text-muted-foreground">
+                      ✅ Pagado
+                    </div>
                   )}
                 </div>
               </div>

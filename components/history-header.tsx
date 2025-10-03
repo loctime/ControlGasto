@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button"
 
 interface HistoryHeaderProps {
   totals: {
-    totalPaid: number
-    totalPending: number
-    totalExpenses: number
+    totalAmount: number
+    paymentsCount: number
   }
   isNewMonth: boolean
   onShowResetModal: () => void
@@ -19,11 +18,11 @@ export function HistoryHeader({ totals, isNewMonth, onShowResetModal }: HistoryH
     <>
       <UnifiedHeader 
         title="Historial"
-        subtitle="Visualiza tus analisis de gastos"
+        subtitle="Visualiza tus pagos realizados"
         showSummary={true}
-        totalPaid={totals.totalPaid}
-        totalPending={totals.totalPending}
-        totalExpenses={totals.totalExpenses}
+        totalPaid={totals.totalAmount}
+        totalPending={0}
+        totalExpenses={totals.totalAmount}
       />
           
       {/* Alerta de nuevo mes */}
