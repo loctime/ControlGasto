@@ -299,51 +299,29 @@ export function ExpensesTable({
             ) : (
               // Vista normal.
               <div className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="font-medium text-slate-900 dark:text-slate-100 truncate">{expense.name}</h3>
-                      <Badge 
-                        variant={expense.paid ? "default" : "secondary"}
-                        className={`text-xs font-semibold shadow-sm ${
-                          expense.paid 
-                            ? "bg-gradient-to-r from-paid/25 to-paid/15 text-paid border border-paid/40" 
-                            : "bg-gradient-to-r from-pending/25 to-pending/15 text-pending border border-pending/40"
-                        }`}
-                      >
-                        {expense.paid ? "Pagado" : "Pendiente"}
-                      </Badge>
-                      {expense.paid && expense.receiptImageId && (
-                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                          <Receipt className="w-3 h-3 mr-1" />
-                          Comprobante
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className="text-xs">
-                        {expense.category === 'hogar' && '🏠 Hogar'}
-                        {expense.category === 'transporte' && '🚗 Transporte'}
-                        {expense.category === 'alimentacion' && '🍽️ Alimentación'}
-                        {expense.category === 'servicios' && '⚡ Servicios'}
-                        {expense.category === 'entretenimiento' && '🎬 Entretenimiento'}
-                        {expense.category === 'salud' && '🏥 Salud'}
-                        {expense.category === 'otros' && '📦 Otros'}
-                      </Badge>
-                    </div>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                      {formatCurrency(expense.amount)}
-                    </p>
-                  </div>
+                {/* Primera línea: Nombre - Categoría - Acciones */}
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-foreground truncate flex-1">{expense.name}</h3>
                   
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-sm px-3 py-1.5">
+                      {expense.category === 'hogar' && '🏠 Hogar'}
+                      {expense.category === 'transporte' && '🚗 Transporte'}
+                      {expense.category === 'alimentacion' && '🍽️ Alimentación'}
+                      {expense.category === 'servicios' && '⚡ Servicios'}
+                      {expense.category === 'entretenimiento' && '🎬 Entretenimiento'}
+                      {expense.category === 'salud' && '🏥 Salud'}
+                      {expense.category === 'otros' && '📦 Otros'}
+                    </Badge>
+                    
+                    {/* Botón de estado de pago */}
                     {expense.paid ? (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
-                            size="default"
+                            size="sm"
                             variant="outline"
-                            className="h-10 px-4 font-medium transition-all duration-200 border-pending/40 text-pending hover:bg-gradient-to-r hover:from-pending/15 hover:to-pending/10 hover:border-pending/50 hover:shadow-md"
+                            className="h-8 px-3 text-xs border-pending/40 text-pending hover:bg-pending/10"
                           >
                             Pendiente
                           </Button>
@@ -359,71 +337,78 @@ export function ExpensesTable({
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => onTogglePaid(expense.id, expense.paid)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold border-2 border-blue-600 px-4 py-2 rounded-md transition-colors"
+                              className="bg-blue-600 hover:bg-blue-700"
                             >
-                              {expense.paid ? "Marcar como Pendiente" : "Marcar como Pagado"}
+                              Marcar como Pendiente
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
                     ) : (
                       <Button
-                        size="default"
-                        variant="default"
+                        size="sm"
                         onClick={() => handleTogglePaidClick(expense)}
-                        className="h-10 px-4 font-medium transition-all duration-200 bg-gradient-to-r from-paid to-paid/90 text-paid-foreground shadow-md hover:shadow-lg hover:scale-105"
+                        className="h-8 px-3 text-xs bg-paid hover:bg-paid/90 text-paid-foreground"
                       >
                         Pagar
                       </Button>
                     )}
+                  </div>
+                </div>
+
+                {/* Segunda línea: Monto - Acciones */}
+                <div className="flex items-center justify-between">
+                  <div className="text-3xl font-bold text-foreground">
+                    {formatCurrency(expense.amount)}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Ver comprobante si existe */}
+                    {expense.paid && expense.receiptImageId && (
+                      <ReceiptViewer
+                        receiptImageId={expense.receiptImageId}
+                        expenseName={expense.name}
+                        expenseAmount={expense.amount}
+                      />
+                    )}
                     
-                    <div className="flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      {/* Botón para ver comprobante si existe */}
-                      {expense.paid && expense.receiptImageId && (
-                        <ReceiptViewer
-                          receiptImageId={expense.receiptImageId}
-                          expenseName={expense.name}
-                          expenseAmount={expense.amount}
-                        />
-                      )}
-                      
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditExpense(expense)}
-                        className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleEditExpense(expense)}
+                      className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar gasto?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            ¿Estás seguro de que quieres eliminar "{expense.name}"? Esta acción no se puede deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => onDeleteExpense(expense.id)}
+                            className="bg-red-600 hover:bg-red-700"
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Eliminar gasto?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              ¿Estás seguro de que quieres eliminar "{expense.name}"? Esta acción no se puede deshacer.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => onDeleteExpense(expense.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Eliminar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </div>
