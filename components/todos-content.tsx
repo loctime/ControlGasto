@@ -344,81 +344,48 @@ export function TodosContent() {
               const paidDate = expense.paid && expense.paidAt ? formatDateTime(expense.paidAt) : null
               
               return (
-                <Card 
-                  key={expense.id}
-                  className={`transition-all duration-200 hover:shadow-md ${
-                    expense.paid 
-                      ? "border-green-200 bg-green-50/50 dark:bg-green-950/20" 
-                      : "border-amber-200 bg-amber-50/50 dark:bg-amber-950/20"
-                  }`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      {/* Información principal */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <h3 className="font-semibold text-foreground truncate">{expense.name}</h3>
-                          <Badge 
-                            variant={expense.paid ? "default" : "secondary"}
-                            className={`text-xs ${
-                              expense.paid 
-                                ? "bg-green-100 text-green-800 border-green-200" 
-                                : "bg-amber-100 text-amber-800 border-amber-200"
-                            }`}
-                          >
-                            {expense.paid ? (
-                              <><CheckCircle className="w-3 h-3 mr-1" />Pagado</>
-                            ) : (
-                              <><Clock className="w-3 h-3 mr-1" />Pendiente</>
-                            )}
-                          </Badge>
-                          {expense.receiptImageId && (
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                              <Receipt className="w-3 h-3 mr-1" />
-                              Comprobante
-                            </Badge>
-                          )}
-                        </div>
+                 <Card 
+                   key={expense.id}
+                   className={`transition-all duration-200 hover:shadow-md ${
+                     expense.paid 
+                       ? "border-green-200 bg-green-50/50 dark:bg-green-950/20" 
+                       : "border-amber-200 bg-amber-50/50 dark:bg-amber-950/20"
+                   }`}
+                 >
+                   <CardContent className="p-4">
+                     {/* Primera línea: Nombre - Categoría - Ver Comprobante */}
+                     <div className="flex items-center justify-between mb-3">
+                       <h3 className="text-lg font-semibold text-foreground truncate flex-1">{expense.name}</h3>
+                       
+                       <div className="flex items-center gap-3">
+                         <Badge variant="outline" className="text-sm px-3 py-1.5">
+                           {getCategoryLabel(expense.category)}
+                         </Badge>
+                         
+                         {expense.paid && expense.receiptImageId && (
+                           <ReceiptViewer
+                             receiptImageId={expense.receiptImageId}
+                             expenseName={expense.name}
+                             expenseAmount={expense.amount}
+                           />
+                         )}
+                       </div>
+                     </div>
 
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className="text-xs">
-                            {getCategoryLabel(expense.category)}
-                          </Badge>
-                        </div>
-
-                        <div className="text-2xl font-bold text-foreground mb-2">
-                          {formatCurrency(expense.amount)}
-                        </div>
-
-                        {/* Fechas */}
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>Creado: {date} a las {time}</span>
-                          </div>
-                          {paidDate && (
-                            <div className="flex items-center gap-2 text-green-600">
-                              <CheckCircle className="w-4 h-4" />
-                              <span>Pagado: {paidDate.date} a las {paidDate.time}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Acciones */}
-                      <div className="flex flex-col gap-2 flex-shrink-0">
-                        {/* Ver comprobante si existe */}
-                        {expense.paid && expense.receiptImageId && (
-                          <ReceiptViewer
-                            receiptImageId={expense.receiptImageId}
-                            expenseName={expense.name}
-                            expenseAmount={expense.amount}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                     {/* Segunda línea: Monto - Fecha */}
+                     <div className="flex items-center justify-between">
+                       <div className="text-3xl font-bold text-foreground">
+                         {formatCurrency(expense.amount)}
+                       </div>
+                       
+                       {paidDate && (
+                         <div className="text-sm text-green-600">
+                           {paidDate.date} a las {paidDate.time}
+                         </div>
+                       )}
+                     </div>
+                   </CardContent>
+                 </Card>
               )
             })
           )}
