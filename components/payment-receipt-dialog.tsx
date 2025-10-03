@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { 
   Dialog, 
   DialogContent, 
@@ -53,6 +54,7 @@ export function PaymentReceiptDialog({
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadedImageId, setUploadedImageId] = useState<string | null>(null)
+  const [isMarkAsPaidSelected, setIsMarkAsPaidSelected] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
@@ -125,6 +127,7 @@ export function PaymentReceiptDialog({
     setImagePreview(null)
     setUploadedImageId(null)
     setIsUploading(false)
+    setIsMarkAsPaidSelected(false)
     onClose()
   }
 
@@ -149,11 +152,11 @@ export function PaymentReceiptDialog({
         <div className="space-y-4">
           {/* Información del gasto */}
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-4">
+            <CardContent className="p-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-green-800">{expenseName}</p>
-                  <p className="text-2xl font-bold text-green-900">
+                  <p className="font-medium text-green-800 text-sm">{expenseName}</p>
+                  <p className="text-2xl font-bold text-green-900 leading-tight">
                     ${expenseAmount.toLocaleString()}
                   </p>
                 </div>
@@ -189,22 +192,64 @@ export function PaymentReceiptDialog({
                   </div>
                 </div>
 
-                {/* Botones uno al lado del otro */}
-                <div className="flex gap-3">
-                  <Button 
-                    onClick={handleConnectControlFile}
-                    className="flex-1 bg-orange-500 hover:bg-orange-600"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Conectar ControlFile
-                  </Button>
-                  <Button 
-                    onClick={handleConfirm}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Marcar Pagado
-                  </Button>
+                {/* Botones */}
+                <div className="space-y-3">
+                  {isConnectedToControlFile ? (
+                    <>
+                      <div className="flex gap-3">
+                        <Button 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex-1 bg-orange-500 hover:bg-orange-600"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Subir
+                        </Button>
+                        <div 
+                          className="flex-1 flex items-center justify-center gap-2 border-2 border-blue-200 rounded-lg p-3 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
+                          onClick={() => setIsMarkAsPaidSelected(!isMarkAsPaidSelected)}
+                        >
+                          <Checkbox 
+                            id="mark-paid"
+                            checked={isMarkAsPaidSelected}
+                            onCheckedChange={setIsMarkAsPaidSelected}
+                          />
+                          <label htmlFor="mark-paid" className="text-sm font-medium text-blue-800 cursor-pointer">
+                            Marcar Pagado
+                          </label>
+                        </div>
+                      </div>
+                      <Button 
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="w-full bg-orange-400 hover:bg-orange-500"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        Tomar Foto
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="flex gap-3">
+                      <Button 
+                        onClick={handleConnectControlFile}
+                        className="flex-1 bg-orange-500 hover:bg-orange-600"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Conectar ControlFile
+                      </Button>
+                      <div 
+                        className="flex-1 flex items-center justify-center gap-2 border-2 border-blue-200 rounded-lg p-3 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
+                        onClick={() => setIsMarkAsPaidSelected(!isMarkAsPaidSelected)}
+                      >
+                        <Checkbox 
+                          id="mark-paid"
+                          checked={isMarkAsPaidSelected}
+                          onCheckedChange={setIsMarkAsPaidSelected}
+                        />
+                        <label htmlFor="mark-paid" className="text-sm font-medium text-blue-800 cursor-pointer">
+                          Marcar Pagado
+                        </label>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -212,83 +257,52 @@ export function PaymentReceiptDialog({
           </Card>
 
 
-          {/* Opciones de imagen */}
-          {isConnectedToControlFile && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-3">
-                  <strong>Opcional:</strong> Subir comprobante de pago
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => cameraInputRef.current?.click()}
-                  variant="outline"
-                  className="flex-1"
-                  disabled={isUploading}
-                >
-                  <Camera className="w-4 h-4 mr-2" />
-                  Tomar Foto
-                </Button>
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  variant="outline"
-                  className="flex-1"
-                  disabled={isUploading}
-                >
-                  <Image className="w-4 h-4 mr-2" />
-                  Galería
-                </Button>
-              </div>
+          {/* Inputs ocultos */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleCameraCapture}
+            className="hidden"
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
 
-              {/* Inputs ocultos */}
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleCameraCapture}
-                className="hidden"
-              />
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-
-              {/* Vista previa de imagen */}
-              {imagePreview && (
-                <Card className="border-2 border-dashed border-gray-300">
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
-                      <img
-                        src={imagePreview}
-                        alt="Vista previa"
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                      {!uploadedImageId && (
-                        <Button
-                          onClick={handleUploadImage}
-                          disabled={isUploading}
-                          className="w-full"
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          {isUploading ? "Subiendo..." : "Subir a ControlFile"}
-                        </Button>
-                      )}
-                      {uploadedImageId && (
-                        <div className="flex items-center gap-2 text-green-600">
-                          <CheckCircle className="w-4 h-4" />
-                          <span className="text-sm font-medium">Comprobante guardado</span>
-                        </div>
-                      )}
+          {/* Vista previa de imagen */}
+          {imagePreview && (
+            <Card className="border-2 border-dashed border-gray-300">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <img
+                    src={imagePreview}
+                    alt="Vista previa"
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  {!uploadedImageId && (
+                    <Button
+                      onClick={handleUploadImage}
+                      disabled={isUploading}
+                      className="w-full"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {isUploading ? "Subiendo..." : "Subir a ControlFile"}
+                    </Button>
+                  )}
+                  {uploadedImageId && (
+                    <div className="flex items-center gap-2 text-green-600">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">Comprobante guardado</span>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 
@@ -301,14 +315,14 @@ export function PaymentReceiptDialog({
             <X className="w-4 h-4 mr-2" />
             Cancelar
           </Button>
-          {uploadedImageId && (
+          {(uploadedImageId || isMarkAsPaidSelected) && (
             <Button
               onClick={handleConfirm}
               className="bg-green-600 hover:bg-green-700"
               disabled={isUploading}
             >
               <CheckCircle className="w-4 h-4 mr-2" />
-              Confirmar Pago con Comprobante
+              {uploadedImageId ? "Confirmar Pago con Comprobante" : "Confirmar Pago"}
             </Button>
           )}
         </DialogFooter>
