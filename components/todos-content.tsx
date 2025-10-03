@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { BottomNav } from "@/components/bottom-nav"
+import { UnifiedHeader } from "@/components/unified-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -247,13 +248,11 @@ export function TodosContent() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="max-w-4xl mx-auto p-4 space-y-6">
-        {/* Header */}
-        <div className="pt-4">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Todos los Gastos</h1>
-          <p className="text-muted-foreground">
-            Registros de todos los pagos realizados ({filteredExpenses.length} de {expenses.length})
-          </p>
-        </div>
+        <UnifiedHeader 
+          title="Todos los Gastos"
+          subtitle={`Registros de todos los pagos realizados (${filteredExpenses.length} de ${expenses.length})`}
+          showSummary={false}
+        />
 
         {/* Filtros */}
         <Card>

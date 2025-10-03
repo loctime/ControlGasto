@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo, Suspense, lazy } from "react
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { BottomNav } from "@/components/bottom-nav"
+import { UnifiedHeader } from "@/components/unified-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -335,9 +336,14 @@ export function HistoryContent() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="max-w-4xl mx-auto p-4 space-y-6">
-        <div className="pt-4">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Historial</h1>
-          <p className="text-muted-foreground">Visualiza tus análisis de gastos</p>
+        <UnifiedHeader 
+          title="Historial"
+          subtitle="Visualiza tus análisis de gastos"
+          showSummary={true}
+          totalPaid={totals.totalPaid}
+          totalPending={totals.totalPending}
+          totalExpenses={totals.totalExpenses}
+        />
           
           {/* Alerta de nuevo mes */}
           {isNewMonth() && (

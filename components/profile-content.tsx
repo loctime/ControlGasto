@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { BottomNav } from "@/components/bottom-nav"
+import { UnifiedHeader } from "@/components/unified-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -44,10 +45,11 @@ export function ProfileContent() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="max-w-4xl mx-auto p-4 space-y-6">
-        <div className="pt-4">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Perfil</h1>
-          <p className="text-muted-foreground">Gestiona la configuración de tu cuenta</p>
-        </div>
+        <UnifiedHeader 
+          title="Perfil"
+          subtitle="Gestiona la configuración de tu cuenta"
+          showSummary={false}
+        />
 
         {/* User Info Card */}
         <Card>
