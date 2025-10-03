@@ -159,10 +159,10 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
             <button 
               onClick={handleControlFileClick}
               disabled={isConnecting}
-              className="flex items-center gap-2 hover:bg-muted/50 rounded-md p-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95"
             >
-              <div className={`w-2 h-2 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
-              <span className="text-xs text-muted-foreground">
+              <div className={`w-3 h-3 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
+              <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
               </span>
             </button>
