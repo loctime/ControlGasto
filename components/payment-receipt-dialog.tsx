@@ -22,7 +22,7 @@ import {
   ExternalLink 
 } from "lucide-react"
 import { controlFileService } from "@/lib/controlfile"
-import { useControlFileSync } from "@/hooks/use-controlfile-sync"
+import { useControlFile } from "@/components/controlfile-provider"
 import { useToast } from "@/hooks/use-toast"
 
 interface PaymentReceiptDialogProps {
@@ -44,8 +44,8 @@ export function PaymentReceiptDialog({
   isConnectedToControlFile: propIsConnected, // Renombrar para evitar conflicto
   onConnectionChange
 }: PaymentReceiptDialogProps) {
-  // Usar el hook global para obtener el estado real de ControlFile
-  const { isControlFileConnected, connectManually } = useControlFileSync()
+  // Usar el contexto global de ControlFile
+  const { isControlFileConnected, connectControlFile } = useControlFile()
   
   // Usar el estado global si está disponible, sino usar el prop
   const isConnectedToControlFile = isControlFileConnected || propIsConnected
@@ -129,8 +129,8 @@ export function PaymentReceiptDialog({
   }
 
   const handleConnectControlFile = async () => {
-    // Usar el método del hook global
-    await connectManually()
+    // Usar el método del contexto global
+    await connectControlFile()
   }
 
   return (

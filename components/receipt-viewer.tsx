@@ -14,7 +14,7 @@ import {
 import { Receipt, Eye, Download, ExternalLink, Loader2, Upload } from "lucide-react"
 import { controlFileService } from "@/lib/controlfile"
 import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/components/auth-provider"
+import { useControlFile } from "@/components/controlfile-provider"
 
 interface ReceiptViewerProps {
   receiptImageId: string
@@ -33,30 +33,7 @@ export function ReceiptViewer({
   const [isLoadingUrl, setIsLoadingUrl] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const { toast } = useToast()
-  const { user } = useAuth()
-  
-  // Estados para conexión con ControlFile (igual que el header)
-  const [isControlFileConnected, setIsControlFileConnected] = useState(false)
-  const [isConnecting, setIsConnecting] = useState(false)
-
-  // Verificar conexión con ControlFile y mantener estado sincronizado (igual que el header)
-  useEffect(() => {
-    const checkControlFileConnection = async () => {
-      try {
-        const connected = await controlFileService.isConnected()
-        setIsControlFileConnected(connected)
-      } catch (error) {
-        console.error('Error verificando ControlFile:', error)
-      }
-    }
-    
-    checkControlFileConnection()
-
-    // Verificar periódicamente el estado de conexión para mantener sincronización
-    const interval = setInterval(checkControlFileConnection, 30000) // Cada 30 segundos
-
-    return () => clearInterval(interval)
-  }, [])
+  const { isControlFileConnected, isConnecting, connectControlFile } = useControlFile()
 
   const handleViewReceipt = async () => {
     setIsViewerOpen(true)
@@ -85,72 +62,9 @@ export function ReceiptViewer({
     }
   }
 
-  // Handler de conexión con ControlFile (exactamente igual que el header)
+  // Handler de conexión con ControlFile usando el contexto global
   const handleControlFileClick = async () => {
-    if (isConnecting) return
-
-    if (isControlFileConnected) {
-      // Si ya está conectado, abrir ControlFile
-      const url = controlFileService.getControlFileUrl()
-      window.open(url, '_blank', 'noopener,noreferrer')
-      return
-    }
-
-    // Si no está conectado, conectar automáticamente
-    setIsConnecting(true)
-    
-    try {
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "Debes estar autenticado para conectar con ControlFile",
-          variant: "destructive"
-        })
-        return
-      }
-
-      const result = await controlFileService.connectWithMainUserCredentials(user)
-      
-      if (result.success) {
-        setIsControlFileConnected(true)
-        toast({
-          title: "Conectado exitosamente",
-          description: "ControlFile se ha conectado con tu cuenta",
-        })
-      } else {
-        // Si falla el popup, intentar con redirect
-        if (result.error === 'POPUP_BLOCKED' || result.error === 'POPUP_CANCELLED') {
-          toast({
-            title: "Popup bloqueado",
-            description: "Redirigiendo a ControlFile para conectar...",
-          })
-          
-          const redirectResult = await controlFileService.connectWithRedirect(user)
-          if (!redirectResult.success) {
-            toast({
-              title: "Error de conexión",
-              description: "No se pudo conectar con ControlFile",
-              variant: "destructive"
-            })
-          }
-        } else {
-          toast({
-            title: "Error de conexión",
-            description: result.error || "No se pudo conectar con ControlFile",
-            variant: "destructive"
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Error conectando con ControlFile:', error)
-      toast({
-        title: "Error de conexión",
-        description: "Ocurrió un error inesperado",
-        variant: "destructive"
-      })
-    } finally {
-      setIsConnecting(false)
-    }
+    await connectControlFile()
   }
 
   const handleDownloadImage = async () => {

@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { AuthProviderWithControlFileSync } from "@/components/auth-provider"
+import { ControlFileProvider } from "@/components/controlfile-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { Toaster } from "@/components/ui/sonner"
@@ -50,8 +51,10 @@ export default function RootLayout({
               disableTransitionOnChange
             >
               <AuthProviderWithControlFileSync>
-                {children}
-                <Toaster />
+                <ControlFileProvider>
+                  {children}
+                  <Toaster />
+                </ControlFileProvider>
               </AuthProviderWithControlFileSync>
             </ThemeProvider>
           </Suspense>

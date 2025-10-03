@@ -21,8 +21,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { PaymentReceiptDialog } from "@/components/payment-receipt-dialog"
 import { ReceiptViewer } from "@/components/receipt-viewer"
-import { controlFileService } from "@/lib/controlfile"
-import { useControlFileSync } from "@/hooks/use-controlfile-sync"
+import { useControlFile } from "@/components/controlfile-provider"
 import { Timestamp, FieldValue } from "firebase/firestore"
 
 interface Expense {
@@ -61,8 +60,8 @@ export function ExpensesTable({
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
-  // Usar el hook de sincronización con ControlFile
-  const { isControlFileConnected } = useControlFileSync()
+  // Usar el contexto global de ControlFile
+  const { isControlFileConnected } = useControlFile()
 
   // Auto-focus en el input cuando se abre el formulario
   useEffect(() => {
