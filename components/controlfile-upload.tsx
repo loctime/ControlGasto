@@ -10,7 +10,7 @@ interface ControlFileUploadProps {
   file?: File
   fileName?: string
   folderName?: string
-  onUploaded?: (result: { success: boolean; fileId?: string; error?: string }) => void
+  onUploaded?: (result: { success: boolean; fileId?: string; fileUrl?: string; error?: string }) => void
   disabled?: boolean
   size?: "default" | "sm" | "lg"
   variant?: "default" | "outline" | "secondary"
@@ -47,7 +47,9 @@ export function ControlFileUpload({
       if (result.success) {
         toast({
           title: "Archivo subido exitosamente",
-          description: `El archivo se ha guardado en ControlFile`,
+          description: result.fileUrl 
+            ? `Archivo guardado en ControlFile. URL: ${result.fileUrl}` 
+            : `El archivo se ha guardado en ControlFile`,
         })
         onUploaded?.(result)
       } else {
@@ -97,7 +99,7 @@ interface ControlFileUploadFromUrlProps {
   fileUrl: string
   fileName: string
   folderName?: string
-  onUploaded?: (result: { success: boolean; fileId?: string; error?: string }) => void
+  onUploaded?: (result: { success: boolean; fileId?: string; fileUrl?: string; error?: string }) => void
   disabled?: boolean
   size?: "default" | "sm" | "lg"
   variant?: "default" | "outline" | "secondary"
@@ -143,7 +145,9 @@ export function ControlFileUploadFromUrl({
       if (result.success) {
         toast({
           title: "Archivo subido exitosamente",
-          description: `El archivo "${fileName}" se ha guardado en ControlFile`,
+          description: result.fileUrl 
+            ? `Archivo "${fileName}" guardado en ControlFile. URL: ${result.fileUrl}` 
+            : `El archivo "${fileName}" se ha guardado en ControlFile`,
         })
         onUploaded?.(result)
       } else {

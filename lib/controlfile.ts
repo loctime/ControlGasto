@@ -162,11 +162,18 @@ export class ControlFileService {
     } catch (error: any) {
       console.error('Error conectando automáticamente con ControlFile:', error)
       
-      // Si el popup es bloqueado, no mostrar error al usuario
+      // Manejar diferentes tipos de errores de manera silenciosa
       if (error.code === 'auth/popup-blocked') {
         return {
           success: false,
           error: 'POPUP_BLOCKED' // Código especial para manejar en el hook
+        }
+      }
+      
+      if (error.code === 'auth/cancelled-popup-request') {
+        return {
+          success: false,
+          error: 'POPUP_CANCELLED' // Código especial para popup cancelado
         }
       }
       
@@ -232,7 +239,7 @@ export class ControlFileService {
   }
 
   // Subir archivo a ControlFile usando el flujo correcto
-  async uploadFile(file: File, folderName?: string): Promise<{ success: boolean; fileId?: string; error?: string }> {
+  async uploadFile(file: File, folderName?: string): Promise<{ success: boolean; fileId?: string; fileUrl?: string; error?: string }> {
     try {
       const token = await this.getAuthToken()
       if (!token) {
@@ -332,9 +339,26 @@ export class ControlFileService {
       const result = await confirmResponse.json()
       console.log('✅ Subida confirmada:', result)
 
-      return {
-        success: true,
-        fileId: result.fileId || result.id || uploadSessionId
+      const fileId = result.fileId || result.id || uploadSessionId
+      
+      // Obtener URL real del archivo
+      console.log('🔍 Obteniendo URL del archivo:', fileId)
+      const urlResult = await this.getFileUrl(fileId)
+      
+      if (urlResult.success) {
+        console.log('✅ URL del archivo obtenida:', urlResult.url)
+        return {
+          success: true,
+          fileId: fileId,
+          fileUrl: urlResult.url
+        }
+      } else {
+        console.warn('⚠️ No se pudo obtener URL del archivo:', urlResult.error)
+        return {
+          success: true,
+          fileId: fileId,
+          fileUrl: null
+        }
       }
     } catch (error: any) {
       console.error('Error subiendo archivo:', error)

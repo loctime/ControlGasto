@@ -77,11 +77,14 @@ export function useControlFileSync() {
         } else {
           console.warn('No se pudo conectar automáticamente con ControlFile:', result.error)
           
-          // Manejar diferentes tipos de errores
+          // Manejar diferentes tipos de errores de manera silenciosa
           if (result.error === 'POPUP_BLOCKED') {
             // Popup bloqueado - no mostrar error, solo log
             console.log('Popup bloqueado - sincronización automática no disponible')
-          } else if (result.error && !result.error.includes('Popup bloqueado')) {
+          } else if (result.error === 'POPUP_CANCELLED' || result.error === 'auth/cancelled-popup-request') {
+            // Popup cancelado por el usuario - no mostrar error
+            console.log('Popup cancelado por el usuario - sincronización automática no disponible')
+          } else if (result.error && !result.error.includes('POPUP_BLOCKED') && !result.error.includes('POPUP_CANCELLED') && !result.error.includes('cancelled-popup-request')) {
             toast({
               title: "Sincronización automática no disponible",
               description: "Puedes conectar manualmente con ControlFile desde el perfil",
@@ -123,9 +126,9 @@ export function useControlFileSync() {
       } else {
         console.warn('No se pudo conectar automáticamente con ControlFile desde dashboard:', result.error)
         
-        // Si popup es bloqueado desde dashboard, no mostrar toast para evitar spam
-        if (result.error === 'POPUP_BLOCKED') {
-          console.log('Popup bloqueado desde dashboard - sincronización no disponible')
+        // Si popup es bloqueado o cancelado desde dashboard, no mostrar toast para evitar spam
+        if (result.error === 'POPUP_BLOCKED' || result.error === 'POPUP_CANCELLED' || result.error === 'auth/cancelled-popup-request') {
+          console.log('Popup bloqueado/cancelado desde dashboard - sincronización no disponible')
         }
       }
     } catch (error) {
