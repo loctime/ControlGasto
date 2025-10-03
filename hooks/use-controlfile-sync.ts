@@ -37,7 +37,20 @@ export function useControlFileSync() {
           return
         }
 
-        // Si no hay redirect, verificar conexión normal
+        // Intentar restaurar sesión guardada
+        const restoreResult = await controlFileService.restoreSession()
+        if (restoreResult.success) {
+          setIsControlFileConnected(true)
+          setControlFileUser(restoreResult.user)
+          
+          toast({
+            title: "ControlFile restaurado",
+            description: "Tu sesión de ControlFile se ha restaurado automáticamente",
+          })
+          return
+        }
+
+        // Si no hay redirect ni sesión guardada, verificar conexión normal
         const connected = await controlFileService.isConnected()
         setIsControlFileConnected(connected)
         
