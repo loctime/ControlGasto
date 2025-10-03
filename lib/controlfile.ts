@@ -239,7 +239,7 @@ export class ControlFileService {
   }
 
   // Subir archivo a ControlFile usando el flujo correcto
-  async uploadFile(file: File, folderName?: string): Promise<{ success: boolean; fileId?: string; fileUrl?: string; error?: string }> {
+  async uploadFile(file: File, folderName?: string): Promise<{ success: boolean; fileId?: string; fileUrl?: string; fileName?: string; fileSize?: number; error?: string }> {
     try {
       const token = await this.getAuthToken()
       if (!token) {
@@ -347,17 +347,23 @@ export class ControlFileService {
       
       if (urlResult.success) {
         console.log('✅ URL del archivo obtenida:', urlResult.url)
+        console.log('📁 Archivo:', urlResult.fileName)
+        console.log('📏 Tamaño:', urlResult.fileSize)
         return {
           success: true,
           fileId: fileId,
-          fileUrl: urlResult.url
+          fileUrl: urlResult.url,
+          fileName: urlResult.fileName,
+          fileSize: urlResult.fileSize
         }
       } else {
         console.warn('⚠️ No se pudo obtener URL del archivo:', urlResult.error)
         return {
           success: true,
           fileId: fileId,
-          fileUrl: undefined
+          fileUrl: undefined,
+          fileName: undefined,
+          fileSize: undefined
         }
       }
     } catch (error: any) {
@@ -463,8 +469,8 @@ export class ControlFileService {
     return blackBlazePatterns.some(pattern => url.includes(pattern))
   }
 
-  // Obtener URL directa de un archivo desde BlackBlaze B2
-  async getFileUrl(fileId: string): Promise<{ success: boolean; url?: string; error?: string }> {
+  // Obtener URL de descarga de un archivo usando el endpoint correcto
+  async getFileUrl(fileId: string): Promise<{ success: boolean; url?: string; fileName?: string; fileSize?: number; error?: string }> {
     try {
       const token = await this.getAuthToken()
       if (!token) {
@@ -474,82 +480,39 @@ export class ControlFileService {
         }
       }
 
-      // Lista de endpoints a probar para obtener URL directa de BlackBlaze
-      const endpoints = [
-        {
-          url: `${this.backendUrl}/api/files/${fileId}/download-url`,
-          description: 'download-url endpoint'
+      console.log(`🔍 Obteniendo URL de descarga para archivo: ${fileId}`)
+
+      // Usar el endpoint correcto /api/files/presign-get
+      const response = await fetch(`${this.backendUrl}/api/files/presign-get`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        {
-          url: `${this.backendUrl}/api/files/${fileId}/direct-url`,
-          description: 'direct-url endpoint'
-        },
-        {
-          url: `${this.backendUrl}/api/files/${fileId}/b2-url`,
-          description: 'b2-url endpoint'
-        },
-        {
-          url: `${this.backendUrl}/api/files/${fileId}/url`,
-          description: 'url endpoint (fallback)'
-        }
-      ]
+        body: JSON.stringify({
+          fileId: fileId
+        })
+      })
 
-      console.log(`🔍 Intentando obtener URL directa de BlackBlaze para archivo: ${fileId}`)
-
-      // Probar cada endpoint hasta encontrar una URL válida de BlackBlaze
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`📡 Probando endpoint: ${endpoint.description}`)
-          
-          const response = await fetch(endpoint.url, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          })
-
-          if (response.ok) {
-            const result = await response.json()
-            
-            // Buscar URL en diferentes campos de respuesta
-            const possibleUrls = [
-              result.url,
-              result.directUrl,
-              result.downloadUrl,
-              result.b2Url,
-              result.blackBlazeUrl,
-              result.fileUrl
-            ].filter(Boolean)
-
-            for (const url of possibleUrls) {
-              if (this.isBlackBlazeUrl(url)) {
-                console.log(`✅ URL directa de BlackBlaze encontrada: ${url}`)
-                return {
-                  success: true,
-                  url: url
-                }
-              }
-            }
-
-            // Si encontramos una URL pero no es de BlackBlaze, la guardamos como fallback
-            if (possibleUrls.length > 0) {
-              console.log(`⚠️ URL encontrada pero no es de BlackBlaze: ${possibleUrls[0]}`)
-            }
-          } else {
-            console.log(`❌ Endpoint ${endpoint.description} falló: ${response.status}`)
-          }
-        } catch (endpointError) {
-          console.log(`❌ Error en endpoint ${endpoint.description}:`, endpointError)
-          continue
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Error obteniendo URL de descarga:', errorData)
+        return {
+          success: false,
+          error: errorData.message || `Error obteniendo URL de descarga: ${response.status}`
         }
       }
 
-      // Si ningún endpoint devolvió URL de BlackBlaze, devolver error
-      console.log(`❌ No se pudo obtener URL directa de BlackBlaze B2 para archivo: ${fileId}`)
+      const result = await response.json()
+      console.log('✅ URL de descarga obtenida:', result.downloadUrl)
+      console.log('📁 Archivo:', result.fileName)
+      console.log('📏 Tamaño:', result.fileSize)
+
       return {
-        success: false,
-        error: 'No se pudo obtener URL directa de BlackBlaze B2. El archivo puede no estar disponible o el servicio no soporta URLs directas.'
+        success: true,
+        url: result.downloadUrl,
+        fileName: result.fileName,
+        fileSize: result.fileSize
       }
     } catch (error: any) {
       console.error('Error obteniendo URL del archivo:', error)
