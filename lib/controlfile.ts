@@ -8,7 +8,8 @@ const CONTROLFILE_CONFIG = {
   projectId: process.env.NEXT_PUBLIC_CONTROLFILE_PROJECT_ID || "con",
   appId: process.env.NEXT_PUBLIC_CONTROLFILE_APP_ID || "",
   backendUrl: process.env.NEXT_PUBLIC_CONTROLFILE_BACKEND_URL || "https://controlfile.onrender.com",
-  appDisplayName: process.env.NEXT_PUBLIC_CONTROLFILE_APP_DISPLAY_NAME || "ControlFile"
+  appDisplayName: process.env.NEXT_PUBLIC_CONTROLFILE_APP_DISPLAY_NAME || "ControlFile",
+  appCode: process.env.NEXT_PUBLIC_CONTROLFILE_APP_CODE || "controlgastos"
 }
 
 // Inicializar Firebase para ControlFile
@@ -249,13 +250,12 @@ export class ControlFileService {
         }
       }
 
-      // Crear carpeta si no existe
+      // Crear carpeta si no existe (usar appCode por defecto)
       let parentId = null
-      if (folderName) {
-        const folderResult = await this.createFolder(folderName)
-        if (folderResult.success) {
-          parentId = folderResult.folderId
-        }
+      const folderToUse = folderName || CONTROLFILE_CONFIG.appCode
+      const folderResult = await this.createFolder(folderToUse)
+      if (folderResult.success) {
+        parentId = folderResult.folderId
       }
 
       console.log('🚀 Iniciando subida de archivo:', file.name)
@@ -410,7 +410,7 @@ export class ControlFileService {
   }
 
   // Crear carpeta en ControlFile
-  async createFolder(folderName: string): Promise<{ success: boolean; folderId?: string; error?: string }> {
+  async createFolder(folderName?: string): Promise<{ success: boolean; folderId?: string; error?: string }> {
     try {
       const token = await this.getAuthToken()
       if (!token) {
@@ -420,7 +420,10 @@ export class ControlFileService {
         }
       }
 
-      const response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent(folderName)}`, {
+      // Usar appCode por defecto si no se especifica folderName
+      const folderToCreate = folderName || CONTROLFILE_CONFIG.appCode
+
+      const response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent(folderToCreate)}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
