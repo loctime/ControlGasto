@@ -142,7 +142,7 @@ export function PaymentReceiptDialog({
             Marcar como Pagado
           </DialogTitle>
           <DialogDescription>
-            Marca "{expenseName}" como pagado. Opcionalmente puedes subir un comprobante.
+            Ya pagaste "{expenseName}"? Tienes el comprobante?
           </DialogDescription>
         </DialogHeader>
 
@@ -162,49 +162,55 @@ export function PaymentReceiptDialog({
                 </Badge>
               </div>
             </CardContent>
-          </Card>
-
-          {/* Opción de marcar sin comprobante */}
-          <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle className="w-5 h-5 text-blue-500" />
-                <p className="font-medium text-blue-800">Marcar como pagado</p>
+              <div className="space-y-4">
+                {/* Secciones lado a lado */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Sección de subir comprobante */}
+                  <div className="border-2 border-orange-200 rounded-lg p-4 bg-orange-50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertCircle className="w-5 h-5 text-orange-500" />
+                      <p className="font-medium text-orange-800">Subir comprobante</p>
+                    </div>
+                    <p className="text-sm text-orange-700">
+                      Conectate con ControlFile!
+                    </p>
+                  </div>
+
+                  {/* Sección de marcar como pagado */}
+                  <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CheckCircle className="w-5 h-5 text-blue-500" />
+                      <p className="font-medium text-blue-800">Sin comprobante</p>
+                    </div>
+                    <p className="text-sm text-blue-700">
+                      Puedes subirlo luego
+                    </p>
+                  </div>
+                </div>
+
+                {/* Botones uno al lado del otro */}
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={handleConnectControlFile}
+                    className="flex-1 bg-orange-500 hover:bg-orange-600"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Conectar ControlFile
+                  </Button>
+                  <Button 
+                    onClick={handleConfirm}
+                    className="flex-1 bg-blue-500 hover:bg-blue-600"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Marcar Pagado
+                  </Button>
+                </div>
               </div>
-              <p className="text-sm text-blue-700 mb-3">
-                Puedes marcar este gasto como pagado sin necesidad de subir un comprobante
-              </p>
-              <Button 
-                onClick={handleConfirm}
-                className="w-full bg-blue-500 hover:bg-blue-600"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Marcar como Pagado (Sin Comprobante)
-              </Button>
             </CardContent>
+              
           </Card>
 
-          {/* Estado de conexión con ControlFile */}
-          {!isConnectedToControlFile && (
-            <Card className="bg-orange-50 border-orange-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertCircle className="w-5 h-5 text-orange-500" />
-                  <p className="font-medium text-orange-800">Subir comprobante (Opcional)</p>
-                </div>
-                <p className="text-sm text-orange-700 mb-3">
-                  Para subir comprobantes necesitas conectar tu cuenta de ControlFile
-                </p>
-                <Button 
-                  onClick={handleConnectControlFile}
-                  className="w-full bg-orange-500 hover:bg-orange-600"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Conectar con ControlFile
-                </Button>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Opciones de imagen */}
           {isConnectedToControlFile && (

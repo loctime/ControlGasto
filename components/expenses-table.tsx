@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Plus, Pencil, Trash2, Check, X, DollarSign, Receipt } from "lucide-react"
+import { Plus, Pencil, Trash2, Check, X, DollarSign, Receipt, MoreVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +19,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { PaymentReceiptDialog } from "@/components/payment-receipt-dialog"
 import { ReceiptViewer } from "@/components/receipt-viewer"
 import { useControlFile } from "@/components/controlfile-provider"
@@ -295,120 +301,107 @@ export function ExpensesTable({
                 </div>
               </div>
             ) : (
-              // Vista normal.
+              // Vista normal reorganizada
               <div className="p-4">
-                {/* Primera línea: Nombre - Categoría - Acciones */}
-                <div className="flex items-center justify-between mb-3">
+                {/* Primera fila: Descripción - Categoría - Editar - Botón de pagado */}
+                <div className="flex items-center justify-between mb-3 gap-3">
+                  {/* Descripción */}
                   <h3 className="text-lg font-semibold text-foreground truncate flex-1">{expense.name}</h3>
                   
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-sm px-3 py-1.5">
-                      {expense.category === 'hogar' && '🏠 Hogar'}
-                      {expense.category === 'transporte' && '🚗 Transporte'}
-                      {expense.category === 'alimentacion' && '🍽️ Alimentación'}
-                      {expense.category === 'servicios' && '⚡ Servicios'}
-                      {expense.category === 'entretenimiento' && '🎬 Entretenimiento'}
-                      {expense.category === 'salud' && '🏥 Salud'}
-                      {expense.category === 'otros' && '📦 Otros'}
-                    </Badge>
-                    
-                    {/* Botón de estado de pago */}
-                    {expense.paid ? (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 px-3 text-xs border-pending/40 text-pending hover:bg-pending/10"
-                          >
-                            Pendiente
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Marcar como pendiente?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              ¿Estás seguro de que quieres marcar "{expense.name}" como pendiente?
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => onTogglePaid(expense.id, expense.paid)}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              Marcar como Pendiente
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    ) : (
+                  {/* Categoría */}
+                  <Badge variant="outline" className="text-sm px-3 py-1.5 whitespace-nowrap">
+                    {expense.category === 'hogar' && '🏠 Hogar'}
+                    {expense.category === 'transporte' && '🚗 Transporte'}
+                    {expense.category === 'alimentacion' && '🍽️ Alimentación'}
+                    {expense.category === 'servicios' && '⚡ Servicios'}
+                    {expense.category === 'entretenimiento' && '🎬 Entretenimiento'}
+                    {expense.category === 'salud' && '🏥 Salud'}
+                    {expense.category === 'otros' && '📦 Otros'}
+                  </Badge>
+                  
+                  {/* Dropdown de editar (incluye eliminar) */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                       <Button
                         size="sm"
-                        onClick={() => handleTogglePaidClick(expense)}
-                        className="h-8 px-3 text-xs bg-paid hover:bg-paid/90 text-paid-foreground"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
                       >
-                        Pagar
+                        <MoreVertical className="w-4 h-4" />
                       </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Segunda línea: Monto - Acciones */}
-                <div className="flex items-center justify-between">
-                  <div className="text-3xl font-bold text-foreground">
-                    {formatCurrency(expense.amount)}
-                  </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => onDeleteExpense(expense.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   
-                  <div className="flex items-center gap-2">
-                    {/* Ver comprobante si existe */}
-                    {expense.paid && expense.receiptImageId && (
-                      <ReceiptViewer
-                        receiptImageId={expense.receiptImageId}
-                        expenseName={expense.name}
-                        expenseAmount={expense.amount}
-                        paidAt={expense.paidAt && 'toDate' in expense.paidAt ? expense.paidAt.toDate() : null}
-                      />
-                    )}
-                    
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEditExpense(expense)}
-                      className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    
+                  {/* Botón de estado de pago */}
+                  {expense.paid ? (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
                           size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          variant="outline"
+                          className="h-8 px-3 text-xs border-pending/40 text-pending hover:bg-pending/10 whitespace-nowrap"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          Pendiente
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>¿Eliminar gasto?</AlertDialogTitle>
+                          <AlertDialogTitle>¿Marcar como pendiente?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            ¿Estás seguro de que quieres eliminar "{expense.name}"? Esta acción no se puede deshacer.
+                            ¿Estás seguro de que quieres marcar "{expense.name}" como pendiente?
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => onDeleteExpense(expense.id)}
-                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => onTogglePaid(expense.id, expense.paid)}
+                            className="bg-blue-600 hover:bg-blue-700"
                           >
-                            Eliminar
+                            Marcar como Pendiente
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => handleTogglePaidClick(expense)}
+                      className="h-8 px-3 text-xs bg-paid hover:bg-paid/90 text-paid-foreground whitespace-nowrap"
+                    >
+                      Pagar
+                    </Button>
+                  )}
+                </div>
+
+                {/* Segunda fila: Monto - Ver comprobante */}
+                <div className="flex items-center justify-between gap-3">
+                  {/* Monto */}
+                  <div className="text-3xl font-bold text-foreground">
+                    {formatCurrency(expense.amount)}
                   </div>
+                  
+                  {/* Ver comprobante si existe */}
+                  {expense.paid && expense.receiptImageId && (
+                    <ReceiptViewer
+                      receiptImageId={expense.receiptImageId}
+                      expenseName={expense.name}
+                      expenseAmount={expense.amount}
+                      paidAt={expense.paidAt && 'toDate' in expense.paidAt ? expense.paidAt.toDate() : null}
+                    />
+                  )}
                 </div>
               </div>
             )}
