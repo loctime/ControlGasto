@@ -122,7 +122,7 @@ export function ReceiptViewer({
         className="h-8 px-3 text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300"
       >
         <Receipt className="w-4 h-4 mr-1" />
-        Ver Comprobante
+        Ver Comp.
       </Button>
 
       <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
