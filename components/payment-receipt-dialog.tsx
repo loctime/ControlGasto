@@ -55,6 +55,7 @@ export function PaymentReceiptDialog({
   const [isUploading, setIsUploading] = useState(false)
   const [uploadedImageId, setUploadedImageId] = useState<string | null>(null)
   const [isMarkAsPaidSelected, setIsMarkAsPaidSelected] = useState(false)
+  const [showImageModal, setShowImageModal] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
@@ -128,6 +129,7 @@ export function PaymentReceiptDialog({
     setUploadedImageId(null)
     setIsUploading(false)
     setIsMarkAsPaidSelected(false)
+    setShowImageModal(false)
     onClose()
   }
 
@@ -175,9 +177,33 @@ export function PaymentReceiptDialog({
                       <AlertCircle className="w-5 h-5 text-orange-500" />
                       <p className="font-medium text-orange-800">Subir comprobante</p>
                     </div>
-                    <p className="text-sm text-orange-700">
-                      Conectate con ControlFile!
-                    </p>
+                    {imagePreview ? (
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={imagePreview}
+                          alt="Vista previa"
+                          className="w-12 h-12 object-cover rounded-lg border border-orange-200 cursor-pointer"
+                          onClick={() => setShowImageModal(true)}
+                        />
+                        {!uploadedImageId && (
+                          <div className="flex-1">
+                            <Button
+                              onClick={handleUploadImage}
+                              disabled={isUploading}
+                              size="sm"
+                              className="w-full"
+                            >
+                              <Upload className="w-3 h-3 mr-2" />
+                              {isUploading ? "Subiendo..." : "Subir"}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-orange-700">
+                        Conectate con ControlFile!
+                      </p>
+                    )}
                   </div>
 
                   {/* Sección de marcar como pagado */}
@@ -202,7 +228,7 @@ export function PaymentReceiptDialog({
                           className="flex-1 bg-orange-500 hover:bg-orange-600"
                         >
                           <Upload className="w-4 h-4 mr-2" />
-                          Subir
+                          {imagePreview ? "Cambiar" : "Subir"}
                         </Button>
                         <div 
                           className="flex-1 flex items-center justify-center gap-2 border-2 border-blue-200 rounded-lg p-3 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
@@ -274,36 +300,6 @@ export function PaymentReceiptDialog({
             className="hidden"
           />
 
-          {/* Vista previa de imagen */}
-          {imagePreview && (
-            <Card className="border-2 border-dashed border-gray-300">
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <img
-                    src={imagePreview}
-                    alt="Vista previa"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  {!uploadedImageId && (
-                    <Button
-                      onClick={handleUploadImage}
-                      disabled={isUploading}
-                      className="w-full"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {isUploading ? "Subiendo..." : "Subir a ControlFile"}
-                    </Button>
-                  )}
-                  {uploadedImageId && (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="text-sm font-medium">Comprobante guardado</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         <DialogFooter className="flex gap-2">
@@ -327,6 +323,29 @@ export function PaymentReceiptDialog({
           )}
         </DialogFooter>
       </DialogContent>
+
+      {/* Modal para ver imagen en grande */}
+      <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Vista previa del comprobante</DialogTitle>
+          </DialogHeader>
+          {imagePreview && (
+            <div className="flex justify-center">
+              <img
+                src={imagePreview}
+                alt="Comprobante"
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowImageModal(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }
