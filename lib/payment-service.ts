@@ -213,4 +213,61 @@ export class PaymentService {
       throw error
     }
   }
+
+  // Verificar si hay pagos del mes anterior
+  async hasPaymentsFromPreviousMonth(): Promise<boolean> {
+    try {
+      const now = new Date()
+      const currentMonth = now.getMonth()
+      const currentYear = now.getFullYear()
+      
+      // Calcular el mes anterior
+      let previousMonth = currentMonth - 1
+      let previousYear = currentYear
+      
+      if (previousMonth < 0) {
+        previousMonth = 11 // Diciembre
+        previousYear = currentYear - 1
+      }
+      
+      // Crear fechas de inicio y fin del mes anterior
+      const startDate = new Date(previousYear, previousMonth, 1)
+      const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999) // Último día del mes anterior
+      
+      const payments = await this.getPaymentsByDateRange(startDate, endDate)
+      
+      return payments.length > 0
+    } catch (error) {
+      console.error('Error verificando pagos del mes anterior:', error)
+      return false
+    }
+  }
+
+  // Reiniciar todos los gastos a estado pendiente (para nuevo mes)
+  async resetAllExpensesToPending(): Promise<void> {
+    try {
+      // Obtener todos los gastos del usuario
+      const expensesQuery = query(
+        collection(db, 'expenses'),
+        where('userId', '==', this.userId)
+      )
+      
+      const expensesSnapshot = await getDocs(expensesQuery)
+      
+      // Actualizar todos los gastos a estado pendiente
+      const updatePromises = expensesSnapshot.docs.map(doc => {
+        return updateDoc(doc.ref, {
+          status: 'pending',
+          updatedAt: serverTimestamp()
+        })
+      })
+      
+      await Promise.all(updatePromises)
+      
+      console.log(`✅ ${updatePromises.length} gastos reiniciados a estado pendiente`)
+    } catch (error) {
+      console.error('Error reiniciando gastos:', error)
+      throw error
+    }
+  }
 }

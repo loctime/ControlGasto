@@ -19,7 +19,7 @@ export function HistoryHeader({ totals, isNewMonth, onShowResetModal }: HistoryH
       <UnifiedHeader 
         title="Historial"
         subtitle="Visualiza tus pagos realizados"
-        showSummary={true}
+        showSummary={false}
         totalPaid={totals.totalAmount}
         totalPending={0}
         totalExpenses={totals.totalAmount}
@@ -29,14 +29,14 @@ export function HistoryHeader({ totals, isNewMonth, onShowResetModal }: HistoryH
       {isNewMonth && (
         <Alert className="mt-4 border-amber-200 bg-amber-50 dark:bg-amber-900/20">
           <AlertDescription>
-            <strong>Nuevo mes detectado!</strong> Tienes gastos pagados del mes anterior. 
-            Quieres reiniciar todos los pagos para este mes?
+            <strong>🔄 Nuevo mes detectado!</strong> Tienes gastos pagados del mes anterior. 
+            ¿Quieres reiniciar todos los gastos a estado "Pendiente" para comenzar el nuevo mes?
             <Button 
               size="sm" 
               className="ml-2 bg-amber-600 hover:bg-amber-700"
               onClick={onShowResetModal}
             >
-              Reiniciar Pagos
+              Reiniciar Gastos
             </Button>
           </AlertDescription>
         </Alert>

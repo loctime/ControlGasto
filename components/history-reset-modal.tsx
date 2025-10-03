@@ -15,9 +15,10 @@ interface HistoryResetModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onReset: () => Promise<void>
+  isResetting?: boolean
 }
 
-export function HistoryResetModal({ open, onOpenChange, onReset }: HistoryResetModalProps) {
+export function HistoryResetModal({ open, onOpenChange, onReset, isResetting = false }: HistoryResetModalProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -31,12 +32,13 @@ export function HistoryResetModal({ open, onOpenChange, onReset }: HistoryResetM
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={isResetting}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={onReset}
-            className="bg-amber-600 hover:bg-amber-700"
+            disabled={isResetting}
+            className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50"
           >
-            Reiniciar Todos los Pagos
+            {isResetting ? "Reiniciando..." : "Reiniciar Todos los Pagos"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

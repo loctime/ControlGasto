@@ -41,6 +41,9 @@ export function ExpenseListSkeleton({ count = 3 }: { count?: number }) {
 
 // ✅ CHART SKELETON
 export function ChartSkeleton() {
+  // Alturas fijas para evitar problemas de hidratación
+  const barHeights = [120, 80, 150, 100, 90]
+  
   return (
     <Card>
       <CardHeader>
@@ -54,7 +57,7 @@ export function ChartSkeleton() {
                 <div key={i} className="flex flex-col items-center space-y-2">
                   <Skeleton 
                     className="w-12 bg-slate-200 dark:bg-slate-700" 
-                    style={{ height: `${Math.random() * 100 + 50}px` }}
+                    style={{ height: `${barHeights[i]}px` }}
                   />
                   <Skeleton className="h-4 w-8" />
                 </div>

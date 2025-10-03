@@ -9,8 +9,10 @@ import { HistoryStats } from "@/components/history-stats"
 import { HistoryResetModal } from "@/components/history-reset-modal"
 import { HistorySkeleton } from "@/components/ui/skeleton-loaders"
 import { useRetry, useMemoizedCalculations } from "@/lib/optimization"
+import { PaymentService } from "@/lib/payment-service"
 import { collection, query, where, getDocs, orderBy, Timestamp, FieldValue } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { toast } from "sonner"
 
 // Helper function to safely convert Firebase timestamp to Date
 const getDateFromTimestamp = (timestamp: any): Date => {
@@ -41,6 +43,8 @@ export function HistoryContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showResetModal, setShowResetModal] = useState(false)
+  const [hasPreviousMonthPayments, setHasPreviousMonthPayments] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
   
   const { retryWithBackoff } = useRetry()
 
@@ -120,15 +124,52 @@ export function HistoryContent() {
     }
   )
 
-  // Detectar si es un nuevo mes
-  const isNewMonth = () => {
+  // Detectar si es un nuevo mes Y si hay pagos del mes anterior
+  const isNewMonthWithPreviousPayments = useMemo(() => {
     const now = new Date()
-    return now.getDate() <= 3 // Primeros 3 días del mes
-  }
+    const isFirstDaysOfMonth = now.getDate() <= 3 // Primeros 3 días del mes
+    
+    return isFirstDaysOfMonth && hasPreviousMonthPayments
+  }, [hasPreviousMonthPayments])
+
+  // Verificar si hay pagos del mes anterior
+  useEffect(() => {
+    if (!user) return
+
+    const checkPreviousMonthPayments = async () => {
+      try {
+        const paymentService = new PaymentService(user.uid)
+        const hasPayments = await paymentService.hasPaymentsFromPreviousMonth()
+        setHasPreviousMonthPayments(hasPayments)
+      } catch (error) {
+        console.error("Error verificando pagos del mes anterior:", error)
+        setHasPreviousMonthPayments(false)
+      }
+    }
+
+    checkPreviousMonthPayments()
+  }, [user])
 
   const resetAllPayments = async () => {
-    // TODO: Implementar función de reset
-    console.log("Reset all payments")
+    if (!user) return
+
+    setIsResetting(true)
+    try {
+      const paymentService = new PaymentService(user.uid)
+      await paymentService.resetAllExpensesToPending()
+      
+      toast.success("✅ Todos los gastos han sido reiniciados a estado pendiente")
+      setShowResetModal(false)
+      setHasPreviousMonthPayments(false)
+      
+      // Recargar la página para actualizar los datos
+      window.location.reload()
+    } catch (error) {
+      console.error("Error reiniciando pagos:", error)
+      toast.error("❌ Error al reiniciar los gastos. Intenta nuevamente.")
+    } finally {
+      setIsResetting(false)
+    }
   }
 
   if (isLoading) {
@@ -151,7 +192,7 @@ export function HistoryContent() {
       <div className="max-w-4xl mx-auto p-4 space-y-6">
         <HistoryHeader 
           totals={totals}
-          isNewMonth={isNewMonth()}
+          isNewMonth={isNewMonthWithPreviousPayments}
           onShowResetModal={() => setShowResetModal(true)}
         />
 
@@ -192,6 +233,7 @@ export function HistoryContent() {
           open={showResetModal}
           onOpenChange={setShowResetModal}
           onReset={resetAllPayments}
+          isResetting={isResetting}
         />
       </div>
       <BottomNav />
