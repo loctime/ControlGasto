@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useAuth } from "@/components/auth-provider"
-import { controlFileService } from "@/lib/controlfile"
 import { useToast } from "@/hooks/use-toast"
+import { controlFileService } from "@/lib/controlfile"
+import { useEffect, useState } from "react"
 
 export function useControlFileSync() {
   const { user: mainUser } = useAuth()
@@ -11,12 +11,13 @@ export function useControlFileSync() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [controlFileUser, setControlFileUser] = useState<any>(null)
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(() => {
-    // Sincronización automática deshabilitada por defecto
+    // Sincronización automática habilitada por defecto
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('controlfile-auto-sync-enabled')
-      return stored === 'true'
+      // Si no hay valor guardado, usar true por defecto
+      return stored === null ? true : stored === 'true'
     }
-    return false
+    return true
   })
   const { toast } = useToast()
 

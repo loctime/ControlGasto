@@ -1,5 +1,5 @@
-import { initializeApp, getApps } from 'firebase/app'
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut, setPersistence, browserLocalPersistence, signInWithCredential, signInWithRedirect, getRedirectResult } from 'firebase/auth'
+import { initializeApp } from 'firebase/app'
+import { GoogleAuthProvider, browserLocalPersistence, signOut as firebaseSignOut, getAuth, getRedirectResult, setPersistence, signInWithPopup, signInWithRedirect } from 'firebase/auth'
 
 // Configuración de ControlFile
 const CONTROLFILE_CONFIG = {
@@ -43,15 +43,82 @@ export class ControlFileService {
     }
   }
 
+  // Obtener instancia de auth para listeners externos
+  public getAuth() {
+    return this.auth
+  }
+
+  // Esperar a que Firebase Auth se restaure automáticamente
+  public async waitForAuthRestore(timeoutMs: number = 3000): Promise<{ success: boolean; user?: any; error?: string }> {
+    return new Promise((resolve) => {
+      let resolved = false
+      
+      // Si ya hay un usuario autenticado, devolver inmediatamente
+      const currentUser = this.auth.currentUser
+      if (currentUser) {
+        resolve({
+          success: true,
+          user: {
+            uid: currentUser.uid,
+            email: currentUser.email,
+            displayName: currentUser.displayName,
+            photoURL: currentUser.photoURL
+          }
+        })
+        return
+      }
+
+      // Configurar timeout
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true
+          resolve({
+            success: false,
+            error: 'Timeout esperando restauración de Firebase Auth'
+          })
+        }
+      }, timeoutMs)
+
+      // Escuchar cambios de autenticación
+      const unsubscribe = this.auth.onAuthStateChanged((user: any) => {
+        if (!resolved) {
+          resolved = true
+          clearTimeout(timeout)
+          unsubscribe()
+          
+          if (user) {
+            console.log('✅ ControlFile: Firebase Auth restaurado automáticamente')
+            resolve({
+              success: true,
+              user: {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL
+              }
+            })
+          } else {
+            resolve({
+              success: false,
+              error: 'No hay usuario autenticado después de la restauración'
+            })
+          }
+        }
+      })
+    })
+  }
+
   // Configurar listener para cambios de estado de autenticación
   private setupAuthStateListener() {
     this.auth.onAuthStateChanged((user: any) => {
       if (user) {
         // Guardar sesión cuando el usuario se autentica
         this.saveSession(user)
+        console.log('🔐 ControlFile: Sesión guardada para usuario:', user.email)
       } else {
         // Limpiar sesión cuando el usuario se desconecta
         this.clearSession()
+        console.log('🔐 ControlFile: Sesión limpiada - usuario desconectado')
       }
     })
   }
@@ -67,6 +134,7 @@ export class ControlFileService {
         timestamp: Date.now()
       }
       localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionData))
+      console.log('💾 ControlFile: Sesión persistente guardada en localStorage')
     }
   }
 
@@ -74,11 +142,12 @@ export class ControlFileService {
   private clearSession() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(this.SESSION_KEY)
+      console.log('🗑️ ControlFile: Sesión persistente limpiada de localStorage')
     }
   }
 
   // Obtener sesión guardada
-  private getSavedSession(): any {
+  public getSavedSession(): any {
     if (typeof window === 'undefined') return null
     
     try {
@@ -86,13 +155,14 @@ export class ControlFileService {
       if (!sessionData) return null
       
       const parsed = JSON.parse(sessionData)
-      // Verificar que la sesión no sea muy antigua (30 días)
-      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000)
-      if (parsed.timestamp < thirtyDaysAgo) {
+      // Verificar que la sesión no sea muy antigua (1 año)
+      const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000)
+      if (parsed.timestamp < oneYearAgo) {
         this.clearSession()
         return null
       }
       
+      console.log('📂 ControlFile: Sesión restaurada desde localStorage')
       return parsed
     } catch (error) {
       console.error('Error leyendo sesión guardada:', error)
@@ -104,14 +174,11 @@ export class ControlFileService {
   // Restaurar sesión desde localStorage
   async restoreSession(): Promise<{ success: boolean; user?: any; error?: string }> {
     try {
-      const savedSession = this.getSavedSession()
-      if (!savedSession) {
-        return { success: false, error: 'No hay sesión guardada' }
-      }
-
-      // Verificar si ya hay un usuario autenticado
+      // Primero verificar si Firebase Auth ya tiene un usuario autenticado
+      // Esto debería funcionar automáticamente gracias a browserLocalPersistence
       const currentUser = this.auth.currentUser
-      if (currentUser && currentUser.uid === savedSession.uid) {
+      if (currentUser) {
+        console.log('✅ ControlFile: Usuario autenticado automáticamente por Firebase Auth')
         return {
           success: true,
           user: {
@@ -123,8 +190,16 @@ export class ControlFileService {
         }
       }
 
-      // Si no hay usuario autenticado pero hay sesión guardada, 
-      // devolver la información de la sesión guardada para mostrar estado
+      // Si no hay usuario autenticado, verificar si hay sesión guardada
+      const savedSession = this.getSavedSession()
+      if (!savedSession) {
+        return { success: false, error: 'No hay sesión guardada' }
+      }
+
+      console.log('📂 ControlFile: Sesión guardada encontrada, pero Firebase Auth no está conectado')
+      
+      // En lugar de abrir popup, simplemente devolver la información de la sesión guardada
+      // Firebase Auth debería manejar la restauración automáticamente
       return { 
         success: true, 
         user: {
@@ -146,15 +221,23 @@ export class ControlFileService {
   // Verificar si hay una sesión activa
   async isConnected(): Promise<boolean> {
     try {
-      // Primero verificar si hay un usuario autenticado en Firebase
+      // Verificar si hay un usuario autenticado en Firebase Auth de ControlFile
       const user = this.auth.currentUser
       if (user) {
+        console.log('✅ ControlFile: Usuario autenticado en Firebase Auth')
         return true
       }
 
-      // Si no hay usuario autenticado, verificar si hay sesión guardada
+      // Si no hay usuario autenticado en Firebase Auth, verificar si hay sesión guardada
       const savedSession = this.getSavedSession()
-      return !!savedSession
+      if (savedSession) {
+        console.log('📂 ControlFile: Sesión guardada encontrada, pero no autenticado en Firebase Auth')
+        // Devolver true para mostrar como conectado, pero Firebase Auth se restaurará automáticamente
+        return true
+      }
+
+      console.log('❌ ControlFile: No hay sesión activa ni guardada')
+      return false
     } catch (error) {
       console.error('Error verificando conexión:', error)
       return false
