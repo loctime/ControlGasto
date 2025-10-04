@@ -299,8 +299,8 @@ export function ExpensesTable({
             ) : (
               // Vista normal reorganizada
               <div className="p-4">
-                {/* Primera fila: Menú - Descripción - Categoría - Botón de pagado */}
-                <div className="flex items-center justify-between mb-3 gap-2">
+                {/* Primera fila: Menú - Descripción - Categoría */}
+                <div className="flex items-center justify-between mb-3 gap-2 min-w-0">
                   {/* Dropdown de editar (incluye eliminar) - Pegado al borde */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -328,10 +328,10 @@ export function ExpensesTable({
                   </DropdownMenu>
                   
                   {/* Descripción */}
-                  <h3 className="text-lg font-semibold text-foreground truncate flex-1">{expense.name}</h3>
+                  <h3 className="text-lg font-semibold text-foreground truncate flex-1 min-w-0 mx-2">{expense.name}</h3>
                   
                   {/* Categoría */}
-                  <Badge variant="outline" className="text-sm px-3 py-1.5 whitespace-nowrap">
+                  <Badge variant="outline" className="text-sm px-2 py-1 whitespace-nowrap flex-shrink-0">
                     {expense.category === 'hogar' && '🏠 Hogar'}
                     {expense.category === 'transporte' && '🚗 Transporte'}
                     {expense.category === 'alimentacion' && '🍽️ Alimentación'}
@@ -340,61 +340,72 @@ export function ExpensesTable({
                     {expense.category === 'salud' && '🏥 Salud'}
                     {expense.category === 'otros' && '📦 Otros'}
                   </Badge>
-                  
-                  {/* Botón de estado de pago */}
-                  {expense.status === 'paid' ? (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-3 text-xs border-pending/40 text-pending hover:bg-pending/10 whitespace-nowrap"
-                        >
-                          Pendiente
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>¿Marcar como pendiente?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            ¿Estás seguro de que quieres marcar "{expense.name}" como pendiente?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => onTogglePaid(expense.id, expense.status)}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Marcar como Pendiente
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => handleTogglePaidClick(expense)}
-                      className="h-8 px-3 text-xs bg-paid hover:bg-paid/90 text-paid-foreground whitespace-nowrap"
-                    >
-                      Pagar
-                    </Button>
-                  )}
                 </div>
 
-                {/* Segunda fila: Monto - Ver comprobante */}
-                <div className="flex items-center justify-between gap-3">
+                {/* Segunda fila: Monto - Botón de estado - Indicador de pago */}
+                <div className="flex items-center justify-between gap-3 min-w-0">
                   {/* Monto */}
-                  <div className="text-3xl font-bold text-foreground">
+                  <div className={`font-bold text-foreground truncate min-w-0 flex-shrink-0 ${
+                    expense.amount.toString().length <= 6 
+                      ? 'text-3xl' 
+                      : expense.amount.toString().length <= 8 
+                        ? 'text-2xl' 
+                        : expense.amount.toString().length <= 10
+                          ? 'text-xl'
+                          : 'text-lg'
+                  }`}>
                     {formatCurrency(expense.amount)}
                   </div>
                   
-                  {/* Ver comprobante si existe */}
-                  {expense.status === 'paid' && (
-                    <div className="text-sm text-muted-foreground">
-                      ✅ Pagado
-                    </div>
-                  )}
+                  {/* Botón de estado de pago y indicador */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Botón de estado de pago */}
+                    {expense.status === 'paid' ? (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-3 text-xs border-pending/40 text-pending hover:bg-pending/10 whitespace-nowrap"
+                          >
+                            Pendiente
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Marcar como pendiente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              ¿Estás seguro de que quieres marcar "{expense.name}" como pendiente?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => onTogglePaid(expense.id, expense.status)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Marcar como Pendiente
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => handleTogglePaidClick(expense)}
+                        className="h-8 px-4 text-xs bg-paid hover:bg-paid/90 text-paid-foreground whitespace-nowrap shadow-md border-2 border-paid/30 hover:border-paid/50 font-semibold"
+                      >
+                        Pagar
+                      </Button>
+                    )}
+                    
+                    {/* Indicador de estado de pago */}
+                    {expense.status === 'paid' && (
+                      <div className="w-4 h-4 bg-paid rounded-full flex items-center justify-center">
+                        <Check className="w-3 h-3 text-paid-foreground" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
