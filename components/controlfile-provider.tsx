@@ -128,41 +128,22 @@ export function ControlFileProvider({ children }: ControlFileProviderProps) {
       if (result.success) {
         setIsControlFileConnected(true)
         setControlFileUser(result.user)
-        toast({
-          title: "Conectado exitosamente",
-          description: "ControlFile se ha conectado con tu cuenta",
-        })
+        // Toast removido - conexión silenciosa
       } else {
         // Si falla el popup, intentar con redirect
         if (result.error === 'POPUP_BLOCKED' || result.error === 'POPUP_CANCELLED') {
-          toast({
-            title: "Popup bloqueado",
-            description: "Redirigiendo a ControlFile para conectar...",
-          })
-          
+          // Toast removido - manejo silencioso
           const redirectResult = await controlFileService.connectWithRedirect(user)
           if (!redirectResult.success) {
-            toast({
-              title: "Error de conexión",
-              description: "No se pudo conectar con ControlFile",
-              variant: "destructive"
-            })
+            // Toast removido - error silencioso
           }
         } else {
-          toast({
-            title: "Error de conexión",
-            description: result.error || "No se pudo conectar con ControlFile",
-            variant: "destructive"
-          })
+          // Toast removido - error silencioso
         }
       }
     } catch (error) {
       console.error('Error conectando con ControlFile:', error)
-      toast({
-        title: "Error de conexión",
-        description: "Ocurrió un error inesperado",
-        variant: "destructive"
-      })
+      // Toast removido - error silencioso
     } finally {
       setIsConnecting(false)
     }

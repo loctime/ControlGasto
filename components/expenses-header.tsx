@@ -1,14 +1,14 @@
 "use client"
 
-import { CheckCircle, Clock, DollarSign, Download, Calendar, Upload, ExternalLink, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { ThemeToggleCompact } from "@/components/theme-toggle"
-import { usePWAInstall } from "@/hooks/use-pwa-install"
 import { useAuth } from "@/components/auth-provider"
-import { formatCurrency } from "@/lib/utils"
-import { useState, useEffect } from "react"
-import { controlFileService } from "@/lib/controlfile"
+import { ThemeToggleCompact } from "@/components/theme-toggle"
+import { Button } from "@/components/ui/button"
+import { usePWAInstall } from "@/hooks/use-pwa-install"
 import { useToast } from "@/hooks/use-toast"
+import { controlFileService } from "@/lib/controlfile"
+import { formatCurrency } from "@/lib/utils"
+import { Calendar, CheckCircle, Clock, DollarSign, Download } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface ExpensesHeaderProps {
   totalPaid: number
@@ -193,32 +193,7 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
                   </span>
                 </button>
 
-                {/* Mensaje de conexión */}
-                {showConnectedMessage && (
-                  <div className="absolute top-full left-0 mt-2 bg-card border border-border rounded-lg shadow-lg p-3 z-50 min-w-[200px]">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-foreground mb-2">
-                          Estás conectado a ControlFile
-                        </p>
-                        <Button
-                          onClick={handleGoToControlFile}
-                          size="sm"
-                          className="w-full"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          IR
-                        </Button>
-                      </div>
-                      <button
-                        onClick={handleCloseMessage}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {/* Mensaje de conexión removido */}
               </div>
             </div>
           </div>

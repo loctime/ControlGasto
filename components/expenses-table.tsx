@@ -1,34 +1,32 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { Plus, Pencil, Trash2, Check, X, DollarSign, Receipt, MoreVertical } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useControlFile } from "@/components/controlfile-provider"
+import { PaymentReceiptDialog } from "@/components/payment-receipt-dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatCurrency } from "@/lib/utils"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { PaymentReceiptDialog } from "@/components/payment-receipt-dialog"
-import { ReceiptViewer } from "@/components/receipt-viewer"
-import { useControlFile } from "@/components/controlfile-provider"
-import { Timestamp, FieldValue } from "firebase/firestore"
+import { FieldValue, Timestamp } from "firebase/firestore"
+import { Check, DollarSign, MoreVertical, Pencil, Plus, Trash2, X } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 
 interface Expense {
   id: string
@@ -301,34 +299,20 @@ export function ExpensesTable({
             ) : (
               // Vista normal reorganizada
               <div className="p-4">
-                {/* Primera fila: Descripción - Categoría - Editar - Botón de pagado */}
-                <div className="flex items-center justify-between mb-3 gap-3">
-                  {/* Descripción */}
-                  <h3 className="text-lg font-semibold text-foreground truncate flex-1">{expense.name}</h3>
-                  
-                  {/* Categoría */}
-                  <Badge variant="outline" className="text-sm px-3 py-1.5 whitespace-nowrap">
-                    {expense.category === 'hogar' && '🏠 Hogar'}
-                    {expense.category === 'transporte' && '🚗 Transporte'}
-                    {expense.category === 'alimentacion' && '🍽️ Alimentación'}
-                    {expense.category === 'servicios' && '⚡ Servicios'}
-                    {expense.category === 'entretenimiento' && '🎬 Entretenimiento'}
-                    {expense.category === 'salud' && '🏥 Salud'}
-                    {expense.category === 'otros' && '📦 Otros'}
-                  </Badge>
-                  
-                  {/* Dropdown de editar (incluye eliminar) */}
+                {/* Primera fila: Menú - Descripción - Categoría - Botón de pagado */}
+                <div className="flex items-center justify-between mb-3 gap-2">
+                  {/* Dropdown de editar (incluye eliminar) - Pegado al borde */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+                        className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0 -ml-4"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="start">
                       <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
                         <Pencil className="w-4 h-4 mr-2" />
                         Editar
@@ -342,6 +326,20 @@ export function ExpensesTable({
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  
+                  {/* Descripción */}
+                  <h3 className="text-lg font-semibold text-foreground truncate flex-1">{expense.name}</h3>
+                  
+                  {/* Categoría */}
+                  <Badge variant="outline" className="text-sm px-3 py-1.5 whitespace-nowrap">
+                    {expense.category === 'hogar' && '🏠 Hogar'}
+                    {expense.category === 'transporte' && '🚗 Transporte'}
+                    {expense.category === 'alimentacion' && '🍽️ Alimentación'}
+                    {expense.category === 'servicios' && '⚡ Servicios'}
+                    {expense.category === 'entretenimiento' && '🎬 Entretenimiento'}
+                    {expense.category === 'salud' && '🏥 Salud'}
+                    {expense.category === 'otros' && '📦 Otros'}
+                  </Badge>
                   
                   {/* Botón de estado de pago */}
                   {expense.status === 'paid' ? (

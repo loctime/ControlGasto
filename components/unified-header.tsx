@@ -1,13 +1,13 @@
 "use client"
 
-import { CheckCircle, Clock, DollarSign, Download, Calendar, Upload } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { ThemeToggleCompact } from "@/components/theme-toggle"
-import { usePWAInstall } from "@/hooks/use-pwa-install"
 import { useAuth } from "@/components/auth-provider"
-import { formatCurrency } from "@/lib/utils"
-import { useState, useEffect } from "react"
 import { useControlFile } from "@/components/controlfile-provider"
+import { ThemeToggleCompact } from "@/components/theme-toggle"
+import { Button } from "@/components/ui/button"
+import { usePWAInstall } from "@/hooks/use-pwa-install"
+import { formatCurrency } from "@/lib/utils"
+import { Calendar, CheckCircle, Clock, DollarSign, Download } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface UnifiedHeaderProps {
   title: string
@@ -78,21 +78,9 @@ export function UnifiedHeader({
             <h1 className="text-2xl font-bold text-foreground mb-2 tracking-tight">
               {title}
             </h1>
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                {subtitle || (user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales')}
-              </p>
-              <button 
-                onClick={handleControlFileClick}
-                disabled={isConnecting}
-                className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95 w-fit"
-              >
-                <div className={`w-2.5 h-2.5 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
-                <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
-                </span>
-              </button>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {subtitle || (user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales')}
+            </p>
           </div>
 
           {/* Lado derecho - Fecha, hora y controles */}
@@ -108,6 +96,18 @@ export function UnifiedHeader({
                 <Download className="w-4 h-4 mr-2" />
                 Instalar App
               </Button>
+            )}
+
+            {/* Botón de ControlFile - Solo cuando no está conectado */}
+            {!isControlFileConnected && (
+              <button 
+                onClick={handleControlFileClick}
+                disabled={isConnecting}
+                className="w-6 h-6 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg active:scale-95"
+                title={isConnecting ? 'Conectando...' : 'Conectar ControlFile'}
+              >
+                <div className={`w-full h-full rounded-full ${isConnecting ? 'animate-pulse bg-orange-500' : 'bg-red-500 animate-pulse'}`}></div>
+              </button>
             )}
             
             {/* Fecha y tema */}
