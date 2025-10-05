@@ -41,20 +41,9 @@ export function HistoryStats({ payments }: HistoryStatsProps) {
   
   const thisMonthAmount = thisMonthPayments.reduce((sum, payment) => sum + payment.amount, 0)
   
-  // Calcular pagos de esta semana
-  const startOfWeek = new Date(now)
-  startOfWeek.setDate(now.getDate() - now.getDay()) // Domingo
-  startOfWeek.setHours(0, 0, 0, 0)
-  
-  const thisWeekPayments = payments.filter(payment => {
-    const paymentDate = getDateFromTimestamp(payment.paidAt)
-    return paymentDate >= startOfWeek
-  })
-  
-  const thisWeekAmount = thisWeekPayments.reduce((sum, payment) => sum + payment.amount, 0)
   
   // Debug log para verificar resultados
-  console.log(`📊 Stats - Total: ${paymentsCount} pagos ($${totalAmount}), Este mes: ${thisMonthPayments.length} pagos ($${thisMonthAmount}), Esta semana: ${thisWeekPayments.length} pagos ($${thisWeekAmount})`)
+  console.log(`📊 Stats - Total: ${paymentsCount} pagos ($${totalAmount}), Este mes: ${thisMonthPayments.length} pagos ($${thisMonthAmount})`)
 
   return (
     <div className="w-full bg-card text-card-foreground rounded-xl border shadow-sm">
@@ -95,22 +84,6 @@ export function HistoryStats({ payments }: HistoryStatsProps) {
               </TableCell>
             </TableRow>
 
-            {/* Esta Semana */}
-            <TableRow>
-              <TableCell className="font-medium py-1 px-4">
-                Esta Semana
-              </TableCell>
-              <TableCell className="text-right py-1 px-4">
-                <div className="flex items-center justify-end gap-2">
-                  <span className="text-lg font-bold text-green-600">
-                    ${thisWeekAmount.toLocaleString()}
-                  </span>
-                  <Badge variant="secondary" className="text-xs bg-green-50 text-green-700 border-green-200">
-                    {thisWeekPayments.length} pagos
-                  </Badge>
-                </div>
-              </TableCell>
-            </TableRow>
           </TableBody>
           </Table>
         </div>
