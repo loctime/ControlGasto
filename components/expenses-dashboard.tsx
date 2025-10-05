@@ -1,27 +1,26 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { ExpensesHeader } from "@/components/expenses-header"
 import { ExpensesTable } from "@/components/expenses-table"
-import { ErrorBoundary, ChartErrorFallback } from "@/components/ui/error-boundary"
+import { ChartErrorFallback, ErrorBoundary } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
-import { useRetry, useRateLimit, useMemoizedCalculations } from "@/lib/optimization"
-import { toast } from "sonner"
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  query,
-  where,
-  onSnapshot,
-  serverTimestamp,
-  Timestamp,
-  FieldValue,
-} from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { useMemoizedCalculations, useRateLimit, useRetry } from "@/lib/optimization"
+import {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    FieldValue,
+    onSnapshot,
+    query,
+    serverTimestamp,
+    Timestamp,
+    updateDoc
+} from "firebase/firestore"
+import { useCallback, useEffect, useState } from "react"
+import { toast } from "sonner"
 
 interface Expense {
   id: string
@@ -65,7 +64,7 @@ export function ExpensesDashboard() {
     setIsLoading(true)
     setError(null)
 
-    const q = query(collection(db, "expenses"), where("userId", "==", user.uid))
+    const q = query(collection(db, `apps/controlgastos/users/${user?.uid}/expenses`))
     
     const unsubscribe = onSnapshot(
       q,
@@ -119,7 +118,7 @@ export function ExpensesDashboard() {
           updatedAt: serverTimestamp(),
         }
         console.log("🔍 DEBUG - Guardando gasto:", expenseData)
-        await addDoc(collection(db, "expenses"), expenseData)
+        await addDoc(collection(db, `apps/controlgastos/users/${user?.uid}/expenses`), expenseData)
       })
       toast.success("Gasto agregado correctamente")
     } catch (error) {
@@ -143,7 +142,7 @@ export function ExpensesDashboard() {
       )
       
       await retryWithBackoff(async () => {
-        await updateDoc(doc(db, "expenses", id), {
+        await updateDoc(doc(db, `apps/controlgastos/users/${user?.uid}/expenses`, id), {
           ...cleanUpdates,
           updatedAt: serverTimestamp()
         })
@@ -165,7 +164,7 @@ export function ExpensesDashboard() {
     try {
       makeRequest()
       await retryWithBackoff(async () => {
-        await deleteDoc(doc(db, "expenses", id))
+        await deleteDoc(doc(db, `apps/controlgastos/users/${user?.uid}/expenses`, id))
       })
       toast.success("Gasto eliminado correctamente")
     } catch (error) {

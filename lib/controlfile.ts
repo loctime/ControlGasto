@@ -1,30 +1,11 @@
-import { initializeApp } from 'firebase/app'
-import { GoogleAuthProvider, browserLocalPersistence, signOut as firebaseSignOut, getAuth, getRedirectResult, setPersistence, signInWithPopup, signInWithRedirect } from 'firebase/auth'
+import { signOut as firebaseSignOut, getRedirectResult, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
+import { auth } from './firebase'; // Usar el mismo auth que la app principal
 
 // Configuración de ControlFile
 const CONTROLFILE_CONFIG = {
-  apiKey: process.env.NEXT_PUBLIC_CONTROLFILE_API_KEY || "A",
-  authDomain: process.env.NEXT_PUBLIC_CONTROLFILE_AUTH_DOMAIN || "c",
-  projectId: process.env.NEXT_PUBLIC_CONTROLFILE_PROJECT_ID || "con",
-  appId: process.env.NEXT_PUBLIC_CONTROLFILE_APP_ID || "",
   backendUrl: process.env.NEXT_PUBLIC_CONTROLFILE_BACKEND_URL || "https://controlfile.onrender.com",
   appDisplayName: process.env.NEXT_PUBLIC_CONTROLFILE_APP_DISPLAY_NAME || "ControlFile",
   appCode: process.env.NEXT_PUBLIC_CONTROLFILE_APP_CODE || "controlgastos"
-}
-
-// Inicializar Firebase para ControlFile
-let controlFileApp: any = null
-let controlFileAuth: any = null
-
-const initializeControlFile = () => {
-  if (!controlFileApp) {
-    controlFileApp = initializeApp(CONTROLFILE_CONFIG, 'controlfile')
-    controlFileAuth = getAuth(controlFileApp)
-    
-    // Configurar persistencia local
-    setPersistence(controlFileAuth, browserLocalPersistence)
-  }
-  return { controlFileApp, controlFileAuth }
 }
 
 export class ControlFileService {
@@ -33,79 +14,16 @@ export class ControlFileService {
   private readonly SESSION_KEY = 'controlfile-session'
 
   constructor() {
-    const { controlFileAuth } = initializeControlFile()
-    this.auth = controlFileAuth
+    // Usar el mismo auth que la app principal
+    this.auth = auth
     this.backendUrl = CONTROLFILE_CONFIG.backendUrl
     
-    // Configurar listener para cambios de autenticación
-    if (this.auth) {
-      this.setupAuthStateListener()
-    }
+    console.log('✅ ControlFile: Usando Firebase Auth compartido con la app principal')
   }
 
   // Obtener instancia de auth para listeners externos
   public getAuth() {
     return this.auth
-  }
-
-  // Esperar a que Firebase Auth se restaure automáticamente
-  public async waitForAuthRestore(timeoutMs: number = 3000): Promise<{ success: boolean; user?: any; error?: string }> {
-    return new Promise((resolve) => {
-      let resolved = false
-      
-      // Si ya hay un usuario autenticado, devolver inmediatamente
-      const currentUser = this.auth.currentUser
-      if (currentUser) {
-        resolve({
-          success: true,
-          user: {
-            uid: currentUser.uid,
-            email: currentUser.email,
-            displayName: currentUser.displayName,
-            photoURL: currentUser.photoURL
-          }
-        })
-        return
-      }
-
-      // Configurar timeout
-      const timeout = setTimeout(() => {
-        if (!resolved) {
-          resolved = true
-          resolve({
-            success: false,
-            error: 'Timeout esperando restauración de Firebase Auth'
-          })
-        }
-      }, timeoutMs)
-
-      // Escuchar cambios de autenticación
-      const unsubscribe = this.auth.onAuthStateChanged((user: any) => {
-        if (!resolved) {
-          resolved = true
-          clearTimeout(timeout)
-          unsubscribe()
-          
-          if (user) {
-            console.log('✅ ControlFile: Firebase Auth restaurado automáticamente')
-            resolve({
-              success: true,
-              user: {
-                uid: user.uid,
-                email: user.email,
-                displayName: user.displayName,
-                photoURL: user.photoURL
-              }
-            })
-          } else {
-            resolve({
-              success: false,
-              error: 'No hay usuario autenticado después de la restauración'
-            })
-          }
-        }
-      })
-    })
   }
 
   // Configurar listener para cambios de estado de autenticación
@@ -139,8 +57,15 @@ export class ControlFileService {
   }
 
   // Limpiar sesión de localStorage
-  private clearSession() {
+  private clearSession(force: boolean = false) {
     if (typeof window !== 'undefined') {
+      // Solo limpiar si se fuerza o si no hay usuario activo
+      const currentUser = this.auth.currentUser
+      if (!force && currentUser) {
+        console.log('⚠️ ControlFile: Intentando limpiar sesión pero hay usuario activo, ignorando...')
+        return
+      }
+      
       localStorage.removeItem(this.SESSION_KEY)
       console.log('🗑️ ControlFile: Sesión persistente limpiada de localStorage')
     }
@@ -179,6 +104,10 @@ export class ControlFileService {
       const currentUser = this.auth.currentUser
       if (currentUser) {
         console.log('✅ ControlFile: Usuario autenticado automáticamente por Firebase Auth')
+        
+        // Renovar el token si es necesario
+        await this.refreshTokenIfNeeded(currentUser)
+        
         return {
           success: true,
           user: {
@@ -215,6 +144,25 @@ export class ControlFileService {
         success: false,
         error: error.message || 'Error restaurando sesión'
       }
+    }
+  }
+
+  // Renovar token si es necesario
+  private async refreshTokenIfNeeded(user: any): Promise<void> {
+    try {
+      // Verificar si el token necesita renovación (cada 30 minutos)
+      const tokenResult = await user.getIdTokenResult()
+      const tokenAge = Date.now() - (tokenResult.issuedAtTime || 0)
+      const thirtyMinutes = 30 * 60 * 1000
+
+      if (tokenAge > thirtyMinutes) {
+        console.log('🔄 ControlFile: Renovando token de acceso...')
+        await user.getIdToken(true) // Forzar renovación
+        console.log('✅ ControlFile: Token renovado exitosamente')
+      }
+    } catch (error) {
+      console.warn('⚠️ ControlFile: Error renovando token:', error)
+      // No lanzar error, solo log
     }
   }
 

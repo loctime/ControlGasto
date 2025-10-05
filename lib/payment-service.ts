@@ -1,18 +1,17 @@
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  doc,
-  serverTimestamp,
-  Timestamp
+import {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    orderBy,
+    query,
+    serverTimestamp,
+    updateDoc,
+    where
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { Payment, Invoice, ExpenseCategory, ExpenseStatus, PaymentWithInvoices, Expense } from './types'
+import { Invoice, Payment, PaymentWithInvoices } from './types'
 
 export class PaymentService {
   private userId: string
@@ -24,7 +23,7 @@ export class PaymentService {
   // Crear un nuevo pago (registro en el historial)
   async createPayment(paymentData: any): Promise<string> {
     try {
-      const paymentRef = await addDoc(collection(db, 'payments'), {
+      const paymentRef = await addDoc(collection(db, `apps/controlgastos/users/${this.userId}/expenses`), {
         ...paymentData,
         userId: this.userId,
         createdAt: serverTimestamp()
@@ -68,8 +67,7 @@ export class PaymentService {
   async getPaymentsByExpense(expenseId: string): Promise<Payment[]> {
     try {
       const q = query(
-        collection(db, 'payments'),
-        where('userId', '==', this.userId),
+        collection(db, `apps/controlgastos/users/${this.userId}/expenses`),
         where('expenseId', '==', expenseId),
         orderBy('paidAt', 'desc')
       )
@@ -91,8 +89,7 @@ export class PaymentService {
   async getAllPayments(): Promise<Payment[]> {
     try {
       const q = query(
-        collection(db, 'payments'),
-        where('userId', '==', this.userId),
+        collection(db, `apps/controlgastos/users/${this.userId}/expenses`),
         orderBy('paidAt', 'desc')
       )
 
@@ -113,8 +110,7 @@ export class PaymentService {
   async getPaymentsByDateRange(startDate: Date, endDate: Date): Promise<Payment[]> {
     try {
       const q = query(
-        collection(db, 'payments'),
-        where('userId', '==', this.userId),
+        collection(db, `apps/controlgastos/users/${this.userId}/expenses`),
         where('paidAt', '>=', startDate),
         where('paidAt', '<=', endDate),
         orderBy('paidAt', 'desc')
@@ -141,7 +137,7 @@ export class PaymentService {
       
       for (const payment of payments) {
         const invoicesQuery = query(
-          collection(db, 'invoices'),
+          collection(db, `apps/controlgastos/users/${this.userId}/receipts`),
           where('paymentId', '==', payment.id)
         )
         
@@ -170,7 +166,7 @@ export class PaymentService {
     try {
       // Primero eliminar facturas asociadas
       const invoicesQuery = query(
-        collection(db, 'invoices'),
+        collection(db, `apps/controlgastos/users/${this.userId}/receipts`),
         where('paymentId', '==', paymentId)
       )
       
@@ -248,8 +244,7 @@ export class PaymentService {
     try {
       // Obtener todos los gastos del usuario
       const expensesQuery = query(
-        collection(db, 'expenses'),
-        where('userId', '==', this.userId)
+        collection(db, `apps/controlgastos/users/${this.userId}/expenses`)
       )
       
       const expensesSnapshot = await getDocs(expensesQuery)

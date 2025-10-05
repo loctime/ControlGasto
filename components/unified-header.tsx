@@ -88,7 +88,13 @@ export function UnifiedHeader({
                 className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95 w-fit"
                 title={isConnecting ? 'Conectando...' : isControlFileConnected ? 'ControlFile Conectado' : 'Conectar ControlFile'}
               >
-                <div className={`w-2.5 h-2.5 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
+                <div className={`w-2.5 h-2.5 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}>
+                  {isConnecting && (
+                    <div className="w-full h-full rounded-full bg-orange-500 animate-spin">
+                      <div className="w-full h-full rounded-full border border-orange-300 border-t-transparent animate-spin"></div>
+                    </div>
+                  )}
+                </div>
                 <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                   {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
                 </span>

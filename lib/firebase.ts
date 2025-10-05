@@ -2,14 +2,14 @@ import { initializeApp, getApps, FirebaseApp } from "firebase/app"
 import { getAuth, Auth } from "firebase/auth"
 import { getFirestore, Firestore } from "firebase/firestore"
 
-// Configuración de Firebase
+// Configuración de Firebase (usando ControlFile)
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "demo-api-key",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "demo-project.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "demo-project",
+  apiKey: process.env.NEXT_PUBLIC_CONTROLFILE_API_KEY || "A",
+  authDomain: process.env.NEXT_PUBLIC_CONTROLFILE_AUTH_DOMAIN || "c",
+  projectId: process.env.NEXT_PUBLIC_CONTROLFILE_PROJECT_ID || "con",
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "demo-project.appspot.com",
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "123456789",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:123456789:web:demo",
+  appId: process.env.NEXT_PUBLIC_CONTROLFILE_APP_ID || "1:123456789:web:demo",
 }
 
 // Initialize Firebase

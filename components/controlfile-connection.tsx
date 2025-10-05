@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useControlFile } from "@/components/controlfile-provider"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { ExternalLink, Upload, LogOut, CheckCircle, AlertCircle, RefreshCw, Settings } from "lucide-react"
-import { controlFileService } from "@/lib/controlfile"
-import { useControlFileSync } from "@/hooks/use-controlfile-sync"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { controlFileService } from "@/lib/controlfile"
+import { AlertCircle, CheckCircle, ExternalLink, LogOut, Settings, Upload } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface ControlFileConnectionProps {
   onConnectionChange?: (connected: boolean) => void
@@ -19,17 +18,8 @@ export function ControlFileConnection({ onConnectionChange }: ControlFileConnect
   const { toast } = useToast()
   
   // Usar el hook de sincronización automática
-  const {
-    isControlFileConnected,
-    isSyncing,
-    controlFileUser,
-    autoSyncEnabled,
-    setAutoSyncEnabled,
-    connectManually,
-    disconnectManually,
-    retryAutoSync,
-    connectWithRedirect
-  } = useControlFileSync()
+  // Ahora usamos el provider simplificado
+  const { isControlFileConnected, isConnecting, controlFileUser, connectControlFile, disconnectControlFile } = useControlFile()
 
   // Notificar cambios de conexión al componente padre
   useEffect(() => {
@@ -37,11 +27,11 @@ export function ControlFileConnection({ onConnectionChange }: ControlFileConnect
   }, [isControlFileConnected, onConnectionChange])
 
   const handleConnect = async () => {
-    await connectManually()
+    await connectControlFile()
   }
 
   const handleDisconnect = async () => {
-    await disconnectManually()
+    await disconnectControlFile()
   }
 
   const handleOpenControlFile = () => {
@@ -110,21 +100,18 @@ export function ControlFileConnection({ onConnectionChange }: ControlFileConnect
             <div className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-orange-500" />
               <Badge variant="outline" className="text-orange-600">
-                {isSyncing ? "Sincronizando..." : "No conectado"}
+                {isConnecting ? "Conectando..." : "No conectado"}
               </Badge>
             </div>
             
             <p className="text-sm text-muted-foreground">
-              {autoSyncEnabled 
-                ? "La sincronización automática está activada. ControlFile se conectará automáticamente cuando te autentiques."
-                : "Conecta tu cuenta de ControlFile para poder subir y gestionar archivos directamente desde esta aplicación."
-              }
+              Conecta tu cuenta de ControlFile para poder subir y gestionar archivos directamente desde esta aplicación.
             </p>
             
-            {autoSyncEnabled && isSyncing && (
+            {isConnecting && (
               <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
                 <p className="text-sm text-blue-800">
-                  🔄 Intentando conectar automáticamente con ControlFile...
+                  🔄 Conectando con ControlFile...
                 </p>
               </div>
             )}
@@ -133,63 +120,19 @@ export function ControlFileConnection({ onConnectionChange }: ControlFileConnect
               <div className="flex gap-2">
                 <Button 
                   onClick={handleConnect}
-                  disabled={isSyncing}
+                  disabled={isConnecting}
                   className="flex-1"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  {isSyncing ? "Conectando..." : "Conectar manualmente"}
+                  {isConnecting ? "Conectando..." : "Conectar manualmente"}
                 </Button>
                 
-                {!autoSyncEnabled && (
-                  <Button 
-                    onClick={retryAutoSync}
-                    variant="outline"
-                    disabled={isSyncing}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Reintentar
-                  </Button>
-                )}
               </div>
               
-              <Button 
-                onClick={connectWithRedirect}
-                variant="outline"
-                disabled={isSyncing}
-                className="w-full"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Conectar con redirect (si popup está bloqueado)
-              </Button>
             </div>
           </div>
         )}
 
-        {/* Configuración avanzada */}
-        {showSettings && (
-          <div className="border-t pt-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Sincronización automática</p>
-                <p className="text-xs text-muted-foreground">
-                  Conecta automáticamente con ControlFile al autenticarte
-                </p>
-              </div>
-              <Switch
-                checked={autoSyncEnabled}
-                onCheckedChange={setAutoSyncEnabled}
-              />
-            </div>
-            
-            {!autoSyncEnabled && (
-              <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
-                <p className="text-sm text-yellow-800">
-                  La sincronización automática está desactivada. Deberás conectar manualmente con ControlFile.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   )
