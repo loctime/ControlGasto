@@ -78,7 +78,7 @@ export function ControlFileConnection({ onConnectionChange }: ControlFileConnect
                 onClick={handleOpenControlFile}
                 variant="outline"
                 className="flex-1"
-                disabled={isSyncing}
+                disabled={isConnecting}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Ir a ControlFile
@@ -88,7 +88,7 @@ export function ControlFileConnection({ onConnectionChange }: ControlFileConnect
                 onClick={handleDisconnect}
                 variant="destructive"
                 size="sm"
-                disabled={isSyncing}
+                disabled={isConnecting}
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Desconectar

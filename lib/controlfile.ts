@@ -1,5 +1,4 @@
-import { signOut as firebaseSignOut, getRedirectResult, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
-import { auth } from './firebase'; // Usar el mismo auth que la app principal
+import { auth } from './firebase' // Usar el mismo auth que la app principal
 
 // Configuración de ControlFile
 const CONTROLFILE_CONFIG = {
@@ -11,7 +10,6 @@ const CONTROLFILE_CONFIG = {
 export class ControlFileService {
   private auth: any
   private backendUrl: string
-  private readonly SESSION_KEY = 'controlfile-session'
 
   constructor() {
     // Usar el mismo auth que la app principal
@@ -26,546 +24,65 @@ export class ControlFileService {
     return this.auth
   }
 
-  // Configurar listener para cambios de estado de autenticación
-  private setupAuthStateListener() {
-    this.auth.onAuthStateChanged((user: any) => {
-      if (user) {
-        // Guardar sesión cuando el usuario se autentica
-        this.saveSession(user)
-        console.log('🔐 ControlFile: Sesión guardada para usuario:', user.email)
-      } else {
-        // Limpiar sesión cuando el usuario se desconecta
-        this.clearSession()
-        console.log('🔐 ControlFile: Sesión limpiada - usuario desconectado')
-      }
-    })
+  // Obtener URL de ControlFile
+  getControlFileUrl(): string {
+    return `https://files.controldoc.app/`
   }
 
-  // Guardar sesión en localStorage
-  private saveSession(user: any) {
-    if (typeof window !== 'undefined') {
-      const sessionData = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        timestamp: Date.now()
-      }
-      localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionData))
-      console.log('💾 ControlFile: Sesión persistente guardada en localStorage')
-    }
-  }
-
-  // Limpiar sesión de localStorage
-  private clearSession(force: boolean = false) {
-    if (typeof window !== 'undefined') {
-      // Solo limpiar si se fuerza o si no hay usuario activo
-      const currentUser = this.auth.currentUser
-      if (!force && currentUser) {
-        console.log('⚠️ ControlFile: Intentando limpiar sesión pero hay usuario activo, ignorando...')
-        return
-      }
-      
-      localStorage.removeItem(this.SESSION_KEY)
-      console.log('🗑️ ControlFile: Sesión persistente limpiada de localStorage')
-    }
-  }
-
-  // Obtener sesión guardada
-  public getSavedSession(): any {
-    if (typeof window === 'undefined') return null
-    
-    try {
-      const sessionData = localStorage.getItem(this.SESSION_KEY)
-      if (!sessionData) return null
-      
-      const parsed = JSON.parse(sessionData)
-      // Verificar que la sesión no sea muy antigua (1 año)
-      const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000)
-      if (parsed.timestamp < oneYearAgo) {
-        this.clearSession()
-        return null
-      }
-      
-      console.log('📂 ControlFile: Sesión restaurada desde localStorage')
-      return parsed
-    } catch (error) {
-      console.error('Error leyendo sesión guardada:', error)
-      this.clearSession()
-      return null
-    }
-  }
-
-  // Restaurar sesión desde localStorage
-  async restoreSession(): Promise<{ success: boolean; user?: any; error?: string }> {
-    try {
-      // Primero verificar si Firebase Auth ya tiene un usuario autenticado
-      // Esto debería funcionar automáticamente gracias a browserLocalPersistence
-      const currentUser = this.auth.currentUser
-      if (currentUser) {
-        console.log('✅ ControlFile: Usuario autenticado automáticamente por Firebase Auth')
-        
-        // Renovar el token si es necesario
-        await this.refreshTokenIfNeeded(currentUser)
-        
-        return {
-          success: true,
-          user: {
-            uid: currentUser.uid,
-            email: currentUser.email,
-            displayName: currentUser.displayName,
-            photoURL: currentUser.photoURL
-          }
-        }
-      }
-
-      // Si no hay usuario autenticado, verificar si hay sesión guardada
-      const savedSession = this.getSavedSession()
-      if (!savedSession) {
-        return { success: false, error: 'No hay sesión guardada' }
-      }
-
-      console.log('📂 ControlFile: Sesión guardada encontrada, pero Firebase Auth no está conectado')
-      
-      // En lugar de abrir popup, simplemente devolver la información de la sesión guardada
-      // Firebase Auth debería manejar la restauración automáticamente
-      return { 
-        success: true, 
-        user: {
-          uid: savedSession.uid,
-          email: savedSession.email,
-          displayName: savedSession.displayName,
-          photoURL: savedSession.photoURL
-        }
-      }
-    } catch (error: any) {
-      console.error('Error restaurando sesión:', error)
-      return {
-        success: false,
-        error: error.message || 'Error restaurando sesión'
-      }
-    }
-  }
-
-  // Renovar token si es necesario
-  private async refreshTokenIfNeeded(user: any): Promise<void> {
-    try {
-      // Verificar si el token necesita renovación (cada 30 minutos)
-      const tokenResult = await user.getIdTokenResult()
-      const tokenAge = Date.now() - (tokenResult.issuedAtTime || 0)
-      const thirtyMinutes = 30 * 60 * 1000
-
-      if (tokenAge > thirtyMinutes) {
-        console.log('🔄 ControlFile: Renovando token de acceso...')
-        await user.getIdToken(true) // Forzar renovación
-        console.log('✅ ControlFile: Token renovado exitosamente')
-      }
-    } catch (error) {
-      console.warn('⚠️ ControlFile: Error renovando token:', error)
-      // No lanzar error, solo log
-    }
-  }
-
-  // Verificar si hay una sesión activa
-  async isConnected(): Promise<boolean> {
-    try {
-      // Verificar si hay un usuario autenticado en Firebase Auth de ControlFile
-      const user = this.auth.currentUser
-      if (user) {
-        console.log('✅ ControlFile: Usuario autenticado en Firebase Auth')
-        return true
-      }
-
-      // Si no hay usuario autenticado en Firebase Auth, verificar si hay sesión guardada
-      const savedSession = this.getSavedSession()
-      if (savedSession) {
-        console.log('📂 ControlFile: Sesión guardada encontrada, pero no autenticado en Firebase Auth')
-        // Devolver true para mostrar como conectado, pero Firebase Auth se restaurará automáticamente
-        return true
-      }
-
-      console.log('❌ ControlFile: No hay sesión activa ni guardada')
-      return false
-    } catch (error) {
-      console.error('Error verificando conexión:', error)
-      return false
-    }
-  }
-
-  // Verificar si hay un resultado de redirect pendiente
-  async checkRedirectResult(): Promise<{ success: boolean; user?: any; error?: string }> {
-    try {
-      const result = await getRedirectResult(this.auth)
-      if (result) {
-        const user = result.user
-        return {
-          success: true,
-          user: {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL
-          }
-        }
-      }
-      return { success: false }
-    } catch (error: any) {
-      console.error('Error verificando redirect result:', error)
-      return {
-        success: false,
-        error: error.message || 'Error verificando redirect'
-      }
-    }
-  }
-
-  // Obtener usuario actual
-  async getCurrentUser() {
-    // Primero intentar obtener el usuario autenticado en Firebase
-    const currentUser = this.auth.currentUser
-    if (currentUser) {
-      return currentUser
-    }
-
-    // Si no hay usuario autenticado, intentar restaurar desde sesión guardada
-    const savedSession = this.getSavedSession()
-    if (savedSession) {
-      return {
-        uid: savedSession.uid,
-        email: savedSession.email,
-        displayName: savedSession.displayName,
-        photoURL: savedSession.photoURL
-      }
-    }
-
-    return null
-  }
-
-  // Conectar con ControlFile usando Google Auth
-  async connect(): Promise<{ success: boolean; user?: any; error?: string }> {
-    try {
-      const provider = new GoogleAuthProvider()
-      
-      // Configurar parámetros adicionales
-      provider.addScope('email')
-      provider.addScope('profile')
-      
-      const result = await signInWithPopup(this.auth, provider)
-      const user = result.user
-      
-      return {
-        success: true,
-        user: {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL
-        }
-      }
-    } catch (error: any) {
-      console.error('Error conectando con ControlFile:', error)
-      
-      // Si el popup es bloqueado, intentar con redirect
-      if (error.code === 'auth/popup-blocked') {
-        return {
-          success: false,
-          error: 'Popup bloqueado. Por favor, permite popups para este sitio e intenta de nuevo.'
-        }
-      }
-      
-      return {
-        success: false,
-        error: error.message || 'Error desconocido al conectar'
-      }
-    }
-  }
-
-  // Conectar automáticamente usando las credenciales del usuario principal
-  async connectWithMainUserCredentials(mainUser: any): Promise<{ success: boolean; user?: any; error?: string }> {
-    try {
-      // Verificar si ya hay una sesión activa en ControlFile
-      const currentUser = this.auth.currentUser
-      if (currentUser && currentUser.email === mainUser.email) {
-        return {
-          success: true,
-          user: {
-            uid: currentUser.uid,
-            email: currentUser.email,
-            displayName: currentUser.displayName,
-            photoURL: currentUser.photoURL
-          }
-        }
-      }
-
-      // Si no hay sesión activa, intentar conectar usando popup
-      // pero de manera más silenciosa
-      const provider = new GoogleAuthProvider()
-      
-      // Configurar parámetros adicionales
-      provider.addScope('email')
-      provider.addScope('profile')
-      
-      // Configurar para que use la misma cuenta si es posible
-      provider.setCustomParameters({
-        'login_hint': mainUser.email
-      })
-      
-      const result = await signInWithPopup(this.auth, provider)
-      const user = result.user
-      
-      return {
-        success: true,
-        user: {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL
-        }
-      }
-    } catch (error: any) {
-      console.error('Error conectando automáticamente con ControlFile:', error)
-      
-      // Manejar diferentes tipos de errores de manera silenciosa
-      if (error.code === 'auth/popup-blocked') {
-        return {
-          success: false,
-          error: 'POPUP_BLOCKED' // Código especial para manejar en el hook
-        }
-      }
-      
-      if (error.code === 'auth/cancelled-popup-request') {
-        return {
-          success: false,
-          error: 'POPUP_CANCELLED' // Código especial para popup cancelado
-        }
-      }
-      
-      return {
-        success: false,
-        error: error.message || 'Error desconocido al conectar automáticamente'
-      }
-    }
-  }
-
-  // Conectar usando redirect (alternativa cuando popup es bloqueado)
-  async connectWithRedirect(mainUser: any): Promise<{ success: boolean; error?: string }> {
-    try {
-      const provider = new GoogleAuthProvider()
-      
-      // Configurar parámetros adicionales
-      provider.addScope('email')
-      provider.addScope('profile')
-      
-      // Configurar para que use la misma cuenta si es posible
-      provider.setCustomParameters({
-        'login_hint': mainUser.email
-      })
-      
-      await signInWithRedirect(this.auth, provider)
-      
-      return { success: true }
-    } catch (error: any) {
-      console.error('Error conectando con redirect:', error)
-      return {
-        success: false,
-        error: error.message || 'Error desconocido al conectar con redirect'
-      }
-    }
-  }
-
-  // Desconectar de ControlFile
-  async disconnect(): Promise<{ success: boolean; error?: string }> {
-    try {
-      await firebaseSignOut(this.auth)
-      return { success: true }
-    } catch (error: any) {
-      console.error('Error desconectando de ControlFile:', error)
-      return {
-        success: false,
-        error: error.message || 'Error al desconectar'
-      }
-    }
-  }
-
-  // Obtener token de autenticación
-  async getAuthToken(): Promise<string | null> {
-    try {
-      const user = this.auth.currentUser
-      if (!user) return null
-      
-      const token = await user.getIdToken()
-      return token
-    } catch (error) {
-      console.error('Error obteniendo token:', error)
-      return null
-    }
-  }
-
-  // Subir archivo a ControlFile usando el flujo correcto
+  // Subir archivo a ControlFile
   async uploadFile(file: File, folderName?: string): Promise<{ success: boolean; fileId?: string; fileUrl?: string; shareUrl?: string; shareToken?: string; fileName?: string; fileSize?: number; error?: string }> {
     try {
-      const token = await this.getAuthToken()
-      if (!token) {
-        return {
-          success: false,
-          error: 'No hay sesión activa con ControlFile'
-        }
+      const user = this.auth.currentUser
+      if (!user) {
+        return { success: false, error: 'Usuario no autenticado' }
       }
 
-      // Crear carpeta si no existe (usar appCode por defecto)
-      let parentId = null
-      const folderToUse = folderName || CONTROLFILE_CONFIG.appCode
+      const token = await user.getIdToken()
+      const folderToUse = folderName || 'ControlGastos'
+
+      // Crear carpeta si no existe
       const folderResult = await this.createFolder(folderToUse)
       if (folderResult.success) {
-        parentId = folderResult.folderId
+        console.log('✅ ControlFile: Carpeta creada/verificada:', folderToUse)
       }
 
-      console.log('🚀 Iniciando subida de archivo:', file.name)
+      // Preparar datos del archivo
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folderName', folderToUse)
+      formData.append('userId', user.uid)
+      formData.append('userEmail', user.email || '')
 
-      // Paso 1: Obtener URL presignada
-      const presignResponse = await fetch(`${this.backendUrl}/api/uploads/presign`, {
+      // Subir archivo
+      const response = await fetch(`${this.backendUrl}/api/files/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: file.name,
-          size: file.size,
-          mime: file.type,
-          parentId: parentId
-        })
-      })
-
-      if (!presignResponse.ok) {
-        const errorData = await presignResponse.json()
-        console.error('Error obteniendo URL presignada:', errorData)
-        return {
-          success: false,
-          error: errorData.message || 'Error obteniendo URL de subida'
-        }
-      }
-
-      const { uploadSessionId, url } = await presignResponse.json()
-      console.log('✅ URL presignada obtenida:', uploadSessionId)
-
-      // Paso 2: Subir archivo usando proxy para evitar CORS con B2
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('sessionId', uploadSessionId)
-
-      const uploadResponse = await fetch(`${this.backendUrl}/api/uploads/proxy-upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
         },
         body: formData
       })
 
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json()
-        console.error('Error subiendo archivo via proxy:', errorData)
-        return {
-          success: false,
-          error: errorData.message || `Error subiendo archivo: ${uploadResponse.status} ${uploadResponse.statusText}`
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Error HTTP: ${response.status}`)
       }
 
-      const uploadResult = await uploadResponse.json()
-      console.log('✅ Archivo subido via proxy:', uploadResult)
-
-      // Paso 3: Confirmar subida
-      const etag = uploadResult.etag || uploadResponse.headers.get('etag')
-      
-      const confirmResponse = await fetch(`${this.backendUrl}/api/uploads/confirm`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          uploadSessionId,
-          etag: etag
-        })
-      })
-
-      if (!confirmResponse.ok) {
-        const errorData = await confirmResponse.json()
-        console.error('Error confirmando subida:', errorData)
-        return {
-          success: false,
-          error: errorData.message || 'Error confirmando subida del archivo'
-        }
-      }
-
-      const result = await confirmResponse.json()
-      console.log('✅ Subida confirmada:', result)
-
-      const fileId = result.fileId || result.id || uploadSessionId
-      
-      // Crear enlace de compartir permanente (recomendado)
-      console.log('🔗 Creando enlace de compartir permanente para archivo:', fileId)
-      const shareResult = await this.createPermanentShare(fileId, 87600) // 10 años
-      
-      if (shareResult.success) {
-        console.log('✅ Enlace de compartir creado:', shareResult.shareUrl)
-        return {
-          success: true,
-          fileId: fileId,
-          shareUrl: shareResult.shareUrl,
-          shareToken: shareResult.shareToken,
-          // Mantener compatibilidad con código existente
-          fileUrl: shareResult.shareUrl,
-          fileName: file.name,
-          fileSize: file.size
-        }
-      } else {
-        console.warn('⚠️ No se pudo crear enlace de compartir, usando URL temporal:', shareResult.error)
-        
-        // Fallback a URL temporal si falla el enlace de compartir
-        const urlResult = await this.getFileUrl(fileId)
-        if (urlResult.success) {
-          return {
-            success: true,
-            fileId: fileId,
-            fileUrl: urlResult.url,
-            fileName: urlResult.fileName,
-            fileSize: urlResult.fileSize,
-            shareUrl: undefined,
-            shareToken: undefined
-          }
-        } else {
-          return {
-            success: true,
-            fileId: fileId,
-            fileUrl: undefined,
-            fileName: file.name,
-            fileSize: file.size,
-            shareUrl: undefined,
-            shareToken: undefined
-          }
-        }
-      }
-    } catch (error: any) {
-      console.error('Error subiendo archivo:', error)
-      
-      // Manejar diferentes tipos de errores
-      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-        return {
-          success: false,
-          error: 'Error de conexión. Verifica tu conexión a internet e intenta de nuevo.'
-        }
-      }
-      
-      if (error.message?.includes('CORS') || error.message?.includes('Access-Control-Allow-Origin')) {
-        return {
-          success: false,
-          error: 'Error de configuración del servidor. Contacta al administrador.'
-        }
-      }
+      const result = await response.json()
       
       return {
-        success: false,
-        error: error.message || 'Error desconocido al subir archivo'
+        success: true,
+        fileId: result.fileId,
+        fileUrl: result.fileUrl,
+        shareUrl: result.shareUrl,
+        shareToken: result.shareToken,
+        fileName: result.fileName,
+        fileSize: result.fileSize
+      }
+    } catch (error: any) {
+      console.error('❌ ControlFile: Error subiendo archivo:', error)
+      return { 
+        success: false, 
+        error: error.message || 'Error subiendo archivo' 
       }
     }
   }
@@ -573,186 +90,120 @@ export class ControlFileService {
   // Crear carpeta en ControlFile
   async createFolder(folderName?: string): Promise<{ success: boolean; folderId?: string; error?: string }> {
     try {
-      const token = await this.getAuthToken()
-      if (!token) {
-        return {
-          success: false,
-          error: 'No hay sesión activa con ControlFile'
-        }
+      const user = this.auth.currentUser
+      if (!user) {
+        return { success: false, error: 'Usuario no autenticado' }
       }
 
-      // Usar appCode por defecto si no se especifica folderName
-      const folderToCreate = folderName || CONTROLFILE_CONFIG.appCode
+      const token = await user.getIdToken()
+      const folderToUse = folderName || 'ControlGastos'
 
-      const response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent(folderToCreate)}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        return {
-          success: false,
-          error: errorData.message || 'Error creando carpeta'
-        }
-      }
-
-      const result = await response.json()
-      return {
-        success: true,
-        folderId: result.folderId
-      }
-    } catch (error: any) {
-      console.error('Error creando carpeta:', error)
-      
-      // Manejar diferentes tipos de errores
-      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-        return {
-          success: false,
-          error: 'Error de conexión. Verifica tu conexión a internet e intenta de nuevo.'
-        }
-      }
-      
-      if (error.message?.includes('CORS') || error.message?.includes('Access-Control-Allow-Origin')) {
-        return {
-          success: false,
-          error: 'Error de configuración del servidor. Contacta al administrador.'
-        }
-      }
-      
-      return {
-        success: false,
-        error: error.message || 'Error desconocido al crear carpeta'
-      }
-    }
-  }
-
-
-  // Obtener URL de ControlFile con autenticación automática
-  getControlFileUrl(): string {
-    return `https://files.controldoc.app/`
-  }
-
-  // Verificar si la URL es de BlackBlaze B2
-  private isBlackBlazeUrl(url: string): boolean {
-    const blackBlazePatterns = [
-      'backblazeb2.com',
-      'b2.',
-      'f000.backblazeb2.com',
-      's3.us-west-004.backblazeb2.com',
-      's3.eu-central-003.backblazeb2.com',
-      's3.ap-southeast-002.backblazeb2.com',
-      's3.us-west-000.backblazeb2.com'
-    ]
-    
-    return blackBlazePatterns.some(pattern => url.includes(pattern))
-  }
-
-  // Crear enlace de compartir permanente (recomendado)
-  async createPermanentShare(fileId: string, expiresInHours: number = 87600): Promise<{ success: boolean; shareUrl?: string; shareToken?: string; error?: string }> {
-    try {
-      const token = await this.getAuthToken()
-      if (!token) {
-        return {
-          success: false,
-          error: 'No hay sesión activa con ControlFile'
-        }
-      }
-
-      console.log(`🔗 Creando enlace de compartir permanente para archivo: ${fileId}`)
-
-      const response = await fetch(`${this.backendUrl}/api/shares/create`, {
+      const response = await fetch(`${this.backendUrl}/api/folders`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          fileId: fileId,
-          expiresIn: expiresInHours // Por defecto 10 años
+          name: folderToUse,
+          userId: user.uid,
+          userEmail: user.email || ''
         })
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Error creando enlace de compartir:', errorData)
-        return {
-          success: false,
-          error: errorData.message || `Error creando enlace de compartir: ${response.status}`
+        const errorData = await response.json().catch(() => ({}))
+        // Si la carpeta ya existe, no es un error
+        if (response.status === 409) {
+          return { success: true, folderId: 'existing' }
         }
+        throw new Error(errorData.error || `Error HTTP: ${response.status}`)
       }
 
       const result = await response.json()
-      console.log('✅ Enlace de compartir creado:', result.shareUrl)
-      console.log('🔑 Share Token:', result.shareToken)
+      return { success: true, folderId: result.folderId }
+    } catch (error: any) {
+      console.error('❌ ControlFile: Error creando carpeta:', error)
+      return { 
+        success: false, 
+        error: error.message || 'Error creando carpeta' 
+      }
+    }
+  }
 
-      return {
-        success: true,
+  // Obtener URL de un archivo
+  async getFileUrl(fileId: string): Promise<{ success: boolean; fileUrl?: string; error?: string }> {
+    try {
+      const user = this.auth.currentUser
+      if (!user) {
+        return { success: false, error: 'Usuario no autenticado' }
+      }
+
+      const token = await user.getIdToken()
+
+      const response = await fetch(`${this.backendUrl}/api/files/${fileId}/url`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Error HTTP: ${response.status}`)
+      }
+
+      const result = await response.json()
+      return { success: true, fileUrl: result.fileUrl }
+    } catch (error: any) {
+      console.error('❌ ControlFile: Error obteniendo URL del archivo:', error)
+      return { 
+        success: false, 
+        error: error.message || 'Error obteniendo URL del archivo' 
+      }
+    }
+  }
+
+  // Crear enlace permanente para compartir
+  async createPermanentShare(fileId: string, expiresInHours?: number): Promise<{ success: boolean; shareUrl?: string; shareToken?: string; error?: string }> {
+    try {
+      const user = this.auth.currentUser
+      if (!user) {
+        return { success: false, error: 'Usuario no autenticado' }
+      }
+
+      const token = await user.getIdToken()
+
+      const response = await fetch(`${this.backendUrl}/api/shares`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fileId,
+          userId: user.uid,
+          expiresInHours: expiresInHours || 8760, // 1 año por defecto
+          isPublic: false
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Error HTTP: ${response.status}`)
+      }
+
+      const result = await response.json()
+      return { 
+        success: true, 
         shareUrl: result.shareUrl,
         shareToken: result.shareToken
       }
     } catch (error: any) {
-      console.error('Error creando enlace de compartir:', error)
-      return {
-        success: false,
-        error: error.message || 'Error desconocido al crear enlace de compartir'
-      }
-    }
-  }
-
-  // Obtener URL de descarga de un archivo usando el endpoint correcto (método legacy)
-  async getFileUrl(fileId: string): Promise<{ success: boolean; url?: string; fileName?: string; fileSize?: number; error?: string }> {
-    try {
-      const token = await this.getAuthToken()
-      if (!token) {
-        return {
-          success: false,
-          error: 'No hay sesión activa con ControlFile'
-        }
-      }
-
-      console.log(`🔍 Obteniendo URL de descarga para archivo: ${fileId}`)
-
-      // Usar el endpoint correcto /api/files/presign-get
-      const response = await fetch(`${this.backendUrl}/api/files/presign-get`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fileId: fileId
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Error obteniendo URL de descarga:', errorData)
-        return {
-          success: false,
-          error: errorData.message || `Error obteniendo URL de descarga: ${response.status}`
-        }
-      }
-
-      const result = await response.json()
-      console.log('✅ URL de descarga obtenida:', result.downloadUrl)
-      console.log('📁 Archivo:', result.fileName)
-      console.log('📏 Tamaño:', result.fileSize)
-
-      return {
-        success: true,
-        url: result.downloadUrl,
-        fileName: result.fileName,
-        fileSize: result.fileSize
-      }
-    } catch (error: any) {
-      console.error('Error obteniendo URL del archivo:', error)
-      return {
-        success: false,
-        error: error.message || 'Error desconocido al obtener URL del archivo'
+      console.error('❌ ControlFile: Error creando enlace permanente:', error)
+      return { 
+        success: false, 
+        error: error.message || 'Error creando enlace permanente' 
       }
     }
   }

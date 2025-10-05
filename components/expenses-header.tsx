@@ -1,11 +1,11 @@
 "use client"
 
 import { useAuth } from "@/components/auth-provider"
+import { useControlFile } from "@/components/controlfile-provider"
 import { ThemeToggleCompact } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
 import { useToast } from "@/hooks/use-toast"
-import { controlFileService } from "@/lib/controlfile"
 import { formatCurrency } from "@/lib/utils"
 import { Calendar, CheckCircle, Clock, DollarSign, Download } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -34,24 +34,13 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
     return () => clearInterval(timer)
   }, [])
 
-  // Verificar conexión con ControlFile y mantener estado sincronizado
+  // Usar el provider de ControlFile para obtener el estado de conexión
+  const { isControlFileConnected: providerConnected, connectControlFile, openControlFile } = useControlFile()
+  
+  // Sincronizar el estado local con el provider
   useEffect(() => {
-    const checkControlFileConnection = async () => {
-      try {
-        const connected = await controlFileService.isConnected()
-        setIsControlFileConnected(connected)
-      } catch (error) {
-        console.error('Error verificando ControlFile:', error)
-      }
-    }
-    
-    checkControlFileConnection()
-
-    // Verificar periódicamente el estado de conexión para mantener sincronización
-    const interval = setInterval(checkControlFileConnection, 30000) // Cada 30 segundos
-
-    return () => clearInterval(interval)
-  }, [])
+    setIsControlFileConnected(providerConnected)
+  }, [providerConnected])
 
   // Cerrar mensaje al hacer clic fuera
   useEffect(() => {
@@ -81,66 +70,12 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
       return
     }
 
-    // Si no está conectado, conectar automáticamente
-    setIsConnecting(true)
-    
-    try {
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "Debes estar autenticado para conectar con ControlFile",
-          variant: "destructive"
-        })
-        return
-      }
-
-      const result = await controlFileService.connectWithMainUserCredentials(user)
-      
-      if (result.success) {
-        setIsControlFileConnected(true)
-        toast({
-          title: "Conectado exitosamente",
-          description: "ControlFile se ha conectado con tu cuenta",
-        })
-      } else {
-        // Si falla el popup, intentar con redirect
-        if (result.error === 'POPUP_BLOCKED' || result.error === 'POPUP_CANCELLED') {
-          toast({
-            title: "Popup bloqueado",
-            description: "Redirigiendo a ControlFile para conectar...",
-          })
-          
-          const redirectResult = await controlFileService.connectWithRedirect(user)
-          if (!redirectResult.success) {
-            toast({
-              title: "Error de conexión",
-              description: "No se pudo conectar con ControlFile",
-              variant: "destructive"
-            })
-          }
-        } else {
-          toast({
-            title: "Error de conexión",
-            description: result.error || "No se pudo conectar con ControlFile",
-            variant: "destructive"
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Error conectando con ControlFile:', error)
-      toast({
-        title: "Error de conexión",
-        description: "Ocurrió un error inesperado",
-        variant: "destructive"
-      })
-    } finally {
-      setIsConnecting(false)
-    }
+    // Si no está conectado, conectar usando el provider
+    await connectControlFile()
   }
 
   const handleGoToControlFile = () => {
-    const url = controlFileService.getControlFileUrl()
-    window.open(url, '_blank', 'noopener,noreferrer')
+    openControlFile()
     setShowConnectedMessage(false)
   }
 
