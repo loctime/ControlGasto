@@ -1,6 +1,6 @@
-# 🔥 Configuración de Firebase para GastosApp
+# 🔥 Configuración de Firebase - ControlGastos
 
-Esta guía te ayudará a configurar Firebase para tu aplicación de gastos.
+Esta guía te ayudará a configurar Firebase para ControlGastos con integración completa de ControlFile.
 
 ## 📋 Prerrequisitos
 
@@ -14,7 +14,7 @@ Esta guía te ayudará a configurar Firebase para tu aplicación de gastos.
 
 1. Ve a [Firebase Console](https://console.firebase.google.com/)
 2. Haz clic en "Crear un proyecto"
-3. Nombra tu proyecto (ej: "gastos-app")
+3. Nombra tu proyecto (ej: "controlgastos-app")
 4. Habilita Google Analytics (opcional)
 5. Haz clic en "Crear proyecto"
 
@@ -47,7 +47,7 @@ Esta guía te ayudará a configurar Firebase para tu aplicación de gastos.
 2. En la pestaña **General**, baja hasta **Your apps**
 3. Haz clic en el ícono **Web** (`</>`)
 4. Registra tu app:
-   - App nickname: "GastosApp Web"
+   - App nickname: "ControlGastos Web"
    - No marques "Also set up Firebase Hosting"
    - Haz clic en **Register app**
 5. Copia la configuración que aparece
@@ -59,32 +59,28 @@ Esta guía te ayudará a configurar Firebase para tu aplicación de gastos.
 3. Reemplaza los valores con los de tu proyecto Firebase:
 
 ```env
-NEXT_PUBLIC_FIREBASE_API_KEY=tu_api_key_aqui
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=tu_proyecto_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=tu_proyecto.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=tu_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=tu_app_id
+# Firebase (Compartido entre ControlGastos y ControlFile)
+NEXT_PUBLIC_CONTROLFILE_API_KEY=tu_api_key_aqui
+NEXT_PUBLIC_CONTROLFILE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
+NEXT_PUBLIC_CONTROLFILE_PROJECT_ID=tu_proyecto_id
+NEXT_PUBLIC_CONTROLFILE_APP_ID=tu_app_id
+
+# ControlFile Backend
+NEXT_PUBLIC_CONTROLFILE_BACKEND_URL=https://controlfile.onrender.com
+NEXT_PUBLIC_CONTROLFILE_APP_DISPLAY_NAME=ControlFile
+NEXT_PUBLIC_CONTROLFILE_APP_CODE=controlgastos
 ```
 
 ### 6. Configurar reglas de Firestore
 
 1. Ve a **Firestore Database** > **Rules**
-2. Reemplaza las reglas existentes con:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /expenses/{expenseId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-  }
-}
-```
-
+2. Usa el archivo `firestore.rules` del proyecto (ya está configurado)
 3. Haz clic en **Publish**
+
+**O usar el comando:**
+```bash
+npm run firebase:rules
+```
 
 ## 🧪 Probar la configuración
 
@@ -93,11 +89,13 @@ service cloud.firestore {
 npm run dev
 ```
 
-2. Abre http://localhost:3000 (o el puerto que se muestre)
+2. Abre http://localhost:3000
 
 3. Intenta registrarte con un email y contraseña
 
 4. Verifica que puedas agregar gastos
+
+5. Ve a `/profile` y conecta con ControlFile
 
 ## 🔧 Scripts útiles
 
@@ -115,6 +113,39 @@ npm run firebase:rules
 npm run firebase:deploy
 ```
 
+## 🏗️ Estructura de Datos
+
+### Estructura Organizada (Nueva)
+```
+Firestore:
+├── apps/controlgastos/users/{userId}/
+│   ├── expenses/         # Gastos del usuario
+│   ├── receipts/         # Comprobantes
+│   └── settings/         # Configuraciones
+└── users/{userId}/       # ControlFile (si necesario)
+    ├── files/
+    ├── folders/
+    └── shares/
+```
+
+### Reglas de Seguridad
+- **Separación por usuario** - Cada usuario solo accede a sus datos
+- **Estructura organizada** - Datos separados por aplicación
+- **Validación de auth** - Todas las operaciones requieren autenticación
+
+## 🔒 Integración con ControlFile
+
+### Firebase Auth Unificado
+- **Un solo proyecto Firebase** para ControlGastos y ControlFile
+- **Misma instancia de autenticación** - Sin popups molestos
+- **Persistencia nativa** - Firebase maneja las sesiones automáticamente
+- **Tokens compartidos** - ControlFile usa los tokens de ControlGastos
+
+### Configuración Automática
+- Al autenticarse en ControlGastos, automáticamente está conectado a ControlFile
+- No requiere configuración adicional
+- Conexión persistente hasta logout
+
 ## 🚨 Solución de problemas
 
 ### Error: "Firebase: Error (auth/invalid-api-key)"
@@ -125,17 +156,25 @@ npm run firebase:deploy
 ### Error: "Permission denied"
 - Verifica las reglas de Firestore
 - Asegúrate de que el usuario esté autenticado
+- Verifica que las reglas estén desplegadas: `npm run firebase:rules`
+
+### Error: "ControlFile no conectado"
+- Verifica que las variables de ControlFile estén configuradas
+- Asegúrate de que el backend de ControlFile esté funcionando
+- Verifica que el usuario esté autenticado en ControlGastos
 
 ### La aplicación no carga
 - Verifica la consola del navegador para errores
 - Asegúrate de que todas las variables de entorno estén configuradas
+- Ejecuta `npm run type-check` para verificar errores de TypeScript
 
 ## 📚 Recursos adicionales
 
 - [Documentación de Firebase](https://firebase.google.com/docs)
 - [Next.js + Firebase](https://firebase.google.com/docs/web/setup)
 - [Firestore Security Rules](https://firebase.google.com/docs/firestore/security/get-started)
+- [ControlFile Backend](https://controlfile.onrender.com/docs)
 
 ## 🎉 ¡Listo!
 
-Una vez completados estos pasos, tu aplicación GastosApp estará completamente configurada con Firebase y lista para usar.
+Una vez completados estos pasos, ControlGastos estará completamente configurado con Firebase y ControlFile, listo para usar con todas las funcionalidades integradas.
