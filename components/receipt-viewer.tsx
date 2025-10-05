@@ -46,12 +46,12 @@ export function ReceiptViewer({
         
         const result = await controlFileService.getFileUrl(receiptImageId)
         
-        if (result.success && result.url) {
-          const isBlackBlaze = result.url.includes('backblazeb2.com') || result.url.includes('b2.')
+        if (result.success && result.fileUrl) {
+          const isBlackBlaze = result.fileUrl.includes('backblazeb2.com') || result.fileUrl.includes('b2.')
           
           if (isBlackBlaze) {
             console.log(`🚀 Cargando imagen automáticamente desde BlackBlaze B2`)
-            setImageUrl(result.url)
+            setImageUrl(result.fileUrl)
           }
         }
       } catch (error) {
