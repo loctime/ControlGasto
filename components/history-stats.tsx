@@ -1,7 +1,6 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { FieldValue, Timestamp } from "firebase/firestore"
 
@@ -58,10 +57,9 @@ export function HistoryStats({ payments }: HistoryStatsProps) {
   console.log(`📊 Stats - Total: ${paymentsCount} pagos ($${totalAmount}), Este mes: ${thisMonthPayments.length} pagos ($${thisMonthAmount}), Esta semana: ${thisWeekPayments.length} pagos ($${thisWeekAmount})`)
 
   return (
-    <Card className="w-full">
-      <CardContent className="p-0">
-        <div className="overflow-hidden rounded-lg">
-          <Table>
+    <div className="w-full bg-card text-card-foreground rounded-xl border shadow-sm">
+      <div className="overflow-hidden rounded-lg">
+        <Table>
           <TableBody>
             {/* Total Pagado */}
             <TableRow className="border-b">
@@ -116,7 +114,6 @@ export function HistoryStats({ payments }: HistoryStatsProps) {
           </TableBody>
           </Table>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   )
 }

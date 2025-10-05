@@ -69,9 +69,9 @@ export function UnifiedHeader({
   const { date, time } = formatDateTime(currentTime)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Header principal mejorado */}
-      <div className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 rounded-xl p-6 border border-primary/20 shadow-lg backdrop-blur-sm">
+      <div className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 rounded-xl p-3 border border-primary/20 shadow-lg backdrop-blur-sm">
         <div className="flex items-start justify-between">
           {/* Lado izquierdo - Título y saludo */}
           <div className="flex-1 min-w-0">
@@ -138,7 +138,7 @@ export function UnifiedHeader({
 
       {/* Resumen integrado y elegante - Solo si showSummary es true */}
       {showSummary && (
-        <div className="bg-gradient-to-br from-primary/5 via-secondary/10 to-accent/5 rounded-xl p-6 border border-primary/20 shadow-lg backdrop-blur-sm">
+        <div className="bg-gradient-to-br from-primary/5 via-secondary/10 to-accent/5 rounded-xl p-3 border border-primary/20 shadow-lg backdrop-blur-sm">
           <div className="grid grid-cols-3 gap-6">
             {/* Pagado */}
             <div className="text-center">
