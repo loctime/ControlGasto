@@ -8,8 +8,10 @@ import { HistoryStats } from "@/components/history-stats"
 import { ReceiptViewer } from "@/components/receipt-viewer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { HistorySkeleton } from "@/components/ui/skeleton-loaders"
 import { db } from "@/lib/firebase"
@@ -18,6 +20,7 @@ import { PaymentService } from "@/lib/payment-service"
 import { formatCurrency } from "@/lib/utils"
 import { collection, FieldValue, getDocs, query, Timestamp } from "firebase/firestore"
 import {
+    Calendar as CalendarIcon,
     CheckCircle,
     ChevronDown,
     ChevronUp,
@@ -75,6 +78,13 @@ export function HistoryContent() {
   const [categoryFilter, setCategoryFilter] = useState<FilterCategory>("all")
   const [sortField, setSortField] = useState<SortField>("date")
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
+  
+  // Rango de fechas
+  const [dateRange, setDateRange] = useState<{from: Date | undefined, to: Date | undefined}>({
+    from: undefined,
+    to: undefined
+  })
+  const [useDateRange, setUseDateRange] = useState(false)
   
   const { retryWithBackoff } = useRetry()
 
@@ -138,32 +148,41 @@ export function HistoryContent() {
     }
 
     // Filtrar por período
-    const now = new Date()
-    let startDate: Date
-
-    if (view === "week") {
-      // Últimos 7 días
-      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    if (useDateRange && dateRange.from && dateRange.to) {
+      // Usar rango de fechas personalizado
+      filtered = filtered.filter(expense => {
+        const expenseDate = getDateFromTimestamp(expense.createdAt)
+        return expenseDate >= dateRange.from! && expenseDate <= dateRange.to!
+      })
     } else {
-      // Últimos X meses (empezando desde el mes actual hacia atrás)
-      const currentMonth = now.getMonth()
-      const currentYear = now.getFullYear()
-      const targetMonth = currentMonth - (monthsToShow - 1)
-      
-      if (targetMonth < 0) {
-        // Si necesitamos ir al año anterior
-        const targetYear = currentYear - Math.floor(Math.abs(targetMonth) / 12) - 1
-        const adjustedMonth = 12 + (targetMonth % 12)
-        startDate = new Date(targetYear, adjustedMonth, 1)
-      } else {
-        startDate = new Date(currentYear, targetMonth, 1)
-      }
-    }
+      // Usar lógica de meses/semana
+      const now = new Date()
+      let startDate: Date
 
-    filtered = filtered.filter(expense => {
-      const expenseDate = getDateFromTimestamp(expense.createdAt)
-      return expenseDate >= startDate
-    })
+      if (view === "week") {
+        // Últimos 7 días
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      } else {
+        // Últimos X meses (empezando desde el mes actual hacia atrás)
+        const currentMonth = now.getMonth()
+        const currentYear = now.getFullYear()
+        const targetMonth = currentMonth - (monthsToShow - 1)
+        
+        if (targetMonth < 0) {
+          // Si necesitamos ir al año anterior
+          const targetYear = currentYear - Math.floor(Math.abs(targetMonth) / 12) - 1
+          const adjustedMonth = 12 + (targetMonth % 12)
+          startDate = new Date(targetYear, adjustedMonth, 1)
+        } else {
+          startDate = new Date(currentYear, targetMonth, 1)
+        }
+      }
+
+      filtered = filtered.filter(expense => {
+        const expenseDate = getDateFromTimestamp(expense.createdAt)
+        return expenseDate >= startDate
+      })
+    }
 
     // Ordenar
     filtered.sort((a, b) => {
@@ -200,7 +219,7 @@ export function HistoryContent() {
 
     console.log("🔍 Historial - Gastos filtrados finales:", filtered.length)
     setFilteredExpenses(filtered)
-  }, [expenses, searchTerm, categoryFilter, sortField, sortOrder, view, monthsToShow])
+  }, [expenses, searchTerm, categoryFilter, sortField, sortOrder, view, monthsToShow, useDateRange, dateRange])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -408,12 +427,63 @@ export function HistoryContent() {
             {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
 
+          {/* Rango de fechas */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="h-9 px-3 text-sm"
+              >
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                {useDateRange && dateRange.from && dateRange.to 
+                  ? `${dateRange.from.toLocaleDateString('es-ES')} - ${dateRange.to.toLocaleDateString('es-ES')}`
+                  : "Rango de fechas"
+                }
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <div className="p-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Seleccionar rango:</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setDateRange({ from: undefined, to: undefined })
+                        setUseDateRange(false)
+                      }}
+                      className="h-6 px-2 text-xs"
+                    >
+                      Limpiar
+                    </Button>
+                  </div>
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={(range) => {
+                      if (range?.from && range?.to) {
+                        setDateRange(range)
+                        setUseDateRange(true)
+                      }
+                    }}
+                    className="rounded-md border"
+                    numberOfMonths={1}
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           {/* Vista */}
           <div className="flex items-center gap-1 bg-background rounded-md p-1">
             <Button
               variant={view === "week" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setView("week")}
+              onClick={() => {
+                setView("week")
+                setUseDateRange(false)
+              }}
               className="h-7 px-3 text-xs"
             >
               Semana
@@ -421,7 +491,10 @@ export function HistoryContent() {
             <Button
               variant={view === "month" ? "default" : "ghost"}
               size="sm"
-              onClick={() => setView("month")}
+              onClick={() => {
+                setView("month")
+                setUseDateRange(false)
+              }}
               className="h-7 px-3 text-xs"
             >
               Mes
