@@ -23,7 +23,7 @@ export class PaymentService {
   // Crear un nuevo pago (registro en el historial)
   async createPayment(paymentData: any): Promise<string> {
     try {
-      const paymentRef = await addDoc(collection(db, `apps/controlgastos/users/${this.userId}/expenses`), {
+      const paymentRef = await addDoc(collection(db, `apps/controlgastos/users/${this.userId}/payments`), {
         ...paymentData,
         userId: this.userId,
         createdAt: serverTimestamp()
@@ -67,7 +67,7 @@ export class PaymentService {
   async getPaymentsByExpense(expenseId: string): Promise<Payment[]> {
     try {
       const q = query(
-        collection(db, `apps/controlgastos/users/${this.userId}/expenses`),
+        collection(db, `apps/controlgastos/users/${this.userId}/payments`),
         where('expenseId', '==', expenseId),
         orderBy('paidAt', 'desc')
       )
@@ -89,7 +89,7 @@ export class PaymentService {
   async getAllPayments(): Promise<Payment[]> {
     try {
       const q = query(
-        collection(db, `apps/controlgastos/users/${this.userId}/expenses`),
+        collection(db, `apps/controlgastos/users/${this.userId}/payments`),
         orderBy('paidAt', 'desc')
       )
 
@@ -110,7 +110,7 @@ export class PaymentService {
   async getPaymentsByDateRange(startDate: Date, endDate: Date): Promise<Payment[]> {
     try {
       const q = query(
-        collection(db, `apps/controlgastos/users/${this.userId}/expenses`),
+        collection(db, `apps/controlgastos/users/${this.userId}/payments`),
         where('paidAt', '>=', startDate),
         where('paidAt', '<=', endDate),
         orderBy('paidAt', 'desc')

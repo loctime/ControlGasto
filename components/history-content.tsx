@@ -10,7 +10,7 @@ import { HistorySkeleton } from "@/components/ui/skeleton-loaders"
 import { db } from "@/lib/firebase"
 import { useMemoizedCalculations, useRetry } from "@/lib/optimization"
 import { PaymentService } from "@/lib/payment-service"
-import { collection, FieldValue, getDocs, orderBy, query, Timestamp, where } from "firebase/firestore"
+import { collection, FieldValue, getDocs, orderBy, query, Timestamp } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -67,7 +67,7 @@ export function HistoryContent() {
 
       try {
         await retryWithBackoff(async () => {
-          const q = query(collection(db, "payments"), where("userId", "==", user.uid), orderBy("paidAt", "desc"))
+          const q = query(collection(db, `apps/controlgastos/users/${user.uid}/payments`), orderBy("paidAt", "desc"))
           const snapshot = await getDocs(q)
           const paymentsData = snapshot.docs.map((doc) => ({
             id: doc.id,

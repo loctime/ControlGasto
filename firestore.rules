@@ -12,6 +12,13 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Pagos del usuario (historial)
+    match /apps/controlgastos/users/{userId}/payments/{paymentId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
     // Comprobantes del usuario
     match /apps/controlgastos/users/{userId}/receipts/{receiptId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
