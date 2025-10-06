@@ -1,15 +1,15 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Upload, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
-import { controlFileService } from "@/lib/controlfile"
 import { useToast } from "@/hooks/use-toast"
+import { controlFileService } from "@/lib/controlfile"
+import { Loader2, Upload } from "lucide-react"
+import { useState } from "react"
 
 interface ControlFileUploadProps {
   file?: File
   fileName?: string
-  folderName?: string
+  type?: 'Comprobantes' | 'Facturas' | 'Recibos' | 'Otros'
   onUploaded?: (result: { success: boolean; fileId?: string; fileUrl?: string; shareUrl?: string; shareToken?: string; fileName?: string; fileSize?: number; error?: string }) => void
   disabled?: boolean
   size?: "default" | "sm" | "lg"
@@ -20,7 +20,7 @@ interface ControlFileUploadProps {
 export function ControlFileUpload({
   file,
   fileName,
-  folderName = "ControlGastos",
+  type,
   onUploaded,
   disabled = false,
   size = "default",
@@ -42,16 +42,17 @@ export function ControlFileUpload({
 
     setIsUploading(true)
     try {
-      const result = await controlFileService.uploadFile(file, folderName)
+      const result = await controlFileService.uploadFile(file, type)
       
       if (result.success) {
+        const folderInfo = type ? ` en carpeta "${type}"` : " en carpeta del mes actual"
         toast({
           title: "Archivo subido exitosamente",
           description: result.shareUrl 
-            ? `Archivo "${result.fileName || 'archivo'}" guardado en ControlFile${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. Enlace permanente creado.`
+            ? `Archivo "${result.fileName || 'archivo'}" guardado${folderInfo}${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. Enlace permanente creado.`
             : result.fileUrl 
-            ? `Archivo "${result.fileName || 'archivo'}" guardado en ControlFile${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. URL temporal disponible por 5 minutos.`
-            : `El archivo se ha guardado en ControlFile`,
+            ? `Archivo "${result.fileName || 'archivo'}" guardado${folderInfo}${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. URL temporal disponible por 5 minutos.`
+            : `El archivo se ha guardado${folderInfo}`,
         })
         onUploaded?.(result)
       } else {
@@ -100,7 +101,7 @@ export function ControlFileUpload({
 interface ControlFileUploadFromUrlProps {
   fileUrl: string
   fileName: string
-  folderName?: string
+  type?: 'Comprobantes' | 'Facturas' | 'Recibos' | 'Otros'
   onUploaded?: (result: { success: boolean; fileId?: string; fileUrl?: string; shareUrl?: string; shareToken?: string; fileName?: string; fileSize?: number; error?: string }) => void
   disabled?: boolean
   size?: "default" | "sm" | "lg"
@@ -111,7 +112,7 @@ interface ControlFileUploadFromUrlProps {
 export function ControlFileUploadFromUrl({
   fileUrl,
   fileName,
-  folderName = "ControlGastos",
+  type,
   onUploaded,
   disabled = false,
   size = "default",
@@ -142,16 +143,17 @@ export function ControlFileUploadFromUrl({
       const blob = await response.blob()
       const file = new File([blob], fileName, { type: blob.type })
       
-      const result = await controlFileService.uploadFile(file, folderName)
+      const result = await controlFileService.uploadFile(file, type)
       
       if (result.success) {
+        const folderInfo = type ? ` en carpeta "${type}"` : " en carpeta del mes actual"
         toast({
           title: "Archivo subido exitosamente",
           description: result.shareUrl 
-            ? `Archivo "${result.fileName || fileName}" guardado en ControlFile${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. Enlace permanente creado.`
+            ? `Archivo "${result.fileName || fileName}" guardado${folderInfo}${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. Enlace permanente creado.`
             : result.fileUrl 
-            ? `Archivo "${result.fileName || fileName}" guardado en ControlFile${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. URL temporal disponible por 5 minutos.`
-            : `El archivo "${fileName}" se ha guardado en ControlFile`,
+            ? `Archivo "${result.fileName || fileName}" guardado${folderInfo}${result.fileSize ? ` (${Math.round(result.fileSize / 1024)}KB)` : ''}. URL temporal disponible por 5 minutos.`
+            : `El archivo "${fileName}" se ha guardado${folderInfo}`,
         })
         onUploaded?.(result)
       } else {

@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { BottomNav } from "@/components/bottom-nav"
+import { ControlFileTest } from "@/components/controlfile-test"
 import { ExpensesDashboard } from "@/components/expenses-dashboard"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export function DashboardContent() {
   const { user, loading } = useAuth()
@@ -31,6 +32,9 @@ export function DashboardContent() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <ExpensesDashboard />
+      <div className="container mx-auto px-4 py-6">
+        <ControlFileTest />
+      </div>
       <BottomNav />
     </div>
   )

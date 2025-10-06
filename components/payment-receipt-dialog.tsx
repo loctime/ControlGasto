@@ -1,30 +1,29 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog"
-import { 
-  Camera, 
-  Image, 
-  Upload, 
-  X, 
-  CheckCircle, 
-  AlertCircle,
-  ExternalLink 
-} from "lucide-react"
-import { controlFileService } from "@/lib/controlfile"
 import { useControlFile } from "@/components/controlfile-provider"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { controlFileService } from "@/lib/controlfile"
+import {
+    AlertCircle,
+    Camera,
+    CheckCircle,
+    ExternalLink,
+    Upload,
+    X
+} from "lucide-react"
+import { useRef, useState } from "react"
 
 interface PaymentReceiptDialogProps {
   isOpen: boolean
@@ -91,7 +90,7 @@ export function PaymentReceiptDialog({
     try {
       const result = await controlFileService.uploadFile(
         selectedImage, 
-        "ControlGastos"
+        "Comprobantes"
       )
 
       if (result.success && result.fileId) {

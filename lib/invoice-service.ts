@@ -1,18 +1,18 @@
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  doc,
-  serverTimestamp
+import {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    orderBy,
+    query,
+    serverTimestamp,
+    updateDoc,
+    where
 } from 'firebase/firestore'
+import { controlFileService } from './controlfile'
 import { db } from './firebase'
 import { Invoice } from './types'
-import { controlFileService } from './controlfile'
 
 export class InvoiceService {
   private userId: string
@@ -25,13 +25,13 @@ export class InvoiceService {
   async uploadInvoice(
     paymentId: string, 
     file: File, 
-    folderName: string = "ControlGastos"
+    type: 'Comprobantes' | 'Facturas' | 'Recibos' | 'Otros' = 'Facturas'
   ): Promise<Invoice> {
     try {
       console.log('📄 Subiendo factura para pago:', paymentId)
 
       // Subir archivo a ControlFile
-      const uploadResult = await controlFileService.uploadFile(file, folderName)
+      const uploadResult = await controlFileService.uploadFile(file, type)
       
       if (!uploadResult.success) {
         throw new Error(uploadResult.error || 'Error subiendo archivo')

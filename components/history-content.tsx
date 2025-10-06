@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { HistoryHeader } from "@/components/history-header"
 import { HistoryResetModal } from "@/components/history-reset-modal"
 import { HistoryStats } from "@/components/history-stats"
+import { ReceiptViewer } from "@/components/receipt-viewer"
 import { HistorySkeleton } from "@/components/ui/skeleton-loaders"
 import { db } from "@/lib/firebase"
 import { useMemoizedCalculations, useRetry } from "@/lib/optimization"
@@ -210,16 +211,31 @@ export function HistoryContent() {
               {currentPayments.map((payment) => (
                 <div key={payment.id} className="bg-card border rounded-lg p-4">
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-medium">{payment.expenseName}</h3>
                       <p className="text-sm text-muted-foreground">
                         {getDateFromTimestamp(payment.paidAt).toLocaleDateString()}
                       </p>
+                      {payment.notes && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {payment.notes}
+                        </p>
+                      )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end gap-2">
                       <p className="font-bold text-lg">${payment.amount.toLocaleString()}</p>
-                      {payment.receiptImageId && (
-                        <p className="text-xs text-green-600">✓ Con comprobante</p>
+                      {payment.receiptImageId ? (
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-green-600">✓ Con comprobante</p>
+                          <ReceiptViewer
+                            receiptImageId={payment.receiptImageId}
+                            expenseName={payment.expenseName}
+                            expenseAmount={payment.amount}
+                            paidAt={getDateFromTimestamp(payment.paidAt)}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Sin comprobante</p>
                       )}
                     </div>
                   </div>
