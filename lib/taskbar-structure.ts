@@ -8,6 +8,7 @@ const CONTROLFILE_CONFIG = {
 export class TaskbarStructureService {
   private auth: any;
   private backendUrl: string;
+  private cache: { [key: string]: string } = {};
 
   constructor() {
     this.auth = auth;
@@ -20,6 +21,13 @@ export class TaskbarStructureService {
       const user = this.auth?.currentUser;
       if (!user) {
         return { success: false, error: 'Usuario no autenticado' };
+      }
+
+      // Verificar cache primero
+      const cacheKey = 'gastos-structure';
+      if (this.cache[cacheKey]) {
+        console.log('✅ Usando estructura cacheada:', this.cache[cacheKey]);
+        return { success: true, folderId: this.cache[cacheKey] };
       }
 
       console.log('🏗️ Creando estructura Gastos > Año > Mes');
@@ -50,6 +58,9 @@ export class TaskbarStructureService {
         return { success: false, error: monthFolder.error };
       }
 
+      // Guardar en cache
+      this.cache[cacheKey] = monthFolder.folderId;
+
       console.log('✅ Estructura Gastos > Año > Mes creada exitosamente');
       return { success: true, folderId: monthFolder.folderId };
 
@@ -65,6 +76,13 @@ export class TaskbarStructureService {
       const user = this.auth?.currentUser;
       if (!user) {
         return { success: false, error: 'Usuario no autenticado' };
+      }
+
+      // Verificar cache
+      const cacheKey = `main-${name}`;
+      if (this.cache[cacheKey]) {
+        console.log(`✅ Usando carpeta principal cacheada "${name}":`, this.cache[cacheKey]);
+        return { success: true, folderId: this.cache[cacheKey] };
       }
 
       const token = await user.getIdToken();
@@ -107,6 +125,8 @@ export class TaskbarStructureService {
       const result = await response.json();
       
       if (result.folderId) {
+        // Guardar en cache
+        this.cache[cacheKey] = result.folderId;
         console.log(`✅ Carpeta principal "${name}" creada en taskbar:`, result.folderId);
         return { success: true, folderId: result.folderId };
       } else {
@@ -280,6 +300,12 @@ export class TaskbarStructureService {
       console.error('❌ Error obteniendo carpeta del mes actual:', error);
       return { success: false, error: error.message || 'Error obteniendo carpeta del mes actual' };
     }
+  }
+
+  // Limpiar cache (para forzar recreación)
+  clearCache(): void {
+    this.cache = {};
+    console.log('🗑️ Cache limpiado');
   }
 
 }

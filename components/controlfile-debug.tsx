@@ -32,7 +32,10 @@ export function ControlFileDebug() {
         return
       }
       
-      // 2. Crear estructura Gastos > Año > Mes
+      // 2. Limpiar cache y crear estructura Gastos > Año > Mes
+      results.push('🗑️ Limpiando cache...')
+      taskbarStructureService.clearCache()
+      
       results.push('🏗️ Creando estructura Gastos > Año > Mes...')
       const structure = await taskbarStructureService.createGastosStructure()
       if (structure.success) {
