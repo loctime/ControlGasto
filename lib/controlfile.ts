@@ -199,7 +199,7 @@ export class ControlFileService {
     }
   }
 
-  // Subir archivo usando el nuevo flujo de uploads (automáticamente al mes actual)
+  // Subir archivo usando proxy para evitar problemas de CORS
   async uploadFile(file: File, type?: 'Comprobantes' | 'Facturas' | 'Recibos' | 'Otros'): Promise<{ success: boolean; fileId?: string; fileUrl?: string; shareUrl?: string; shareToken?: string; fileName?: string; fileSize?: number; error?: string }> {
     try {
       const user = this.auth.currentUser
@@ -239,86 +239,39 @@ export class ControlFileService {
 
       const token = await user.getIdToken()
 
-      // Paso 1: Obtener URL de presign
-      const presignResponse = await fetch(`${this.backendUrl}/api/uploads/presign`, {
+      // Usar proxy interno para evitar problemas de CORS
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('fileName', file.name)
+      formData.append('fileSize', file.size.toString())
+      formData.append('mimeType', file.type)
+      formData.append('parentId', targetFolderId || '')
+      formData.append('authToken', token)
+
+      const uploadResponse = await fetch('/api/upload-file', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: file.name,
-          size: file.size,
-          mime: file.type,
-          parentId: targetFolderId
-        })
-      })
-
-      if (!presignResponse.ok) {
-        const errorData = await presignResponse.json().catch(() => ({}))
-        throw new Error(errorData.error || `Error presign HTTP: ${presignResponse.status}`)
-      }
-
-      const presignData = await presignResponse.json()
-
-      // Paso 2: Subir archivo al URL presignado
-      const uploadResponse = await fetch(presignData.url, {
-        method: 'PUT',
-        body: file
+        body: formData
       })
 
       if (!uploadResponse.ok) {
-        throw new Error(`Error subiendo archivo: ${uploadResponse.status}`)
+        const errorData = await uploadResponse.json().catch(() => ({}))
+        throw new Error(errorData.error || `Error subiendo archivo: ${uploadResponse.status}`)
       }
 
-      const etag = uploadResponse.headers.get('etag')
+      const result = await uploadResponse.json()
 
-      // Paso 3: Confirmar upload
-      const confirmResponse = await fetch(`${this.backendUrl}/api/uploads/confirm`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          uploadSessionId: presignData.uploadSessionId,
-          etag: etag
-        })
-      })
-
-      if (!confirmResponse.ok) {
-        const errorData = await confirmResponse.json().catch(() => ({}))
-        throw new Error(errorData.error || `Error confirmando upload: ${confirmResponse.status}`)
+      if (!result.success) {
+        throw new Error(result.error || 'Error subiendo archivo')
       }
 
-      const confirmData = await confirmResponse.json()
-
-      // Paso 4: Obtener URL del archivo
-      const fileUrlResponse = await fetch(`${this.backendUrl}/api/files/presign-get`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fileId: confirmData.fileId
-        })
-      })
-
-      let fileUrl = ''
-      if (fileUrlResponse.ok) {
-        const fileUrlData = await fileUrlResponse.json()
-        fileUrl = fileUrlData.downloadUrl
-      }
-
-      console.log(`✅ ControlFile: Archivo subido exitosamente - ID: ${confirmData.fileId}`)
+      console.log(`✅ ControlFile: Archivo subido exitosamente - ID: ${result.fileId}`)
       
       return {
         success: true,
-        fileId: confirmData.fileId,
-        fileUrl: fileUrl,
-        fileName: file.name,
-        fileSize: file.size
+        fileId: result.fileId,
+        fileUrl: result.fileUrl,
+        fileName: result.fileName,
+        fileSize: result.fileSize
       }
     } catch (error: any) {
       console.error('❌ ControlFile: Error subiendo archivo:', error)
