@@ -7,6 +7,20 @@ const CONTROLFILE_CONFIG = {
   appCode: process.env.NEXT_PUBLIC_CONTROLFILE_APP_CODE || "controlfile"
 }
 
+/**
+ * 🎯 ENDPOINTS DE CONTROLFILE:
+ * 
+ * /api/folders/root?name=X&pin=1 (GET)
+ * - Para carpetas principales del taskbar
+ * - Se pueden "fijar" en el taskbar
+ * - source: "taskbar"
+ * 
+ * /api/folders/create (POST)
+ * - Para carpetas normales dentro de otras carpetas
+ * - No aparecen en el taskbar
+ * - source: "controlgastos"
+ */
+
 export class ControlFileService {
   private auth: any
   private backendUrl: string
@@ -40,6 +54,7 @@ export class ControlFileService {
       const token = await user.getIdToken()
 
       // Usar /api/folders/root para crear/obtener carpeta principal "Gastos" con metadata de taskbar
+      // Este endpoint es correcto para carpetas del taskbar (pin=1)
       const response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent('Gastos')}&pin=1`, {
         method: 'GET',
         headers: {
@@ -249,6 +264,8 @@ export class ControlFileService {
 
       const token = await user.getIdToken()
 
+      // Usar /api/folders/create para subcarpetas (no del taskbar)
+      // Este endpoint es correcto para carpetas normales dentro de otras carpetas
       const response = await fetch(`${this.backendUrl}/api/folders/create`, {
         method: 'POST',
         headers: {
@@ -270,6 +287,7 @@ export class ControlFileService {
       }
 
       const result = await response.json()
+      console.log(`✅ ControlFile: Subcarpeta "${folderName}" creada usando /api/folders/create`)
       return { success: true, folderId: result.folderId }
     } catch (error: any) {
       console.error('❌ ControlFile: Error creando subcarpeta:', error)
