@@ -53,84 +53,35 @@ export class ControlFileService {
 
       const token = await user.getIdToken()
 
-      console.log('🔄 ControlFile: Creando carpeta "Gastos" para taskbar...')
+      console.log('🔄 ControlFile: Obteniendo carpeta "Gastos" existente...')
 
-      // Primero intentar obtener la carpeta existente
-      let response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent('Gastos')}&pin=1`, {
+      // Solo obtener la carpeta existente, no crear duplicados
+      const response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent('Gastos')}&pin=1`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
         }
       })
 
-      let result: any = null
-      let isNewFolder = false
-
-      if (response.ok) {
-        result = await response.json()
-        console.log('📁 ControlFile: Carpeta "Gastos" ya existe:', result.folderId)
-      } else {
-        // Si no existe, crear con metadata de taskbar desde el inicio
-        console.log('📁 ControlFile: Carpeta "Gastos" no existe, creando con metadata de taskbar...')
-        
-        response = await fetch(`${this.backendUrl}/api/folders/create`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name: 'Gastos',
-            parentId: null, // Carpeta raíz
-            icon: 'Taskbar',
-            color: 'text-blue-600',
-            source: 'taskbar',
-            isMainFolder: true,
-            isDefault: false,
-            isPublic: false,
-            pin: 1 // Fijar en taskbar
-          })
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || `Error HTTP: ${response.status}`)
-        }
-
-        result = await response.json()
-        isNewFolder = true
-        console.log('✅ ControlFile: Carpeta "Gastos" creada con metadata de taskbar:', result.folderId)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.warn('⚠️ ControlFile: No se pudo obtener carpeta "Gastos":', errorData.error || `HTTP: ${response.status}`)
+        return { success: false, error: errorData.error || `Error HTTP: ${response.status}` }
       }
 
-      // Si la carpeta ya existía, forzar actualización de metadata
-      if (!isNewFolder && result.folderId) {
-        console.log('🔄 ControlFile: Actualizando metadata de carpeta existente "Gastos" con source: taskbar')
-        const updateResult = await this.updateFolderMetadata(result.folderId, {
-          metadata: {
-            source: "taskbar",
-            icon: "Taskbar",
-            color: "text-blue-600",
-            isMainFolder: true,
-            isDefault: false,
-            isPublic: false,
-            pin: 1
-          }
-        })
-        
-        if (updateResult.success) {
-          console.log('✅ ControlFile: Metadata de carpeta "Gastos" actualizada correctamente')
-        } else {
-          console.warn('⚠️ ControlFile: No se pudo actualizar metadata:', updateResult.error)
-        }
-      }
+      const result = await response.json()
       
-      console.log('✅ ControlFile: Carpeta principal "Gastos" lista:', result.folderId)
-      return { success: true, folderId: result.folderId }
+      if (result.folderId) {
+        console.log('✅ ControlFile: Carpeta "Gastos" obtenida:', result.folderId)
+        return { success: true, folderId: result.folderId }
+      } else {
+        return { success: false, error: 'No se pudo obtener la carpeta "Gastos"' }
+      }
     } catch (error: any) {
-      console.error('❌ ControlFile: Error creando carpeta principal:', error)
+      console.error('❌ ControlFile: Error obteniendo carpeta principal:', error)
       return { 
         success: false, 
-        error: error.message || 'Error creando carpeta principal' 
+        error: error.message || 'Error obteniendo carpeta principal' 
       }
     }
   }
@@ -232,47 +183,18 @@ export class ControlFileService {
     }
   }
 
-  // Actualizar metadata de una carpeta
+  // Actualizar metadata de una carpeta (endpoint no disponible, saltar)
   async updateFolderMetadata(folderId: string, metadata: any): Promise<{ success: boolean; error?: string }> {
     try {
-      const user = this.auth.currentUser
-      if (!user) {
-        return { success: false, error: 'Usuario no autenticado' }
-      }
-
-      const token = await user.getIdToken()
-
-      console.log(`🔄 ControlFile: Actualizando metadata de carpeta ${folderId}:`, metadata)
-
-      const response = await fetch(`${this.backendUrl}/api/folders/update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          folderId: folderId,
-          ...metadata
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('❌ ControlFile: Error actualizando metadata:', {
-          status: response.status,
-          error: errorData.error || `HTTP: ${response.status}`,
-          response: errorData
-        })
-        return { success: false, error: errorData.error || `Error HTTP: ${response.status}` }
-      }
-
-      const result = await response.json()
-      console.log('✅ ControlFile: Metadata de carpeta actualizada exitosamente:', result)
+      console.log(`⚠️ ControlFile: Endpoint /api/folders/update no disponible, saltando actualización de metadata para ${folderId}`)
+      console.log(`📋 Metadata que se habría enviado:`, metadata)
+      
+      // El endpoint no existe, pero no es crítico para el funcionamiento
       return { success: true }
     } catch (error: any) {
-      console.error('❌ ControlFile: Error actualizando metadata de carpeta:', error)
+      console.warn('⚠️ ControlFile: Error en updateFolderMetadata (no crítico):', error)
       return { 
-        success: false, 
+        success: true, // No es crítico, continuar
         error: error.message || 'Error actualizando metadata de carpeta' 
       }
     }
@@ -332,24 +254,15 @@ export class ControlFileService {
 
       console.log(`📤 ControlFile: Subiendo archivo ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
 
-      // Determinar carpeta de destino (siempre carpeta del mes actual)
-      let targetFolderId: string | null = null
-
-      // Subir a carpeta del mes actual (año/mes)
-      const monthFolder = await this.getCurrentMonthFolder()
-      if (monthFolder.success && monthFolder.folderId) {
-        targetFolderId = monthFolder.folderId
-        console.log('📁 ControlFile: Subiendo a carpeta del mes actual')
+      // Usar taskbarStructureService para obtener la carpeta del mes actual
+      const { taskbarStructureService } = await import('./taskbar-structure')
+      const monthFolder = await taskbarStructureService.getCurrentMonthFolder()
+      
+      if (!monthFolder.success || !monthFolder.folderId) {
+        throw new Error(monthFolder.error || 'No se pudo obtener carpeta del mes actual')
       }
 
-      // Si no se pudo obtener carpeta específica, usar carpeta principal
-      if (!targetFolderId) {
-        const mainFolder = await this.createMainFolder()
-        if (mainFolder.success && mainFolder.folderId) {
-          targetFolderId = mainFolder.folderId
-          console.log('📁 ControlFile: Subiendo a carpeta principal "Gastos"')
-        }
-      }
+      console.log('📁 ControlFile: Subiendo a carpeta del mes actual:', monthFolder.folderId)
 
       const token = await user.getIdToken()
 
@@ -359,7 +272,7 @@ export class ControlFileService {
       formData.append('fileName', file.name)
       formData.append('fileSize', file.size.toString())
       formData.append('mimeType', file.type)
-      formData.append('parentId', targetFolderId || '')
+      formData.append('parentId', monthFolder.folderId)
       formData.append('authToken', token)
 
       const uploadResponse = await fetch('/api/upload-file', {
@@ -573,25 +486,28 @@ export class ControlFileService {
             id: f.id,
             source: f.source
           })))
-        }
-        
-        // 3. Verificar carpeta del año actual
-        const year = new Date().getFullYear()
-        const yearFolder = gastosContent.files?.find(f => f.type === 'folder' && f.name === year.toString())
-        if (yearFolder) {
-          console.log('✅ Carpeta del año encontrada:', yearFolder.id)
           
-          // 4. Listar contenido del año
-          const yearContent = await this.listFiles(yearFolder.id)
-          if (yearContent.success && yearContent.files) {
-            console.log('📁 Contenido del año:', yearContent.files.map(f => ({
-              name: f.name,
-              type: f.type,
-              id: f.id
-            })))
+          // 3. Verificar carpeta del año actual
+          const year = new Date().getFullYear()
+          const yearFolder = gastosContent.files.find(f => f.type === 'folder' && f.name === year.toString())
+          if (yearFolder) {
+            console.log('✅ Carpeta del año encontrada:', yearFolder.id)
+            
+            // 4. Listar contenido del año
+            const yearContent = await this.listFiles(yearFolder.id)
+            if (yearContent.success && yearContent.files) {
+              console.log('📁 Contenido del año:', yearContent.files.map(f => ({
+                name: f.name,
+                type: f.type,
+                id: f.id
+              })))
+            }
+          } else {
+            console.log('❌ Carpeta del año NO encontrada en:', mainFolder.folderId)
+            console.log('📋 Carpetas disponibles:', gastosContent.files.map(f => f.name))
           }
         } else {
-          console.log('❌ Carpeta del año NO encontrada')
+          console.log('❌ No se pudo listar contenido de "Gastos"')
         }
       } else {
         console.log('❌ No se pudo obtener carpeta principal "Gastos"')

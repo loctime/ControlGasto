@@ -69,11 +69,34 @@ export class TaskbarStructureService {
 
       const token = await user.getIdToken();
 
-      const response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent(name)}&pin=1`, {
-        method: 'GET',
+      console.log(`🔄 Creando carpeta principal "${name}" en el taskbar...`);
+
+      // Usar POST para crear con metadata de taskbar
+      const response = await fetch(`${this.backendUrl}/api/folders/create`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-        }
+        },
+        body: JSON.stringify({
+          name: name,
+          parentId: null, // Carpeta raíz
+          icon: 'Taskbar',
+          color: 'text-blue-600',
+          source: 'taskbar',
+          isMainFolder: true,
+          isDefault: false,
+          isPublic: false,
+          pin: 1,
+          metadata: {
+            source: 'taskbar',
+            icon: 'Taskbar',
+            color: 'text-blue-600',
+            isMainFolder: true,
+            isDefault: false,
+            isPublic: false
+          }
+        })
       });
 
       if (!response.ok) {
@@ -84,7 +107,7 @@ export class TaskbarStructureService {
       const result = await response.json();
       
       if (result.folderId) {
-        console.log(`✅ Carpeta principal "${name}" creada/obtenida:`, result.folderId);
+        console.log(`✅ Carpeta principal "${name}" creada en taskbar:`, result.folderId);
         return { success: true, folderId: result.folderId };
       } else {
         return { success: false, error: 'No se pudo crear la carpeta principal' };
@@ -105,6 +128,29 @@ export class TaskbarStructureService {
 
       const token = await user.getIdToken();
 
+      console.log(`🔄 Creando carpeta del año ${year} dentro de ${parentId}...`);
+
+      // Verificar si ya existe la carpeta del año
+      try {
+        const checkResponse = await fetch(`${this.backendUrl}/api/files/list?parentId=${parentId}&pageSize=10`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+
+        if (checkResponse.ok) {
+          const checkResult = await checkResponse.json();
+          const existingYear = checkResult.files?.find((f: any) => f.type === 'folder' && f.name === year.toString());
+          if (existingYear) {
+            console.log(`✅ Carpeta del año ${year} ya existe:`, existingYear.id);
+            return { success: true, folderId: existingYear.id };
+          }
+        }
+      } catch (checkError) {
+        console.log('⚠️ No se pudo verificar carpetas existentes, continuando...');
+      }
+
       const response = await fetch(`${this.backendUrl}/api/folders/create`, {
         method: 'POST',
         headers: {
@@ -116,12 +162,18 @@ export class TaskbarStructureService {
           parentId: parentId,
           icon: 'Folder',
           color: 'text-blue-600',
-          source: 'taskbar'
+          source: 'taskbar',
+          metadata: {
+            source: 'taskbar',
+            icon: 'Folder',
+            color: 'text-blue-600'
+          }
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Error creando carpeta del año:', errorData);
         throw new Error(errorData.error || `Error HTTP: ${response.status}`);
       }
 
@@ -149,6 +201,29 @@ export class TaskbarStructureService {
 
       const token = await user.getIdToken();
 
+      console.log(`🔄 Creando carpeta del mes ${monthName} dentro de ${parentId}...`);
+
+      // Verificar si ya existe la carpeta del mes
+      try {
+        const checkResponse = await fetch(`${this.backendUrl}/api/files/list?parentId=${parentId}&pageSize=10`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+
+        if (checkResponse.ok) {
+          const checkResult = await checkResponse.json();
+          const existingMonth = checkResult.files?.find((f: any) => f.type === 'folder' && f.name === monthName);
+          if (existingMonth) {
+            console.log(`✅ Carpeta del mes ${monthName} ya existe:`, existingMonth.id);
+            return { success: true, folderId: existingMonth.id };
+          }
+        }
+      } catch (checkError) {
+        console.log('⚠️ No se pudo verificar carpetas existentes, continuando...');
+      }
+
       const response = await fetch(`${this.backendUrl}/api/folders/create`, {
         method: 'POST',
         headers: {
@@ -160,12 +235,18 @@ export class TaskbarStructureService {
           parentId: parentId,
           icon: 'Folder',
           color: 'text-green-600',
-          source: 'taskbar'
+          source: 'taskbar',
+          metadata: {
+            source: 'taskbar',
+            icon: 'Folder',
+            color: 'text-green-600'
+          }
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Error creando carpeta del mes:', errorData);
         throw new Error(errorData.error || `Error HTTP: ${response.status}`);
       }
 
@@ -191,18 +272,16 @@ export class TaskbarStructureService {
         return { success: false, error: 'Usuario no autenticado' };
       }
 
-      // Crear estructura si no existe
-      const structure = await this.createGastosStructure();
-      if (!structure.success) {
-        return { success: false, error: structure.error };
-      }
+      console.log('🔍 Obteniendo carpeta del mes actual...');
 
-      return { success: true, folderId: structure.folderId };
+      // Crear estructura directamente (evitar bucle infinito)
+      return await this.createGastosStructure();
     } catch (error: any) {
       console.error('❌ Error obteniendo carpeta del mes actual:', error);
       return { success: false, error: error.message || 'Error obteniendo carpeta del mes actual' };
     }
   }
+
 }
 
 // Instancia singleton

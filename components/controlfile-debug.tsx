@@ -37,13 +37,18 @@ export function ControlFileDebug() {
       const structure = await taskbarStructureService.createGastosStructure()
       if (structure.success) {
         results.push(`✅ Estructura creada exitosamente: ${structure.folderId}`)
+        
+        // 3. Verificar que la estructura se creó correctamente
+        results.push('📁 Verificando estructura creada...')
+        const monthFolder = await taskbarStructureService.getCurrentMonthFolder()
+        if (monthFolder.success) {
+          results.push(`✅ Carpeta del mes actual: ${monthFolder.folderId}`)
+        } else {
+          results.push(`❌ Error obteniendo carpeta del mes: ${monthFolder.error}`)
+        }
       } else {
         results.push(`❌ Error creando estructura: ${structure.error}`)
       }
-      
-      // 3. Debug estructura existente
-      results.push('📁 Verificando estructura de carpetas...')
-      await controlFileService.debugFolderStructure()
       
       results.push('✅ Debug completado - revisa la consola para más detalles')
       
