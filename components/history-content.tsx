@@ -8,7 +8,7 @@ import { HistoryStats } from "@/components/history-stats"
 import { ReceiptViewer } from "@/components/receipt-viewer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { HistorySkeleton } from "@/components/ui/skeleton-loaders"
@@ -22,7 +22,7 @@ import {
     ChevronDown,
     ChevronUp,
     Clock,
-    Filter,
+    Plus,
     Search
 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -65,6 +65,10 @@ export function HistoryContent() {
   const [showResetModal, setShowResetModal] = useState(false)
   const [hasPreviousMonthPayments, setHasPreviousMonthPayments] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  
+  // Control de meses
+  const [monthsToShow, setMonthsToShow] = useState(1) // Empezar con 1 mes
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   
   // Filtros y ordenamiento
   const [searchTerm, setSearchTerm] = useState("")
@@ -141,8 +145,19 @@ export function HistoryContent() {
       // Últimos 7 días
       startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     } else {
-      // Mes actual
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+      // Últimos X meses (empezando desde el mes actual hacia atrás)
+      const currentMonth = now.getMonth()
+      const currentYear = now.getFullYear()
+      const targetMonth = currentMonth - (monthsToShow - 1)
+      
+      if (targetMonth < 0) {
+        // Si necesitamos ir al año anterior
+        const targetYear = currentYear - Math.floor(Math.abs(targetMonth) / 12) - 1
+        const adjustedMonth = 12 + (targetMonth % 12)
+        startDate = new Date(targetYear, adjustedMonth, 1)
+      } else {
+        startDate = new Date(currentYear, targetMonth, 1)
+      }
     }
 
     filtered = filtered.filter(expense => {
@@ -185,7 +200,7 @@ export function HistoryContent() {
 
     console.log("🔍 Historial - Gastos filtrados finales:", filtered.length)
     setFilteredExpenses(filtered)
-  }, [expenses, searchTerm, categoryFilter, sortField, sortOrder, view])
+  }, [expenses, searchTerm, categoryFilter, sortField, sortOrder, view, monthsToShow])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -258,6 +273,33 @@ export function HistoryContent() {
     return hasPreviousMonthPayments
   }, [expenses])
 
+  const loadMoreMonths = () => {
+    setIsLoadingMore(true)
+    // Simular carga (en realidad no necesitamos cargar más datos, solo mostrar más)
+    setTimeout(() => {
+      setMonthsToShow(prev => prev + 1)
+      setIsLoadingMore(false)
+    }, 500)
+  }
+
+  // Verificar si hay más datos disponibles
+  const hasMoreData = useMemo(() => {
+    if (expenses.length === 0) return false
+    
+    const now = new Date()
+    const oldestExpense = expenses.reduce((oldest, expense) => {
+      const expenseDate = getDateFromTimestamp(expense.createdAt)
+      const oldestDate = getDateFromTimestamp(oldest.createdAt)
+      return expenseDate < oldestDate ? expense : oldest
+    })
+    
+    const oldestDate = getDateFromTimestamp(oldestExpense.createdAt)
+    const monthsDifference = (now.getFullYear() - oldestDate.getFullYear()) * 12 + 
+                           (now.getMonth() - oldestDate.getMonth())
+    
+    return monthsToShow < monthsDifference + 1
+  }, [expenses, monthsToShow])
+
   const resetAllPayments = async () => {
     setIsResetting(true)
     try {
@@ -313,91 +355,90 @@ export function HistoryContent() {
 
         <HistoryStats payments={filteredExpenses} />
 
-        {/* Filtros */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="w-5 h-5" />
-              Filtros y Ordenamiento
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Filtros en grid 2x2 */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Primera fila */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por descripción..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              
-              <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as FilterCategory)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas las categorías" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las categorías</SelectItem>
-                  <SelectItem value="hogar">🏠 Hogar</SelectItem>
-                  <SelectItem value="transporte">🚗 Transporte</SelectItem>
-                  <SelectItem value="alimentacion">🍽️ Alimentación</SelectItem>
-                  <SelectItem value="servicios">⚡ Servicios</SelectItem>
-                  <SelectItem value="entretenimiento">🎬 Entretenimiento</SelectItem>
-                  <SelectItem value="salud">🏥 Salud</SelectItem>
-                  <SelectItem value="otros">📦 Otros</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* Filtros compactos */}
+        <div className="flex flex-wrap items-center gap-3 p-4 bg-muted/30 rounded-lg border">
+          {/* Búsqueda */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-9"
+            />
+          </div>
+          
+          {/* Categoría */}
+          <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as FilterCategory)}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Categoría" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="hogar">🏠 Hogar</SelectItem>
+              <SelectItem value="transporte">🚗 Transporte</SelectItem>
+              <SelectItem value="alimentacion">🍽️ Alimentación</SelectItem>
+              <SelectItem value="servicios">⚡ Servicios</SelectItem>
+              <SelectItem value="entretenimiento">🎬 Entretenimiento</SelectItem>
+              <SelectItem value="salud">🏥 Salud</SelectItem>
+              <SelectItem value="otros">📦 Otros</SelectItem>
+            </SelectContent>
+          </Select>
 
-              {/* Segunda fila */}
-              <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Ordenar por" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date">Fecha</SelectItem>
-                  <SelectItem value="amount">Monto</SelectItem>
-                  <SelectItem value="name">Descripción</SelectItem>
-                  <SelectItem value="category">Categoría</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Ordenar */}
+          <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
+            <SelectTrigger className="w-[120px] h-9">
+              <SelectValue placeholder="Ordenar" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date">Fecha</SelectItem>
+              <SelectItem value="amount">Monto</SelectItem>
+              <SelectItem value="name">Nombre</SelectItem>
+              <SelectItem value="category">Categoría</SelectItem>
+            </SelectContent>
+          </Select>
 
-              <Button
-                variant="outline"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="flex items-center gap-2"
-              >
-                {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                {sortOrder === 'asc' ? 'Ascendente' : 'Descendente'}
-              </Button>
-            </div>
+          {/* Dirección orden */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="h-9 px-3"
+          >
+            {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
 
-            {/* Toggle de vista */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Vista:</span>
-              <Button
-                variant={view === "week" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setView("week")}
-              >
-                Semana
-              </Button>
-              <Button
-                variant={view === "month" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setView("month")}
-              >
-                Mes
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Vista */}
+          <div className="flex items-center gap-1 bg-background rounded-md p-1">
+            <Button
+              variant={view === "week" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("week")}
+              className="h-7 px-3 text-xs"
+            >
+              Semana
+            </Button>
+            <Button
+              variant={view === "month" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("month")}
+              className="h-7 px-3 text-xs"
+            >
+              Mes
+            </Button>
+          </div>
+        </div>
 
         {/* Lista de gastos */}
         <div className="space-y-3">
-          <h2 className="text-xl font-semibold">Historial de Gastos ({filteredExpenses.length} de {expenses.length})</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              Historial de Gastos ({filteredExpenses.length} de {expenses.length})
+            </h2>
+            <div className="text-sm text-muted-foreground">
+              Mostrando últimos {monthsToShow} {monthsToShow === 1 ? 'mes' : 'meses'}
+            </div>
+          </div>
           {filteredExpenses.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
@@ -484,39 +525,60 @@ export function HistoryContent() {
               )
             })
           )}
+
+          {/* Botón Ver más */}
+          {filteredExpenses.length > 0 && hasMoreData && (
+            <div className="flex justify-center pt-4">
+              <Button
+                onClick={loadMoreMonths}
+                disabled={isLoadingMore}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Cargando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Ver más meses
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Resumen */}
+        {/* Resumen compacto */}
         {filteredExpenses.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                📊 Resumen
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{filteredExpenses.length}</p>
-                  <p className="text-sm text-muted-foreground">Total Gastos</p>
+          <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-foreground">{filteredExpenses.length}</p>
+                    <p className="text-xs text-muted-foreground">Gastos</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-green-600">
+                      {formatCurrency(filteredExpenses.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.amount, 0))}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Pagado</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-amber-600">
+                      {formatCurrency(filteredExpenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0))}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Pendiente</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-green-600">
-                    {formatCurrency(filteredExpenses.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.amount, 0))}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Total Pagado</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-amber-600">
-                    {formatCurrency(filteredExpenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0))}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Total Pendiente</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-primary">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="text-xl font-bold text-primary">
                     {formatCurrency(filteredExpenses.reduce((sum, e) => sum + e.amount, 0))}
                   </p>
-                  <p className="text-sm text-muted-foreground">Total General</p>
                 </div>
               </div>
             </CardContent>
