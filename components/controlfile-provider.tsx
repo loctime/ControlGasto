@@ -34,13 +34,17 @@ export function ControlFileProvider({ children }: ControlFileProviderProps) {
       try {
         // Si hay usuario autenticado en la app principal, ControlFile está conectado
         if (user) {
-          setIsControlFileConnected(true)
-          setControlFileUser(user)
-          console.log('✅ ControlFile: Conectado automáticamente (mismo Firebase Auth)')
+          if (!isControlFileConnected) {
+            setIsControlFileConnected(true)
+            setControlFileUser(user)
+            console.log('✅ ControlFile: Conectado automáticamente (mismo Firebase Auth)')
+          }
         } else {
-          setIsControlFileConnected(false)
-          setControlFileUser(null)
-          console.log('❌ ControlFile: No conectado (no hay usuario autenticado)')
+          if (isControlFileConnected) {
+            setIsControlFileConnected(false)
+            setControlFileUser(null)
+            console.log('❌ ControlFile: No conectado (no hay usuario autenticado)')
+          }
         }
       } catch (error) {
         console.error('Error verificando ControlFile:', error)
@@ -48,7 +52,7 @@ export function ControlFileProvider({ children }: ControlFileProviderProps) {
     }
     
     checkControlFileConnection()
-  }, [user]) // Ejecutar cuando cambie el usuario
+  }, [user]) // Solo ejecutar cuando cambie el usuario
 
   // Ya no necesitamos renovación de tokens - Firebase Auth se encarga
 

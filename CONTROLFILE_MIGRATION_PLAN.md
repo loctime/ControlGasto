@@ -154,3 +154,4 @@ console.log('Archivo subido:', result.fileId)
 4. **Deploy gradual** con monitoreo
 5. **Migrar usuarios existentes** sin interrupciones
 
+

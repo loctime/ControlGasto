@@ -108,3 +108,4 @@ await controlFileService.ensureFolderExists(['2025', 'Q1', 'Enero'])
 
 **¡Optimización completada exitosamente!** 🚀
 
+

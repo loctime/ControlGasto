@@ -1,6 +1,6 @@
-const CACHE_NAME = "gastos-app-v1.0.0"
-const STATIC_CACHE = "gastos-static-v1.0.0"
-const DYNAMIC_CACHE = "gastos-dynamic-v1.0.0"
+const CACHE_NAME = "gastos-app-v1.0.1"
+const STATIC_CACHE = "gastos-static-v1.0.1"
+const DYNAMIC_CACHE = "gastos-dynamic-v1.0.1"
 
 const urlsToCache = [
   "/",
@@ -96,20 +96,27 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Estrategia Stale While Revalidate para otros requests
-  event.respondWith(
-    caches.match(request)
-      .then((response) => {
-        const fetchPromise = fetch(request).then((fetchResponse) => {
-          if (fetchResponse.status === 200) {
-            const responseClone = fetchResponse.clone()
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-              cache.put(request, responseClone)
-            })
-          }
-          return fetchResponse
-        })
+  // Solo cachear requests GET, no POST/PUT/DELETE
+  if (request.method === 'GET') {
+    event.respondWith(
+      caches.match(request)
+        .then((response) => {
+          const fetchPromise = fetch(request).then((fetchResponse) => {
+            // Solo cachear si es GET y tiene status 200
+            if (fetchResponse.status === 200 && request.method === 'GET') {
+              const responseClone = fetchResponse.clone()
+              caches.open(DYNAMIC_CACHE).then((cache) => {
+                cache.put(request, responseClone)
+              })
+            }
+            return fetchResponse
+          })
 
-        return response || fetchPromise
-      })
-  )
+          return response || fetchPromise
+        })
+    )
+  } else {
+    // Para requests que no son GET (POST, PUT, DELETE), solo hacer fetch sin cachear
+    event.respondWith(fetch(request))
+  }
 })

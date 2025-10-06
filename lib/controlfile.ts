@@ -53,6 +53,29 @@ export class ControlFileService {
       }
 
       const result = await response.json()
+      
+      // Si la carpeta ya existe, actualizar metadata para asegurar que tenga source: "taskbar"
+      if (result.folderId) {
+        await this.updateFolderMetadata(result.folderId, {
+          source: "taskbar",
+          icon: "Taskbar",
+          color: "text-blue-600",
+          isMainFolder: true,
+          isDefault: false,
+          isPublic: false,
+          customFields: {
+            description: "",
+            isMainFolder: true
+          },
+          permissions: {
+            canDelete: true,
+            canDownload: true,
+            canEdit: true,
+            canShare: true
+          }
+        })
+      }
+      
       console.log('✅ ControlFile: Carpeta principal "Gastos" creada/obtenida:', result.folderId)
       return { success: true, folderId: result.folderId }
     } catch (error: any) {
@@ -84,6 +107,8 @@ export class ControlFileService {
 
       // 2. Navegar/crear cada nivel de la ruta
       for (const folderName of folderPath) {
+        console.log(`🔍 ControlFile: Verificando si existe carpeta "${folderName}" en carpeta padre ${currentFolderId}`)
+        
         // Verificar si la carpeta ya existe
         const existingFiles = await this.listFiles(currentFolderId)
         if (existingFiles.success && existingFiles.files) {
@@ -93,19 +118,24 @@ export class ControlFileService {
           
           if (existingFolder) {
             currentFolderId = existingFolder.id
-            console.log(`📁 ControlFile: Carpeta "${folderName}" ya existe`)
+            console.log(`✅ ControlFile: Carpeta "${folderName}" ya existe (ID: ${existingFolder.id}) - usando existente`)
             continue
+          } else {
+            console.log(`❌ ControlFile: Carpeta "${folderName}" NO existe - procediendo a crear`)
           }
+        } else {
+          console.log(`⚠️ ControlFile: No se pudieron listar archivos en carpeta padre ${currentFolderId} - procediendo a crear "${folderName}"`)
         }
 
         // Crear la carpeta si no existe
+        console.log(`📁 ControlFile: Creando carpeta "${folderName}" en carpeta padre ${currentFolderId}`)
         const newFolder = await this.createSubFolder(folderName, currentFolderId)
         if (!newFolder.success || !newFolder.folderId) {
           return { success: false, error: `Error creando carpeta "${folderName}": ${newFolder.error}` }
         }
         
         currentFolderId = newFolder.folderId
-        console.log(`📁 ControlFile: Carpeta "${folderName}" creada`)
+        console.log(`✅ ControlFile: Carpeta "${folderName}" creada exitosamente (ID: ${newFolder.folderId})`)
       }
 
       return { success: true, folderId: currentFolderId }
@@ -118,7 +148,8 @@ export class ControlFileService {
     }
   }
 
-  // Obtener carpeta del mes actual (crear si no existe)
+
+  // Obtener carpeta del mes actual (sin tipo de documento)
   async getCurrentMonthFolder(): Promise<{ success: boolean; folderId?: string; error?: string }> {
     try {
       const now = new Date()
@@ -132,6 +163,7 @@ export class ControlFileService {
       const monthName = monthNames[month]
       const folderPath = [`${year}`, monthName]
       
+      console.log(`📁 ControlFile: Carpeta del mes actual: ${folderPath.join(' → ')}`)
       return await this.ensureFolderExists(folderPath)
     } catch (error: any) {
       console.error('❌ ControlFile: Error obteniendo carpeta del mes actual:', error)
@@ -142,18 +174,41 @@ export class ControlFileService {
     }
   }
 
-  // Obtener carpeta por tipo en el año actual (crear si no existe)
-  async getTypeFolder(type: 'Comprobantes' | 'Facturas' | 'Recibos' | 'Otros'): Promise<{ success: boolean; folderId?: string; error?: string }> {
+  // Actualizar metadata de una carpeta
+  async updateFolderMetadata(folderId: string, metadata: any): Promise<{ success: boolean; error?: string }> {
     try {
-      const year = new Date().getFullYear()
-      const folderPath = [`${year}`, type]
-      
-      return await this.ensureFolderExists(folderPath)
+      const user = this.auth.currentUser
+      if (!user) {
+        return { success: false, error: 'Usuario no autenticado' }
+      }
+
+      const token = await user.getIdToken()
+
+      const response = await fetch(`${this.backendUrl}/api/folders/update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          folderId: folderId,
+          ...metadata
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.warn('⚠️ ControlFile: No se pudo actualizar metadata de carpeta:', errorData.error || `HTTP: ${response.status}`)
+        return { success: false, error: errorData.error || `Error HTTP: ${response.status}` }
+      }
+
+      console.log('✅ ControlFile: Metadata de carpeta actualizada:', folderId)
+      return { success: true }
     } catch (error: any) {
-      console.error('❌ ControlFile: Error obteniendo carpeta por tipo:', error)
+      console.warn('⚠️ ControlFile: Error actualizando metadata de carpeta:', error)
       return { 
         success: false, 
-        error: error.message || 'Error obteniendo carpeta por tipo' 
+        error: error.message || 'Error actualizando metadata de carpeta' 
       }
     }
   }
@@ -209,23 +264,14 @@ export class ControlFileService {
 
       console.log(`📤 ControlFile: Subiendo archivo ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
 
-      // Determinar carpeta de destino
+      // Determinar carpeta de destino (siempre carpeta del mes actual)
       let targetFolderId: string | null = null
 
-      if (type) {
-        // Subir a carpeta por tipo en el año actual
-        const typeFolder = await this.getTypeFolder(type)
-        if (typeFolder.success && typeFolder.folderId) {
-          targetFolderId = typeFolder.folderId
-          console.log(`📁 ControlFile: Subiendo a carpeta por tipo: ${type}`)
-        }
-      } else {
-        // Subir a carpeta del mes actual
-        const monthFolder = await this.getCurrentMonthFolder()
-        if (monthFolder.success && monthFolder.folderId) {
-          targetFolderId = monthFolder.folderId
-          console.log('📁 ControlFile: Subiendo a carpeta del mes actual')
-        }
+      // Subir a carpeta del mes actual (año/mes)
+      const monthFolder = await this.getCurrentMonthFolder()
+      if (monthFolder.success && monthFolder.folderId) {
+        targetFolderId = monthFolder.folderId
+        console.log('📁 ControlFile: Subiendo a carpeta del mes actual')
       }
 
       // Si no se pudo obtener carpeta específica, usar carpeta principal
@@ -362,7 +408,7 @@ export class ControlFileService {
   }
 
   // Listar archivos en una carpeta
-  async listFiles(parentId?: string, pageSize: number = 20): Promise<{ success: boolean; files?: any[]; nextPage?: string; error?: string }> {
+  async listFiles(parentId?: string, pageSize: number = 50): Promise<{ success: boolean; files?: any[]; nextPage?: string; error?: string }> {
     try {
       const user = this.auth.currentUser
       if (!user) {
@@ -375,6 +421,8 @@ export class ControlFileService {
         pageSize: pageSize.toString()
       })
 
+      console.log(`🔍 ControlFile: Listando archivos en carpeta ${parentId || 'null'}`)
+
       const response = await fetch(`${this.backendUrl}/api/files/list?${params}`, {
         method: 'GET',
         headers: {
@@ -384,13 +432,24 @@ export class ControlFileService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+        console.error('❌ ControlFile: Error en listFiles:', errorData.error || `HTTP: ${response.status}`)
         throw new Error(errorData.error || `Error HTTP: ${response.status}`)
       }
 
       const result = await response.json()
+      console.log(`📁 ControlFile: Encontrados ${result.items?.length || 0} elementos en carpeta ${parentId || 'null'}`)
+      
+      if (result.items && result.items.length > 0) {
+        console.log('📁 ControlFile: Elementos encontrados:', result.items.map((item: any) => ({
+          name: item.name,
+          type: item.type,
+          id: item.id
+        })))
+      }
+      
       return { 
         success: true, 
-        files: result.items,
+        files: result.items || [],
         nextPage: result.nextPage
       }
     } catch (error: any) {
