@@ -56,7 +56,8 @@ export class ControlFileService {
       
       // Si la carpeta ya existe, actualizar metadata para asegurar que tenga source: "taskbar"
       if (result.folderId) {
-        await this.updateFolderMetadata(result.folderId, {
+        console.log('🔄 ControlFile: Actualizando metadata de carpeta "Gastos" con source: taskbar')
+        const updateResult = await this.updateFolderMetadata(result.folderId, {
           source: "taskbar",
           icon: "Taskbar",
           color: "text-blue-600",
@@ -74,6 +75,12 @@ export class ControlFileService {
             canShare: true
           }
         })
+        
+        if (updateResult.success) {
+          console.log('✅ ControlFile: Metadata de carpeta "Gastos" actualizada correctamente')
+        } else {
+          console.warn('⚠️ ControlFile: No se pudo actualizar metadata:', updateResult.error)
+        }
       }
       
       console.log('✅ ControlFile: Carpeta principal "Gastos" creada/obtenida:', result.folderId)
@@ -184,6 +191,8 @@ export class ControlFileService {
 
       const token = await user.getIdToken()
 
+      console.log(`🔄 ControlFile: Actualizando metadata de carpeta ${folderId}:`, metadata)
+
       const response = await fetch(`${this.backendUrl}/api/folders/update`, {
         method: 'PUT',
         headers: {
@@ -198,14 +207,19 @@ export class ControlFileService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.warn('⚠️ ControlFile: No se pudo actualizar metadata de carpeta:', errorData.error || `HTTP: ${response.status}`)
+        console.error('❌ ControlFile: Error actualizando metadata:', {
+          status: response.status,
+          error: errorData.error || `HTTP: ${response.status}`,
+          response: errorData
+        })
         return { success: false, error: errorData.error || `Error HTTP: ${response.status}` }
       }
 
-      console.log('✅ ControlFile: Metadata de carpeta actualizada:', folderId)
+      const result = await response.json()
+      console.log('✅ ControlFile: Metadata de carpeta actualizada exitosamente:', result)
       return { success: true }
     } catch (error: any) {
-      console.warn('⚠️ ControlFile: Error actualizando metadata de carpeta:', error)
+      console.error('❌ ControlFile: Error actualizando metadata de carpeta:', error)
       return { 
         success: false, 
         error: error.message || 'Error actualizando metadata de carpeta' 
