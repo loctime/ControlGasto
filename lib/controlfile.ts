@@ -39,7 +39,7 @@ export class ControlFileService {
 
       const token = await user.getIdToken()
 
-      // Usar /api/folders/root para crear/obtener carpeta principal "Gastos"
+      // Usar /api/folders/root para crear/obtener carpeta principal "Gastos" con metadata de taskbar
       const response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent('Gastos')}&pin=1`, {
         method: 'GET',
         headers: {
@@ -54,25 +54,27 @@ export class ControlFileService {
 
       const result = await response.json()
       
-      // Si la carpeta ya existe, actualizar metadata para asegurar que tenga source: "taskbar"
+      // Si la carpeta ya existe, forzar actualización de metadata para asegurar que tenga source: "taskbar"
       if (result.folderId) {
-        console.log('🔄 ControlFile: Actualizando metadata de carpeta "Gastos" con source: taskbar')
+        console.log('🔄 ControlFile: Forzando actualización de metadata de carpeta "Gastos" con source: taskbar')
         const updateResult = await this.updateFolderMetadata(result.folderId, {
-          source: "taskbar",
-          icon: "Taskbar",
-          color: "text-blue-600",
-          isMainFolder: true,
-          isDefault: false,
-          isPublic: false,
-          customFields: {
-            description: "",
-            isMainFolder: true
-          },
-          permissions: {
-            canDelete: true,
-            canDownload: true,
-            canEdit: true,
-            canShare: true
+          metadata: {
+            source: "taskbar",
+            icon: "Taskbar",
+            color: "text-blue-600",
+            isMainFolder: true,
+            isDefault: false,
+            isPublic: false,
+            customFields: {
+              description: "",
+              isMainFolder: true
+            },
+            permissions: {
+              canDelete: true,
+              canDownload: true,
+              canEdit: true,
+              canShare: true
+            }
           }
         })
         
@@ -113,8 +115,9 @@ export class ControlFileService {
       let currentFolderId = mainFolder.folderId
 
       // 2. Navegar/crear cada nivel de la ruta
-      for (const folderName of folderPath) {
-        console.log(`🔍 ControlFile: Verificando si existe carpeta "${folderName}" en carpeta padre ${currentFolderId}`)
+      for (let i = 0; i < folderPath.length; i++) {
+        const folderName = folderPath[i]
+        console.log(`🔍 ControlFile: Verificando si existe carpeta "${folderName}" en carpeta padre ${currentFolderId} (nivel ${i + 1}/${folderPath.length})`)
         
         // Verificar si la carpeta ya existe
         const existingFiles = await this.listFiles(currentFolderId)
@@ -125,7 +128,7 @@ export class ControlFileService {
           
           if (existingFolder) {
             currentFolderId = existingFolder.id
-            console.log(`✅ ControlFile: Carpeta "${folderName}" ya existe (ID: ${existingFolder.id}) - usando existente`)
+            console.log(`✅ ControlFile: Carpeta "${folderName}" ya existe (ID: ${existingFolder.id}) - navegando a ella`)
             continue
           } else {
             console.log(`❌ ControlFile: Carpeta "${folderName}" NO existe - procediendo a crear`)
@@ -143,6 +146,15 @@ export class ControlFileService {
         
         currentFolderId = newFolder.folderId
         console.log(`✅ ControlFile: Carpeta "${folderName}" creada exitosamente (ID: ${newFolder.folderId})`)
+        
+        // Verificar que la carpeta se creó correctamente
+        console.log(`🔍 ControlFile: Verificando que la carpeta "${folderName}" se creó correctamente...`)
+        const verifyFiles = await this.listFiles(currentFolderId)
+        if (verifyFiles.success) {
+          console.log(`✅ ControlFile: Carpeta "${folderName}" verificada - lista para siguiente nivel`)
+        } else {
+          console.warn(`⚠️ ControlFile: No se pudo verificar carpeta "${folderName}" - continuando...`)
+        }
       }
 
       return { success: true, folderId: currentFolderId }
