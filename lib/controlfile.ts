@@ -53,25 +53,58 @@ export class ControlFileService {
 
       const token = await user.getIdToken()
 
-      // Usar /api/folders/root para crear/obtener carpeta principal "Gastos" con metadata de taskbar
-      // Este endpoint es correcto para carpetas del taskbar (pin=1)
-      const response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent('Gastos')}&pin=1`, {
+      console.log('🔄 ControlFile: Creando carpeta "Gastos" para taskbar...')
+
+      // Primero intentar obtener la carpeta existente
+      let response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent('Gastos')}&pin=1`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
         }
       })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `Error HTTP: ${response.status}`)
+      let result: any = null
+      let isNewFolder = false
+
+      if (response.ok) {
+        result = await response.json()
+        console.log('📁 ControlFile: Carpeta "Gastos" ya existe:', result.folderId)
+      } else {
+        // Si no existe, crear con metadata de taskbar desde el inicio
+        console.log('📁 ControlFile: Carpeta "Gastos" no existe, creando con metadata de taskbar...')
+        
+        response = await fetch(`${this.backendUrl}/api/folders/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: 'Gastos',
+            parentId: null, // Carpeta raíz
+            icon: 'Taskbar',
+            color: 'text-blue-600',
+            source: 'taskbar',
+            isMainFolder: true,
+            isDefault: false,
+            isPublic: false,
+            pin: 1 // Fijar en taskbar
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || `Error HTTP: ${response.status}`)
+        }
+
+        result = await response.json()
+        isNewFolder = true
+        console.log('✅ ControlFile: Carpeta "Gastos" creada con metadata de taskbar:', result.folderId)
       }
 
-      const result = await response.json()
-      
-      // Si la carpeta ya existe, forzar actualización de metadata para asegurar que tenga source: "taskbar"
-      if (result.folderId) {
-        console.log('🔄 ControlFile: Forzando actualización de metadata de carpeta "Gastos" con source: taskbar')
+      // Si la carpeta ya existía, forzar actualización de metadata
+      if (!isNewFolder && result.folderId) {
+        console.log('🔄 ControlFile: Actualizando metadata de carpeta existente "Gastos" con source: taskbar')
         const updateResult = await this.updateFolderMetadata(result.folderId, {
           metadata: {
             source: "taskbar",
@@ -80,16 +113,7 @@ export class ControlFileService {
             isMainFolder: true,
             isDefault: false,
             isPublic: false,
-            customFields: {
-              description: "",
-              isMainFolder: true
-            },
-            permissions: {
-              canDelete: true,
-              canDownload: true,
-              canEdit: true,
-              canShare: true
-            }
+            pin: 1
           }
         })
         
@@ -100,7 +124,7 @@ export class ControlFileService {
         }
       }
       
-      console.log('✅ ControlFile: Carpeta principal "Gastos" creada/obtenida:', result.folderId)
+      console.log('✅ ControlFile: Carpeta principal "Gastos" lista:', result.folderId)
       return { success: true, folderId: result.folderId }
     } catch (error: any) {
       console.error('❌ ControlFile: Error creando carpeta principal:', error)
@@ -276,8 +300,8 @@ export class ControlFileService {
           name: folderName,
           parentId: parentId,
           icon: "Folder",
-          color: "text-purple-600",
-          source: "controlgastos"
+          color: "text-blue-600",
+          source: "taskbar"
         })
       })
 
@@ -527,6 +551,53 @@ export class ControlFileService {
         success: false, 
         error: error.message || 'Error en health check' 
       }
+    }
+  }
+
+  // Debug: Verificar estructura de carpetas
+  async debugFolderStructure(): Promise<void> {
+    try {
+      console.log('🔍 ControlFile: Debug - Verificando estructura de carpetas...')
+      
+      // 1. Verificar carpeta principal "Gastos"
+      const mainFolder = await this.createMainFolder()
+      if (mainFolder.success && mainFolder.folderId) {
+        console.log('✅ Carpeta principal "Gastos":', mainFolder.folderId)
+        
+        // 2. Listar contenido de "Gastos"
+        const gastosContent = await this.listFiles(mainFolder.folderId)
+        if (gastosContent.success && gastosContent.files) {
+          console.log('📁 Contenido de "Gastos":', gastosContent.files.map(f => ({
+            name: f.name,
+            type: f.type,
+            id: f.id,
+            source: f.source
+          })))
+        }
+        
+        // 3. Verificar carpeta del año actual
+        const year = new Date().getFullYear()
+        const yearFolder = gastosContent.files?.find(f => f.type === 'folder' && f.name === year.toString())
+        if (yearFolder) {
+          console.log('✅ Carpeta del año encontrada:', yearFolder.id)
+          
+          // 4. Listar contenido del año
+          const yearContent = await this.listFiles(yearFolder.id)
+          if (yearContent.success && yearContent.files) {
+            console.log('📁 Contenido del año:', yearContent.files.map(f => ({
+              name: f.name,
+              type: f.type,
+              id: f.id
+            })))
+          }
+        } else {
+          console.log('❌ Carpeta del año NO encontrada')
+        }
+      } else {
+        console.log('❌ No se pudo obtener carpeta principal "Gastos"')
+      }
+    } catch (error: any) {
+      console.error('❌ ControlFile: Error en debug:', error)
     }
   }
 }
