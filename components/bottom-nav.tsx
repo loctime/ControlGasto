@@ -1,10 +1,10 @@
 "use client"
 
-import { Home, History, User, List } from "lucide-react"
+import { ThemeToggleCompact } from "@/components/theme-toggle"
+import { cn } from "@/lib/utils"
+import { History, Home, User } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { ThemeToggleCompact } from "@/components/theme-toggle"
 
 export function BottomNav() {
   const pathname = usePathname()
@@ -12,7 +12,6 @@ export function BottomNav() {
   const links = [
     { href: "/dashboard", icon: Home, label: "Inicio" },
     { href: "/history", icon: History, label: "Historial" },
-    { href: "/todos", icon: List, label: "Todos" },
     { href: "/profile", icon: User, label: "Perfil" },
   ]
 

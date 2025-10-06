@@ -2,7 +2,6 @@
 
 import { useAuth } from "@/components/auth-provider"
 import { BottomNav } from "@/components/bottom-nav"
-import { ControlFileDebug } from "@/components/controlfile-debug"
 import { ExpensesDashboard } from "@/components/expenses-dashboard"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -32,9 +31,6 @@ export function DashboardContent() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <ExpensesDashboard />
-      <div className="container mx-auto px-4 py-6">
-        <ControlFileDebug />
-      </div>
       <BottomNav />
     </div>
   )

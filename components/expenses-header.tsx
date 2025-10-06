@@ -1,11 +1,9 @@
 "use client"
 
 import { useAuth } from "@/components/auth-provider"
-import { useControlFile } from "@/components/controlfile-provider"
 import { ThemeToggleCompact } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
-import { useToast } from "@/hooks/use-toast"
 import { formatCurrency } from "@/lib/utils"
 import { Calendar, CheckCircle, Clock, DollarSign, Download } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -20,10 +18,6 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
   const { isInstallable, isInstalled, installPWA } = usePWAInstall()
   const { user } = useAuth()
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [isControlFileConnected, setIsControlFileConnected] = useState(false)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [showConnectedMessage, setShowConnectedMessage] = useState(false)
-  const { toast } = useToast()
 
   // Actualizar fecha y hora cada segundo
   useEffect(() => {
@@ -34,53 +28,8 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
     return () => clearInterval(timer)
   }, [])
 
-  // Usar el provider de ControlFile para obtener el estado de conexión
-  const { isControlFileConnected: providerConnected, connectControlFile, openControlFile } = useControlFile()
-  
-  // Sincronizar el estado local con el provider
-  useEffect(() => {
-    setIsControlFileConnected(providerConnected)
-  }, [providerConnected])
-
-  // Cerrar mensaje al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showConnectedMessage) {
-        const target = event.target as Element
-        if (!target.closest('.controlfile-message-container')) {
-          setShowConnectedMessage(false)
-        }
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [showConnectedMessage])
-
   const handleInstall = async () => {
     await installPWA()
-  }
-
-  const handleControlFileClick = async () => {
-    if (isConnecting) return
-
-    if (isControlFileConnected) {
-      // Si ya está conectado, mostrar mensaje y opción de ir a ControlFile
-      setShowConnectedMessage(true)
-      return
-    }
-
-    // Si no está conectado, conectar usando el provider
-    await connectControlFile()
-  }
-
-  const handleGoToControlFile = () => {
-    openControlFile()
-    setShowConnectedMessage(false)
-  }
-
-  const handleCloseMessage = () => {
-    setShowConnectedMessage(false)
   }
 
   // Formatear fecha y hora
@@ -112,25 +61,9 @@ export function ExpensesHeader({ totalPaid, totalPending, totalExpenses }: Expen
             <h1 className="text-xl font-bold text-foreground mb-2 tracking-tight">
               Control-Gastos
             </h1>
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-muted-foreground">
-                {user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales'}
-              </p>
-              <div className="relative controlfile-message-container">
-                <button 
-                  onClick={handleControlFileClick}
-                  disabled={isConnecting}
-                  className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-3 py-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm border border-transparent hover:border-border/50 active:scale-95"
-                >
-                  <div className={`w-2.5 h-2.5 rounded-full ${isControlFileConnected ? 'bg-green-500' : 'bg-red-500'} ${isConnecting ? 'animate-pulse' : ''}`}></div>
-                  <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                    {isConnecting ? 'Conectando...' : isControlFileConnected ? 'Conexión' : 'Conectar'}
-                  </span>
-                </button>
-
-                {/* Mensaje de conexión removido */}
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {user ? `Hola, ${user.displayName || user.email?.split('@')[0] || 'Usuario'}` : 'Gestiona tus gastos mensuales'}
+            </p>
           </div>
 
           {/* Lado derecho - Fecha, hora y controles */}

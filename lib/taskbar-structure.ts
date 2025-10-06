@@ -150,25 +150,11 @@ export class TaskbarStructureService {
 
       console.log(`🔄 Creando carpeta del año ${year} dentro de ${parentId}...`);
 
-      // Verificar si ya existe la carpeta del año
-      try {
-        const checkResponse = await fetch(`${this.backendUrl}/api/files/list?parentId=${parentId}&pageSize=10`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          }
-        });
-
-        if (checkResponse.ok) {
-          const checkResult = await checkResponse.json();
-          const existingYear = checkResult.files?.find((f: any) => f.type === 'folder' && f.name === year.toString());
-          if (existingYear) {
-            console.log(`✅ Carpeta del año ${year} ya existe:`, existingYear.id);
-            return { success: true, folderId: existingYear.id };
-          }
-        }
-      } catch (checkError) {
-        console.log('⚠️ No se pudo verificar carpetas existentes, continuando...');
+      // Verificar cache primero
+      const cacheKey = `year-${year}`;
+      if (this.cache[cacheKey]) {
+        console.log(`✅ Usando carpeta del año cacheada ${year}:`, this.cache[cacheKey]);
+        return { success: true, folderId: this.cache[cacheKey] };
       }
 
       const response = await fetch(`${this.backendUrl}/api/folders/create`, {
@@ -200,6 +186,8 @@ export class TaskbarStructureService {
       const result = await response.json();
       
       if (result.folderId) {
+        // Guardar en cache
+        this.cache[cacheKey] = result.folderId;
         console.log(`✅ Carpeta del año ${year} creada:`, result.folderId);
         return { success: true, folderId: result.folderId };
       } else {
@@ -223,25 +211,11 @@ export class TaskbarStructureService {
 
       console.log(`🔄 Creando carpeta del mes ${monthName} dentro de ${parentId}...`);
 
-      // Verificar si ya existe la carpeta del mes
-      try {
-        const checkResponse = await fetch(`${this.backendUrl}/api/files/list?parentId=${parentId}&pageSize=10`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          }
-        });
-
-        if (checkResponse.ok) {
-          const checkResult = await checkResponse.json();
-          const existingMonth = checkResult.files?.find((f: any) => f.type === 'folder' && f.name === monthName);
-          if (existingMonth) {
-            console.log(`✅ Carpeta del mes ${monthName} ya existe:`, existingMonth.id);
-            return { success: true, folderId: existingMonth.id };
-          }
-        }
-      } catch (checkError) {
-        console.log('⚠️ No se pudo verificar carpetas existentes, continuando...');
+      // Verificar cache primero
+      const cacheKey = `month-${monthName}`;
+      if (this.cache[cacheKey]) {
+        console.log(`✅ Usando carpeta del mes cacheada ${monthName}:`, this.cache[cacheKey]);
+        return { success: true, folderId: this.cache[cacheKey] };
       }
 
       const response = await fetch(`${this.backendUrl}/api/folders/create`, {
@@ -273,6 +247,8 @@ export class TaskbarStructureService {
       const result = await response.json();
       
       if (result.folderId) {
+        // Guardar en cache
+        this.cache[cacheKey] = result.folderId;
         console.log(`✅ Carpeta del mes ${monthName} creada:`, result.folderId);
         return { success: true, folderId: result.folderId };
       } else {
@@ -306,6 +282,12 @@ export class TaskbarStructureService {
   clearCache(): void {
     this.cache = {};
     console.log('🗑️ Cache limpiado');
+  }
+
+  // Forzar recreación de estructura (ignorar cache)
+  async forceCreateStructure(): Promise<{ success: boolean; folderId?: string; error?: string }> {
+    this.clearCache();
+    return await this.createGastosStructure();
   }
 
 }

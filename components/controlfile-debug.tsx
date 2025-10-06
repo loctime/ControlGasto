@@ -32,14 +32,11 @@ export function ControlFileDebug() {
         return
       }
       
-      // 2. Limpiar cache y crear estructura Gastos > Año > Mes
-      results.push('🗑️ Limpiando cache...')
-      taskbarStructureService.clearCache()
-      
-      results.push('🏗️ Creando estructura Gastos > Año > Mes...')
-      const structure = await taskbarStructureService.createGastosStructure()
+      // 2. Forzar recreación de estructura Gastos > Año > Mes
+      results.push('🏗️ Forzando recreación de estructura Gastos > Año > Mes...')
+      const structure = await taskbarStructureService.forceCreateStructure()
       if (structure.success) {
-        results.push(`✅ Estructura creada exitosamente: ${structure.folderId}`)
+        results.push(`✅ Estructura recreada exitosamente: ${structure.folderId}`)
         
         // 3. Verificar que la estructura se creó correctamente
         results.push('📁 Verificando estructura creada...')
@@ -50,7 +47,7 @@ export function ControlFileDebug() {
           results.push(`❌ Error obteniendo carpeta del mes: ${monthFolder.error}`)
         }
       } else {
-        results.push(`❌ Error creando estructura: ${structure.error}`)
+        results.push(`❌ Error recreando estructura: ${structure.error}`)
       }
       
       results.push('✅ Debug completado - revisa la consola para más detalles')
@@ -90,18 +87,45 @@ export function ControlFileDebug() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button 
-          onClick={runDebug} 
-          disabled={isDebugging}
-          className="w-full"
-        >
-          {isDebugging ? (
-            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
+        <div className="space-y-2">
+          <Button 
+            onClick={runDebug} 
+            disabled={isDebugging}
+            className="w-full"
+          >
+            {isDebugging ? (
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <FolderTree className="w-4 h-4 mr-2" />
+            )}
+            {isDebugging ? "Ejecutando debug..." : "Forzar Recreación"}
+          </Button>
+          
+          <Button 
+            onClick={async () => {
+              setIsDebugging(true)
+              setDebugResults([])
+              try {
+                const monthFolder = await taskbarStructureService.getCurrentMonthFolder()
+                if (monthFolder.success) {
+                  setDebugResults([`✅ Carpeta del mes actual: ${monthFolder.folderId}`])
+                } else {
+                  setDebugResults([`❌ Error: ${monthFolder.error}`])
+                }
+              } catch (error: any) {
+                setDebugResults([`❌ Error: ${error.message}`])
+              } finally {
+                setIsDebugging(false)
+              }
+            }}
+            disabled={isDebugging}
+            variant="outline"
+            className="w-full"
+          >
             <FolderTree className="w-4 h-4 mr-2" />
-          )}
-          {isDebugging ? "Ejecutando debug..." : "Ejecutar Debug"}
-        </Button>
+            Verificar Estructura
+          </Button>
+        </div>
 
         {debugResults.length > 0 && (
           <div className="space-y-2">
