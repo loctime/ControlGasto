@@ -1,13 +1,14 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
-import { Analytics } from "@vercel/analytics/next"
 import { AuthProviderWithControlFileSync } from "@/components/auth-provider"
 import { ControlFileProvider } from "@/components/controlfile-provider"
+import { NotificationInitializer } from "@/components/notification-initializer"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { Toaster } from "@/components/ui/sonner"
+import { Analytics } from "@vercel/analytics/next"
+import { GeistMono } from "geist/font/mono"
+import { GeistSans } from "geist/font/sans"
+import type { Metadata } from "next"
+import type React from "react"
 import { Suspense } from "react"
 import "./globals.css"
 
@@ -52,6 +53,7 @@ export default function RootLayout({
             >
               <AuthProviderWithControlFileSync>
                 <ControlFileProvider>
+                  <NotificationInitializer />
                   {children}
                   <Toaster />
                 </ControlFileProvider>

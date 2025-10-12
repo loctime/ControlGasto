@@ -26,6 +26,34 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Items recurrentes del usuario (plantillas)
+    match /apps/controlgastos/users/{userId}/recurring_items/{itemId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.data.userId == userId;
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId
+                    && resource.data.userId == userId;
+      allow delete: if request.auth != null 
+                    && request.auth.uid == userId
+                    && resource.data.userId == userId;
+    }
+    
+    // Instancias de items recurrentes del usuario
+    match /apps/controlgastos/users/{userId}/recurring_items_instances/{instanceId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.data.userId == userId;
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId
+                    && resource.data.userId == userId;
+      allow delete: if request.auth != null 
+                    && request.auth.uid == userId
+                    && resource.data.userId == userId;
+    }
+    
     // Configuraciones del usuario
     match /apps/controlgastos/users/{userId}/settings/{settingId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;

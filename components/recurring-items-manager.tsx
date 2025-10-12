@@ -1,0 +1,506 @@
+"use client"
+
+import { RecurringItemsService } from '@/lib/recurring-items-service'
+import { ExpenseCategory, RecurrenceType, RecurringItem } from '@/lib/types'
+import {
+    Calendar,
+    CalendarClock,
+    CalendarDays,
+    Check,
+    Clock,
+    Edit,
+    Plus,
+    Trash2,
+    X
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { useAuth } from './auth-provider'
+import { Badge } from './ui/badge'
+import { Button } from './ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
+import { Input } from './ui/input'
+import { Label } from './ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { Switch } from './ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
+
+const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
+  { value: 'hogar', label: 'Hogar' },
+  { value: 'transporte', label: 'Transporte' },
+  { value: 'alimentacion', label: 'Alimentación' },
+  { value: 'servicios', label: 'Servicios' },
+  { value: 'entretenimiento', label: 'Entretenimiento' },
+  { value: 'salud', label: 'Salud' },
+  { value: 'otros', label: 'Otros' }
+]
+
+const WEEK_DAYS = [
+  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Lunes' },
+  { value: 2, label: 'Martes' },
+  { value: 3, label: 'Miércoles' },
+  { value: 4, label: 'Jueves' },
+  { value: 5, label: 'Viernes' },
+  { value: 6, label: 'Sábado' }
+]
+
+interface ItemFormData {
+  name: string
+  amount: string
+  category: ExpenseCategory
+  recurrenceType: RecurrenceType
+  weekDay?: number
+  customDays: number[]
+  isActive: boolean
+}
+
+export function RecurringItemsManager() {
+  const { user } = useAuth()
+  const [items, setItems] = useState<RecurringItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [showDialog, setShowDialog] = useState(false)
+  const [currentTab, setCurrentTab] = useState<RecurrenceType>('daily')
+
+  const [formData, setFormData] = useState<ItemFormData>({
+    name: '',
+    amount: '',
+    category: 'otros',
+    recurrenceType: 'daily',
+    customDays: [],
+    isActive: true
+  })
+
+  useEffect(() => {
+    loadItems()
+  }, [user])
+
+  const loadItems = async () => {
+    if (!user?.uid) return
+
+    try {
+      setLoading(true)
+      const service = new RecurringItemsService(user.uid)
+      const allItems = await service.getAllRecurringItems()
+      setItems(allItems)
+    } catch (error) {
+      console.error('Error cargando items:', error)
+      toast.error('Error al cargar los items')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      amount: '',
+      category: 'otros',
+      recurrenceType: currentTab,
+      customDays: [],
+      isActive: true
+    })
+    setEditingId(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user?.uid) return
+
+    try {
+      const service = new RecurringItemsService(user.uid)
+
+      // Validaciones
+      if (!formData.name.trim()) {
+        toast.error('El nombre es requerido')
+        return
+      }
+
+      if (formData.recurrenceType !== 'daily' && !formData.amount) {
+        toast.error('El monto es requerido para items no diarios')
+        return
+      }
+
+      if (formData.recurrenceType === 'custom_calendar' && formData.customDays.length === 0) {
+        toast.error('Debes seleccionar al menos un día del mes')
+        return
+      }
+
+      const itemData: Omit<RecurringItem, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
+        name: formData.name.trim(),
+        amount: formData.amount ? parseFloat(formData.amount) : undefined,
+        category: formData.category,
+        recurrenceType: formData.recurrenceType,
+        weekDay: formData.recurrenceType === 'weekly' ? (formData.weekDay ?? 1) : undefined,
+        customDays: formData.recurrenceType === 'custom_calendar' ? formData.customDays : undefined,
+        isActive: formData.isActive
+      }
+
+      if (editingId) {
+        await service.updateRecurringItem(editingId, itemData)
+        toast.success('Item actualizado correctamente')
+      } else {
+        await service.createRecurringItem(itemData)
+        toast.success('Item creado correctamente')
+      }
+
+      resetForm()
+      setShowDialog(false)
+      await loadItems()
+    } catch (error) {
+      console.error('Error guardando item:', error)
+      toast.error('Error al guardar el item')
+    }
+  }
+
+  const handleEdit = (item: RecurringItem) => {
+    setFormData({
+      name: item.name,
+      amount: item.amount?.toString() || '',
+      category: item.category,
+      recurrenceType: item.recurrenceType,
+      weekDay: item.weekDay,
+      customDays: item.customDays || [],
+      isActive: item.isActive
+    })
+    setEditingId(item.id)
+    setShowDialog(true)
+  }
+
+  const handleDelete = async (itemId: string) => {
+    if (!user?.uid) return
+    if (!confirm('¿Estás seguro de eliminar este item? Se eliminarán también sus instancias pendientes.')) return
+
+    try {
+      const service = new RecurringItemsService(user.uid)
+      await service.deleteRecurringItem(itemId)
+      toast.success('Item eliminado correctamente')
+      await loadItems()
+    } catch (error) {
+      console.error('Error eliminando item:', error)
+      toast.error('Error al eliminar el item')
+    }
+  }
+
+  const toggleDaySelection = (day: number) => {
+    setFormData(prev => {
+      const customDays = prev.customDays.includes(day)
+        ? prev.customDays.filter(d => d !== day)
+        : [...prev.customDays, day].sort((a, b) => a - b)
+      return { ...prev, customDays }
+    })
+  }
+
+  const filterItemsByType = (type: RecurrenceType) => {
+    return items.filter(item => item.recurrenceType === type)
+  }
+
+  const getRecurrenceIcon = (type: RecurrenceType) => {
+    switch (type) {
+      case 'daily': return <Clock className="h-4 w-4" />
+      case 'weekly': return <Calendar className="h-4 w-4" />
+      case 'monthly': return <CalendarDays className="h-4 w-4" />
+      case 'custom_calendar': return <CalendarClock className="h-4 w-4" />
+    }
+  }
+
+  const ItemsList = ({ type }: { type: RecurrenceType }) => {
+    const filteredItems = filterItemsByType(type)
+
+    if (filteredItems.length === 0) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          No hay items de este tipo configurados
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-3">
+        {filteredItems.map(item => (
+          <Card key={item.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium">{item.name}</h4>
+                    {!item.isActive && (
+                      <Badge variant="outline" className="text-xs">Inactivo</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                    {item.amount && (
+                      <span className="font-medium">${item.amount.toLocaleString('es-AR')}</span>
+                    )}
+                    <Badge variant="secondary">{CATEGORIES.find(c => c.value === item.category)?.label}</Badge>
+                    {item.recurrenceType === 'weekly' && item.weekDay !== undefined && (
+                      <span>{WEEK_DAYS.find(d => d.value === item.weekDay)?.label}</span>
+                    )}
+                    {item.recurrenceType === 'custom_calendar' && item.customDays && (
+                      <span>Días: {item.customDays.join(', ')}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Items Recurrentes</h2>
+          <p className="text-muted-foreground">Configura tus gastos diarios, semanales, mensuales y personalizados</p>
+        </div>
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <DialogTrigger asChild>
+            <Button onClick={() => { resetForm(); setFormData(prev => ({ ...prev, recurrenceType: currentTab })) }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Item
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingId ? 'Editar Item' : 'Nuevo Item Recurrente'}</DialogTitle>
+              <DialogDescription>
+                {formData.recurrenceType === 'daily' && 'Los items diarios aparecen siempre en el dashboard. El monto se ingresa al pagar.'}
+                {formData.recurrenceType === 'weekly' && 'Los items semanales aparecen el primer día de cada semana.'}
+                {formData.recurrenceType === 'monthly' && 'Los items mensuales aparecen el primer día de cada mes.'}
+                {formData.recurrenceType === 'custom_calendar' && 'Selecciona los días específicos del mes en que se debe pagar este item.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Ej: Desayuno, Alquiler, Internet"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="recurrenceType">Tipo de Recurrencia</Label>
+                <Select 
+                  value={formData.recurrenceType}
+                  onValueChange={(value: RecurrenceType) => setFormData(prev => ({ ...prev, recurrenceType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Diario</SelectItem>
+                    <SelectItem value="weekly">Semanal</SelectItem>
+                    <SelectItem value="monthly">Mensual</SelectItem>
+                    <SelectItem value="custom_calendar">Calendario Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.recurrenceType !== 'daily' && (
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Monto</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoría</Label>
+                <Select 
+                  value={formData.category}
+                  onValueChange={(value: ExpenseCategory) => setFormData(prev => ({ ...prev, category: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.recurrenceType === 'weekly' && (
+                <div className="space-y-2">
+                  <Label htmlFor="weekDay">Día de la Semana</Label>
+                  <Select 
+                    value={formData.weekDay?.toString() || '1'}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, weekDay: parseInt(value) }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WEEK_DAYS.map(day => (
+                        <SelectItem key={day.value} value={day.value.toString()}>{day.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.recurrenceType === 'custom_calendar' && (
+                <div className="space-y-2">
+                  <Label>Días del Mes</Label>
+                  <div className="grid grid-cols-7 gap-2">
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                      <Button
+                        key={day}
+                        type="button"
+                        variant={formData.customDays.includes(day) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleDaySelection(day)}
+                        className="h-10"
+                      >
+                        {day}
+                      </Button>
+                    ))}
+                  </div>
+                  {formData.customDays.length > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Días seleccionados: {formData.customDays.join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isActive"
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                />
+                <Label htmlFor="isActive">Activo</Label>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button type="submit" className="flex-1">
+                  <Check className="h-4 w-4 mr-2" />
+                  {editingId ? 'Guardar Cambios' : 'Crear Item'}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => { resetForm(); setShowDialog(false) }}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancelar
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Tabs value={currentTab} onValueChange={(v) => setCurrentTab(v as RecurrenceType)}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="daily" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Diarios ({filterItemsByType('daily').length})
+          </TabsTrigger>
+          <TabsTrigger value="weekly" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Semanales ({filterItemsByType('weekly').length})
+          </TabsTrigger>
+          <TabsTrigger value="monthly" className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            Mensuales ({filterItemsByType('monthly').length})
+          </TabsTrigger>
+          <TabsTrigger value="custom_calendar" className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4" />
+            Calendario ({filterItemsByType('custom_calendar').length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="daily" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Items Diarios</CardTitle>
+              <CardDescription>
+                Gastos que puedes registrar en cualquier momento. Aparecen siempre en el dashboard y el monto se ingresa al pagar.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? <p>Cargando...</p> : <ItemsList type="daily" />}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="weekly" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Items Semanales</CardTitle>
+              <CardDescription>
+                Gastos que se repiten cada semana en un día específico. Se crean automáticamente cada semana.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? <p>Cargando...</p> : <ItemsList type="weekly" />}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="monthly" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Items Mensuales</CardTitle>
+              <CardDescription>
+                Gastos que se repiten el primer día de cada mes. Se crean automáticamente mensualmente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? <p>Cargando...</p> : <ItemsList type="monthly" />}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="custom_calendar" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Calendario Personalizado</CardTitle>
+              <CardDescription>
+                Gastos que se repiten en días específicos del mes que tú configures.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? <p>Cargando...</p> : <ItemsList type="custom_calendar" />}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
+

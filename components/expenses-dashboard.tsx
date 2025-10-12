@@ -3,8 +3,11 @@
 import { useAuth } from "@/components/auth-provider"
 import { ExpensesHeader } from "@/components/expenses-header"
 import { ExpensesTable } from "@/components/expenses-table"
+import { NotificationsBanner } from "@/components/notifications-banner"
+import { PendingItemsCard } from "@/components/pending-items-card"
 import { ChartErrorFallback, ErrorBoundary } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
+import { useAutoScheduler } from "@/lib/auto-scheduler"
 import { db } from "@/lib/firebase"
 import { useMemoizedCalculations, useRateLimit, useRetry } from "@/lib/optimization"
 import {
@@ -42,6 +45,9 @@ export function ExpensesDashboard() {
   // ✅ OPTIMIZACIÓN: Hooks de optimización
   const { retryWithBackoff } = useRetry()
   const { canMakeRequest, makeRequest } = useRateLimit(20, 60000) // 20 requests por minuto
+  
+  // ✅ AUTO-SCHEDULER: Verificar items recurrentes automáticamente
+  useAutoScheduler()
   
 
   // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados
@@ -221,6 +227,14 @@ export function ExpensesDashboard() {
   return (
     <ErrorBoundary>
       <div className="max-w-6xl mx-auto p-4 space-y-6">
+
+        {/* Banner de notificaciones */}
+        <NotificationsBanner />
+
+        {/* Items recurrentes pendientes */}
+        <ErrorBoundary fallback={ChartErrorFallback}>
+          <PendingItemsCard />
+        </ErrorBoundary>
 
         {/* Header con totales */}
         <ExpensesHeader 

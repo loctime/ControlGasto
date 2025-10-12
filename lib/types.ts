@@ -98,3 +98,52 @@ export interface DashboardStats {
   paymentsThisMonth: number
   totalAmountThisMonth: number
 }
+
+// ========== SISTEMA DE ITEMS RECURRENTES ==========
+
+// Tipos de recurrencia
+export type RecurrenceType = 'daily' | 'weekly' | 'monthly' | 'custom_calendar'
+
+// Item recurrente (plantilla)
+export interface RecurringItem {
+  id: string
+  userId: string
+  name: string
+  amount?: number // Opcional para diarios, obligatorio para otros
+  category: ExpenseCategory
+  recurrenceType: RecurrenceType
+  // Para calendario personalizado
+  customDays?: number[] // Días del mes [1-31]
+  // Configuración de semana
+  weekDay?: number // 0=domingo, 1=lunes, etc.
+  // Estado
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Instancia de item recurrente (cada periodo)
+export interface RecurringItemInstance {
+  id: string
+  userId: string
+  recurringItemId: string // Referencia a la plantilla
+  itemName: string
+  amount: number
+  category: ExpenseCategory
+  recurrenceType: RecurrenceType
+  dueDate: Date // Fecha de vencimiento
+  status: 'pending' | 'paid' | 'overdue'
+  paidAt?: Date
+  paymentId?: string // Si fue pagado, referencia al Payment
+  periodStart: Date // Inicio del periodo
+  periodEnd: Date // Fin del periodo
+  createdAt: Date
+}
+
+// Estadísticas de notificaciones
+export interface NotificationStats {
+  overdueCount: number
+  dueTodayCount: number
+  dueSoonCount: number // Próximos 3 días
+  totalPending: number
+}
