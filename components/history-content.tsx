@@ -14,17 +14,14 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { HistorySkeleton } from "@/components/ui/skeleton-loaders"
-import { db } from "@/lib/firebase"
-import { useMemoizedCalculations, useRetry } from "@/lib/optimization"
 import { PaymentService } from "@/lib/payment-service"
+import { Payment } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
-import { collection, FieldValue, getDocs, query, Timestamp } from "firebase/firestore"
 import {
     Calendar as CalendarIcon,
     CheckCircle,
     ChevronDown,
     ChevronUp,
-    Clock,
     Plus,
     Search
 } from "lucide-react"
@@ -32,41 +29,18 @@ import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
-// Helper function to safely convert Firebase timestamp to Date
-const getDateFromTimestamp = (timestamp: any): Date => {
-  if (timestamp instanceof Timestamp) {
-    return timestamp.toDate()
-  }
-  return new Date()
-}
-
-interface Expense {
-  id: string
-  name: string
-  amount: number
-  category: 'hogar' | 'transporte' | 'alimentacion' | 'servicios' | 'entretenimiento' | 'salud' | 'otros'
-  status: 'pending' | 'paid'
-  createdAt: Timestamp | FieldValue
-  updatedAt: Timestamp | FieldValue
-  paidAt?: Timestamp | FieldValue | null
-  unpaidAt?: Timestamp | FieldValue | null
-  receiptImageId?: string | null
-}
-
-type SortField = 'date' | 'amount' | 'name' | 'category'
+type SortField = 'date' | 'amount' | 'name'
 type SortOrder = 'asc' | 'desc'
-type FilterCategory = 'all' | 'hogar' | 'transporte' | 'alimentacion' | 'servicios' | 'entretenimiento' | 'salud' | 'otros'
 
 export function HistoryContent() {
   const { user, loading } = useAuth()
   const router = useRouter()
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([])
   const [view, setView] = useState<"week" | "month">("month")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showResetModal, setShowResetModal] = useState(false)
-  const [hasPreviousMonthPayments, setHasPreviousMonthPayments] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   
   // Control de meses
@@ -75,7 +49,6 @@ export function HistoryContent() {
   
   // Filtros y ordenamiento
   const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState<FilterCategory>("all")
   const [sortField, setSortField] = useState<SortField>("date")
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
   
@@ -85,8 +58,6 @@ export function HistoryContent() {
     to: undefined
   })
   const [useDateRange, setUseDateRange] = useState(false)
-  
-  const { retryWithBackoff } = useRetry()
 
   useEffect(() => {
     if (!user && !loading) {
@@ -100,59 +71,47 @@ export function HistoryContent() {
       return
     }
 
-    const fetchExpenses = async () => {
+    const fetchPayments = async () => {
       setIsLoading(true)
       setError(null)
 
       try {
-        console.log("🔍 Historial - Cargando gastos para usuario:", user.uid)
-        const q = query(
-          collection(db, `apps/controlgastos/users/${user.uid}/expenses`)
-        )
-        const snapshot = await getDocs(q)
-        console.log("🔍 Historial - Documentos encontrados:", snapshot.docs.length)
-        const expensesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Expense[]
-        console.log("🔍 Historial - Gastos procesados:", expensesData)
-        setExpenses(expensesData)
+        console.log("🔍 Historial - Cargando pagos para usuario:", user.uid)
+        const paymentService = new PaymentService(user.uid)
+        const paymentsData = await paymentService.getAllPayments()
+        console.log("🔍 Historial - Pagos encontrados:", paymentsData.length)
+        console.log("🔍 Historial - Pagos procesados:", paymentsData)
+        setPayments(paymentsData)
       } catch (error) {
-        console.error("❌ Historial - Error fetching expenses:", error)
-        setError("Error al cargar historial")
+        console.error("❌ Historial - Error fetching payments:", error)
+        setError("Error al cargar historial de pagos")
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchExpenses()
+    fetchPayments()
   }, [user])
 
   // Aplicar filtros y ordenamiento
   useEffect(() => {
-    console.log("🔍 Historial - Aplicando filtros. Gastos originales:", expenses.length)
-    let filtered = [...expenses]
+    console.log("🔍 Historial - Aplicando filtros. Pagos originales:", payments.length)
+    let filtered = [...payments]
 
-    // Filtrar por término de búsqueda
+    // Filtrar por término de búsqueda (buscar en el nombre del gasto)
     if (searchTerm.trim()) {
-      filtered = filtered.filter(expense =>
-        expense.name.toLowerCase().includes(searchTerm.toLowerCase().trim())
+      filtered = filtered.filter(payment =>
+        payment.expenseName.toLowerCase().includes(searchTerm.toLowerCase().trim())
       )
       console.log("🔍 Historial - Después de filtro de búsqueda:", filtered.length)
-    }
-
-    // Filtrar por categoría
-    if (categoryFilter !== "all") {
-      filtered = filtered.filter(expense => expense.category === categoryFilter)
-      console.log("🔍 Historial - Después de filtro de categoría:", filtered.length)
     }
 
     // Filtrar por período
     if (useDateRange && dateRange.from && dateRange.to) {
       // Usar rango de fechas personalizado
-      filtered = filtered.filter(expense => {
-        const expenseDate = getDateFromTimestamp(expense.createdAt)
-        return expenseDate >= dateRange.from! && expenseDate <= dateRange.to!
+      filtered = filtered.filter(payment => {
+        const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
+        return paymentDate >= dateRange.from! && paymentDate <= dateRange.to!
       })
     } else {
       // Usar lógica de meses/semana
@@ -178,9 +137,9 @@ export function HistoryContent() {
         }
       }
 
-      filtered = filtered.filter(expense => {
-        const expenseDate = getDateFromTimestamp(expense.createdAt)
-        return expenseDate >= startDate
+      filtered = filtered.filter(payment => {
+        const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
+        return paymentDate >= startDate
       })
     }
 
@@ -191,20 +150,16 @@ export function HistoryContent() {
 
       switch (sortField) {
         case 'date':
-          aValue = getDateFromTimestamp(a.createdAt).getTime()
-          bValue = getDateFromTimestamp(b.createdAt).getTime()
+          aValue = (a.paidAt instanceof Date ? a.paidAt : new Date(a.paidAt)).getTime()
+          bValue = (b.paidAt instanceof Date ? b.paidAt : new Date(b.paidAt)).getTime()
           break
         case 'amount':
           aValue = a.amount
           bValue = b.amount
           break
         case 'name':
-          aValue = a.name.toLowerCase()
-          bValue = b.name.toLowerCase()
-          break
-        case 'category':
-          aValue = a.category
-          bValue = b.category
+          aValue = a.expenseName.toLowerCase()
+          bValue = b.expenseName.toLowerCase()
           break
         default:
           return 0
@@ -217,9 +172,9 @@ export function HistoryContent() {
       }
     })
 
-    console.log("🔍 Historial - Gastos filtrados finales:", filtered.length)
-    setFilteredExpenses(filtered)
-  }, [expenses, searchTerm, categoryFilter, sortField, sortOrder, view, monthsToShow, useDateRange, dateRange])
+    console.log("🔍 Historial - Pagos filtrados finales:", filtered.length)
+    setFilteredPayments(filtered)
+  }, [payments, searchTerm, sortField, sortOrder, view, monthsToShow, useDateRange, dateRange])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -235,21 +190,7 @@ export function HistoryContent() {
     return sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
   }
 
-  const getCategoryLabel = (category: string) => {
-    const labels = {
-      'hogar': '🏠 Hogar',
-      'transporte': '🚗 Transporte',
-      'alimentacion': '🍽️ Alimentación',
-      'servicios': '⚡ Servicios',
-      'entretenimiento': '🎬 Entretenimiento',
-      'salud': '🏥 Salud',
-      'otros': '📦 Otros'
-    }
-    return labels[category as keyof typeof labels] || category
-  }
-
-  const formatDateTime = (timestamp: Timestamp | FieldValue) => {
-    const date = getDateFromTimestamp(timestamp)
+  const formatDateTime = (date: Date) => {
     return {
       date: date.toLocaleDateString('es-ES', {
         day: '2-digit',
@@ -264,33 +205,32 @@ export function HistoryContent() {
   }
 
   // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados
-  const totals = useMemoizedCalculations(
-    filteredExpenses,
-    (expenses) => {
-      const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
-      const totalPaid = expenses.filter((exp) => exp.status === 'paid').reduce((sum, exp) => sum + exp.amount, 0)
-      const totalPending = expenses.filter((exp) => exp.status === 'pending').reduce((sum, exp) => sum + exp.amount, 0)
+  const totals = useMemo(() => {
+    const totalAmount = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0)
+    const totalPayments = filteredPayments.length
 
-      return { totalExpenses, totalPaid, totalPending }
+    return { 
+      totalExpenses: totalAmount, 
+      totalPaid: totalAmount, 
+      totalPending: 0
     }
-  )
+  }, [filteredPayments])
 
-  // Verificar si es nuevo mes con pagos del mes anterior
+  // Verificar si hay más meses disponibles
   const isNewMonthWithPreviousPayments = useMemo(() => {
-    if (expenses.length === 0) return false
+    if (payments.length === 0) return false
     
     const now = new Date()
     const currentMonth = now.getMonth()
     const currentYear = now.getFullYear()
     
-    const hasPreviousMonthPayments = expenses.some(expense => {
-      if (expense.status !== 'paid') return false
-      const paidDate = getDateFromTimestamp(expense.paidAt)
+    const hasPreviousMonthPayments = payments.some(payment => {
+      const paidDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
       return paidDate.getMonth() < currentMonth || paidDate.getFullYear() < currentYear
     })
     
     return hasPreviousMonthPayments
-  }, [expenses])
+  }, [payments])
 
   const loadMoreMonths = () => {
     setIsLoadingMore(true)
@@ -303,21 +243,21 @@ export function HistoryContent() {
 
   // Verificar si hay más datos disponibles
   const hasMoreData = useMemo(() => {
-    if (expenses.length === 0) return false
+    if (payments.length === 0) return false
     
     const now = new Date()
-    const oldestExpense = expenses.reduce((oldest, expense) => {
-      const expenseDate = getDateFromTimestamp(expense.createdAt)
-      const oldestDate = getDateFromTimestamp(oldest.createdAt)
-      return expenseDate < oldestDate ? expense : oldest
+    const oldestPayment = payments.reduce((oldest, payment) => {
+      const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
+      const oldestDate = oldest.paidAt instanceof Date ? oldest.paidAt : new Date(oldest.paidAt)
+      return paymentDate < oldestDate ? payment : oldest
     })
     
-    const oldestDate = getDateFromTimestamp(oldestExpense.createdAt)
+    const oldestDate = oldestPayment.paidAt instanceof Date ? oldestPayment.paidAt : new Date(oldestPayment.paidAt)
     const monthsDifference = (now.getFullYear() - oldestDate.getFullYear()) * 12 + 
                            (now.getMonth() - oldestDate.getMonth())
     
     return monthsToShow < monthsDifference + 1
-  }, [expenses, monthsToShow])
+  }, [payments, monthsToShow])
 
   const resetAllPayments = async () => {
     setIsResetting(true)
@@ -372,7 +312,7 @@ export function HistoryContent() {
           onShowResetModal={() => setShowResetModal(true)}
         />
 
-        <HistoryStats payments={filteredExpenses} />
+        <HistoryStats payments={filteredPayments} />
 
         {/* Filtros compactos */}
         <div className="flex flex-wrap items-center gap-3 p-4 bg-muted/30 rounded-lg border">
@@ -380,29 +320,12 @@ export function HistoryContent() {
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar..."
+              placeholder="Buscar por nombre del gasto..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 h-9"
             />
           </div>
-          
-          {/* Categoría */}
-          <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as FilterCategory)}>
-            <SelectTrigger className="w-[140px] h-9">
-              <SelectValue placeholder="Categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="hogar">🏠 Hogar</SelectItem>
-              <SelectItem value="transporte">🚗 Transporte</SelectItem>
-              <SelectItem value="alimentacion">🍽️ Alimentación</SelectItem>
-              <SelectItem value="servicios">⚡ Servicios</SelectItem>
-              <SelectItem value="entretenimiento">🎬 Entretenimiento</SelectItem>
-              <SelectItem value="salud">🏥 Salud</SelectItem>
-              <SelectItem value="otros">📦 Otros</SelectItem>
-            </SelectContent>
-          </Select>
 
           {/* Ordenar */}
           <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
@@ -413,7 +336,6 @@ export function HistoryContent() {
               <SelectItem value="date">Fecha</SelectItem>
               <SelectItem value="amount">Monto</SelectItem>
               <SelectItem value="name">Nombre</SelectItem>
-              <SelectItem value="category">Categoría</SelectItem>
             </SelectContent>
           </Select>
 
@@ -502,94 +424,85 @@ export function HistoryContent() {
           </div>
         </div>
 
-        {/* Lista de gastos */}
+        {/* Lista de pagos */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">
-              Historial de Gastos ({filteredExpenses.length} de {expenses.length})
+              Historial de Pagos ({filteredPayments.length} de {payments.length})
             </h2>
             <div className="text-sm text-muted-foreground">
               Mostrando últimos {monthsToShow} {monthsToShow === 1 ? 'mes' : 'meses'}
             </div>
           </div>
-          {filteredExpenses.length === 0 ? (
+          {filteredPayments.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                   <Search className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground mb-2">
-                  No se encontraron gastos
+                  No se encontraron pagos
                 </h3>
                 <p className="text-muted-foreground">
-                  {searchTerm || categoryFilter !== "all" 
+                  {searchTerm
                     ? "Intenta ajustar los filtros de búsqueda" 
-                    : "No hay gastos registrados aún"}
+                    : "No hay pagos registrados aún"}
                 </p>
               </CardContent>
             </Card>
           ) : (
-            filteredExpenses.map((expense) => {
-              const { date, time } = formatDateTime(expense.createdAt)
-              const paidDate = expense.status === 'paid' && expense.paidAt ? formatDateTime(expense.paidAt) : null
+            filteredPayments.map((payment) => {
+              const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
+              const { date, time } = formatDateTime(paymentDate)
               
               return (
                  <Card 
-                   key={expense.id}
-                   className={`transition-all duration-200 hover:shadow-md ${
-                     expense.status === 'paid' 
-                       ? "border-green-200 bg-green-50/50 dark:bg-green-950/20" 
-                       : "border-amber-200 bg-amber-50/50 dark:bg-amber-950/20"
-                   }`}
+                   key={payment.id}
+                   className="transition-all duration-200 hover:shadow-md border-green-200 bg-green-50/50 dark:bg-green-950/20"
                  >
                    <CardContent className="p-4">
                      {/* Primera línea: Nombre y Estado */}
                      <div className="flex items-center justify-between mb-3">
-                       <h3 className="text-lg font-semibold text-foreground truncate flex-1">{expense.name}</h3>
+                       <h3 className="text-lg font-semibold text-foreground truncate flex-1">{payment.expenseName}</h3>
                        
                        <div className="flex items-center gap-2">
-                         {expense.status === 'paid' ? (
-                           <div className="flex items-center gap-1 text-green-600">
-                             <CheckCircle className="w-4 h-4" />
-                             <span className="text-sm font-medium">Pagado</span>
-                           </div>
-                         ) : (
-                           <div className="flex items-center gap-1 text-amber-600">
-                             <Clock className="w-4 h-4" />
-                             <span className="text-sm font-medium">Pendiente</span>
-                           </div>
-                         )}
+                         <div className="flex items-center gap-1 text-green-600">
+                           <CheckCircle className="w-4 h-4" />
+                           <span className="text-sm font-medium">Pagado</span>
+                         </div>
                        </div>
                      </div>
 
-                     {/* Segunda línea: Monto y Categoría */}
+                     {/* Segunda línea: Monto */}
                      <div className="flex items-center justify-between mb-3">
                        <div className="text-3xl font-bold text-foreground">
-                         {formatCurrency(expense.amount)}
+                         {formatCurrency(payment.amount)}
                        </div>
                        
                        <Badge variant="outline" className="text-sm px-3 py-1.5">
-                         {getCategoryLabel(expense.category)}
+                         {payment.currency || 'ARS'}
                        </Badge>
                      </div>
 
-                     {/* Tercera línea: Fechas y Comprobante */}
+                     {/* Tercera línea: Fecha y Comprobante */}
                      <div className="flex items-center justify-between">
                        <div className="text-sm text-muted-foreground">
-                         Creado: {date} a las {time}
-                         {paidDate && (
-                           <span className="block text-green-600">
-                             Pagado: {paidDate.date} a las {paidDate.time}
+                         <span className="block text-green-600 font-medium">
+                           Pagado: {date} a las {time}
+                         </span>
+                         {payment.notes && (
+                           <span className="block text-xs mt-1 italic">
+                             Nota: {payment.notes}
                            </span>
                          )}
                        </div>
                        
-                       {expense.status === 'paid' && expense.receiptImageId && (
+                       {payment.receiptImageId && (
                          <ReceiptViewer
-                           receiptImageId={expense.receiptImageId}
-                           expenseName={expense.name}
-                           expenseAmount={expense.amount}
-                           paidAt={expense.paidAt && 'toDate' in expense.paidAt ? expense.paidAt.toDate() : null}
+                           receiptImageId={payment.receiptImageId}
+                           expenseName={payment.expenseName}
+                           expenseAmount={payment.amount}
+                           paidAt={paymentDate}
                          />
                        )}
                      </div>
@@ -600,7 +513,7 @@ export function HistoryContent() {
           )}
 
           {/* Botón Ver más */}
-          {filteredExpenses.length > 0 && hasMoreData && (
+          {filteredPayments.length > 0 && hasMoreData && (
             <div className="flex justify-center pt-4">
               <Button
                 onClick={loadMoreMonths}
@@ -625,32 +538,26 @@ export function HistoryContent() {
         </div>
 
         {/* Resumen compacto */}
-        {filteredExpenses.length > 0 && (
+        {filteredPayments.length > 0 && (
           <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
                   <div className="text-center">
-                    <p className="text-lg font-bold text-foreground">{filteredExpenses.length}</p>
-                    <p className="text-xs text-muted-foreground">Gastos</p>
+                    <p className="text-lg font-bold text-foreground">{filteredPayments.length}</p>
+                    <p className="text-xs text-muted-foreground">Pagos</p>
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-bold text-green-600">
-                      {formatCurrency(filteredExpenses.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.amount, 0))}
+                      {formatCurrency(filteredPayments.reduce((sum, p) => sum + p.amount, 0))}
                     </p>
-                    <p className="text-xs text-muted-foreground">Pagado</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-lg font-bold text-amber-600">
-                      {formatCurrency(filteredExpenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0))}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Pendiente</p>
+                    <p className="text-xs text-muted-foreground">Total Pagado</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="text-sm text-muted-foreground">Promedio</p>
                   <p className="text-xl font-bold text-primary">
-                    {formatCurrency(filteredExpenses.reduce((sum, e) => sum + e.amount, 0))}
+                    {formatCurrency(filteredPayments.reduce((sum, p) => sum + p.amount, 0) / filteredPayments.length)}
                   </p>
                 </div>
               </div>

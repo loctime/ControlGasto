@@ -1,17 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useAuth } from "@/components/auth-provider"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { PaymentService } from "@/lib/payment-service"
 import { PaymentType } from "@/lib/types"
-import { CreditCard, Receipt, Home, Wrench, Shield, FileText, DollarSign } from "lucide-react"
+import { CreditCard, DollarSign, FileText, Home, Receipt, Shield, Wrench } from "lucide-react"
+import { useState } from "react"
 
 interface PaymentDialogProps {
   expenseId: string
@@ -44,11 +45,18 @@ export function PaymentDialog({
   const [description, setDescription] = useState(expenseDescription)
   const [notes, setNotes] = useState('')
   const { toast } = useToast()
-
-  // TODO: Obtener userId del contexto de autenticación
-  const paymentService = new PaymentService("temp-user-id")
+  const { user } = useAuth()
 
   const handleCreatePayment = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para registrar un pago",
+        variant: "destructive"
+      })
+      return
+    }
+
     if (!paymentType || !amount || !description) {
       toast({
         title: "Error",
@@ -60,23 +68,20 @@ export function PaymentDialog({
 
     setIsCreating(true)
     try {
-      const paymentData = {
-        type: paymentType,
-        amount: parseFloat(amount),
-        currency: 'ARS',
-        date: new Date().toISOString().split('T')[0],
-        description: description,
-        status: 'paid' as const,
-        category: paymentType,
-        month: getCurrentMonth(),
-        year: new Date().getFullYear()
-      }
-
-      const paymentId = await paymentService.createPayment(paymentData)
+      const paymentService = new PaymentService(user.uid)
+      
+      // Crear el pago usando la estructura correcta de Payment
+      const paymentId = await paymentService.recordPayment(
+        expenseId,
+        description, // expenseName
+        parseFloat(amount),
+        undefined, // receiptImageId (opcional)
+        notes || undefined // notes (opcional)
+      )
       
       toast({
         title: "Pago registrado exitosamente",
-        description: `El pago de ${paymentData.amount} ARS ha sido registrado.`,
+        description: `El pago de ${parseFloat(amount)} ARS ha sido registrado en el historial.`,
       })
 
       onPaymentCreated?.(paymentId)
@@ -87,6 +92,7 @@ export function PaymentDialog({
       setDescription(expenseDescription)
       setNotes('')
     } catch (error: any) {
+      console.error("Error registrando pago:", error)
       toast({
         title: "Error al registrar pago",
         description: error.message || "No se pudo registrar el pago",
