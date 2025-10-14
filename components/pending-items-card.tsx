@@ -46,7 +46,35 @@ export function PendingItemsCard({ filterByRecurrence }: PendingItemsCardProps =
 
   const filteredInstances = useMemo(() => {
     if (!filterByRecurrence) return instances
-    return instances.filter(instance => instance.recurrenceType === filterByRecurrence)
+    
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    
+    return instances.filter(instance => {
+      // Filtrar por tipo de recurrencia
+      if (instance.recurrenceType !== filterByRecurrence) return false
+      
+      // Filtrar por fechas relevantes según el período
+      const dueDate = new Date(instance.dueDate)
+      
+      switch (filterByRecurrence) {
+        case 'daily':
+          // Solo items que vencen hoy o ya vencieron
+          return dueDate <= today
+        case 'weekly':
+          // Solo items que vencen en los próximos 7 días o ya vencieron
+          const weekAgo = new Date(today)
+          weekAgo.setDate(weekAgo.getDate() - 7)
+          return dueDate >= weekAgo && dueDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+        case 'monthly':
+          // Solo items que vencen este mes o ya vencieron
+          const thisMonth = now.getMonth()
+          const thisYear = now.getFullYear()
+          return dueDate.getMonth() === thisMonth && dueDate.getFullYear() === thisYear
+        default:
+          return true
+      }
+    })
   }, [instances, filterByRecurrence])
 
   useEffect(() => {
