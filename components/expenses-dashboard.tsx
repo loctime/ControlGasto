@@ -5,7 +5,6 @@ import { ExpensesTable } from "@/components/expenses-table"
 import { NotificationsBanner } from "@/components/notifications-banner"
 import { ChartErrorFallback, ErrorBoundary } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 // import { useAutoScheduler } from "@/lib/auto-scheduler" // ❌ ELIMINADO - Sistema simplificado
 import { db } from "@/lib/firebase"
 import { useMemoizedCalculations, useRateLimit, useRetry } from "@/lib/optimization"
@@ -37,8 +36,8 @@ interface Expense {
   updatedAt: Timestamp | FieldValue
 }
 
-// Función helper para filtrar gastos por período
-const filterExpensesByPeriod = (expenses: Expense[], period: 'daily' | 'weekly' | 'monthly') => {
+// ✅ Función para filtrar gastos de hoy
+const filterExpensesForToday = (expenses: Expense[]) => {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   
@@ -47,34 +46,18 @@ const filterExpensesByPeriod = (expenses: Expense[], period: 'daily' | 'weekly' 
       ? expense.createdAt.toDate() 
       : new Date()
     
-    switch (period) {
-      case 'daily':
-        // Gastos de hoy
-        const expenseDay = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate())
-        return expenseDay.getTime() === today.getTime()
-      
-      case 'weekly':
-        // Gastos de esta semana (últimos 7 días)
-        const weekAgo = new Date(today)
-        weekAgo.setDate(weekAgo.getDate() - 7)
-        return expenseDate >= weekAgo
-      
-      case 'monthly':
-        // Gastos de este mes
-        return expenseDate.getMonth() === now.getMonth() && 
-               expenseDate.getFullYear() === now.getFullYear()
-      
-      default:
-        return true
-    }
+    const expenseDay = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate())
+    return expenseDay.getTime() === today.getTime()
   })
 }
 
-// ✅ NUEVA FUNCIÓN: Filtrar items recurrentes por período (SISTEMA SIMPLIFICADO)
-const filterRecurringItemsByPeriod = (items: RecurringItem[], period: 'daily' | 'weekly' | 'monthly') => {
+// ✅ Función para filtrar items recurrentes que corresponden a HOY
+const filterItemsForToday = (items: RecurringItem[]) => {
   const now = new Date()
-  console.log(`🔍 Filtrando ${items.length} items para período: ${period}`)
-  console.log(`📅 Fecha actual - Día de semana: ${now.getDay()}, Día del mes: ${now.getDate()}`)
+  const today = now.getDay() // 0 = Domingo, 1 = Lunes, etc.
+  const dayOfMonth = now.getDate()
+  
+  console.log(`🔍 Filtrando items para HOY - Día de semana: ${today}, Día del mes: ${dayOfMonth}`)
   
   const filtered = items.filter(item => {
     if (!item.isActive) {
@@ -82,46 +65,37 @@ const filterRecurringItemsByPeriod = (items: RecurringItem[], period: 'daily' | 
       return false
     }
     
-    console.log(`🔎 Verificando ${item.name} (${item.recurrenceType})`)
-    
-    switch (period) {
-      case 'daily':
-        // Items diarios activos
-        const isDailyMatch = item.recurrenceType === 'daily'
-        console.log(`  ✅ ${item.name} es diario: ${isDailyMatch}`)
-        return isDailyMatch
-      
-      case 'weekly':
-        // Items semanales que corresponden a hoy
-        if (item.recurrenceType === 'weekly') {
-          const matchesWeekDay = item.weekDay === now.getDay()
-          console.log(`  ✅ ${item.name} - weekDay: ${item.weekDay}, hoy: ${now.getDay()}, match: ${matchesWeekDay}`)
-          return matchesWeekDay
-        }
-        // También incluir items diarios
-        const isDaily = item.recurrenceType === 'daily'
-        console.log(`  ✅ ${item.name} es diario: ${isDaily}`)
-        return isDaily
-      
-      case 'monthly':
-        // Items mensuales que corresponden a hoy
-        if (item.recurrenceType === 'monthly') {
-          const matchesDay = item.customDays?.includes(now.getDate()) || false
-          console.log(`  ✅ ${item.name} - customDays: ${item.customDays}, hoy: ${now.getDate()}, match: ${matchesDay}`)
-          return matchesDay
-        }
-        // También incluir items diarios y semanales
-        const isDailyOrWeekly = item.recurrenceType === 'daily' || 
-               (item.recurrenceType === 'weekly' && item.weekDay === now.getDay())
-        console.log(`  ✅ ${item.name} es diario o semanal: ${isDailyOrWeekly}`)
-        return isDailyOrWeekly
-      
-      default:
-        return false
+    // Items diarios: siempre se muestran
+    if (item.recurrenceType === 'daily') {
+      console.log(`  ✅ ${item.name} es diario - INCLUIDO`)
+      return true
     }
+    
+    // Items semanales: si coincide el día de la semana
+    if (item.recurrenceType === 'weekly') {
+      const matches = item.weekDay === today
+      console.log(`  ${matches ? '✅' : '❌'} ${item.name} es semanal - weekDay: ${item.weekDay}, hoy: ${today} - ${matches ? 'INCLUIDO' : 'EXCLUIDO'}`)
+      return matches
+    }
+    
+    // Items mensuales: si coincide el día del mes
+    if (item.recurrenceType === 'monthly') {
+      const matches = item.monthDay === dayOfMonth
+      console.log(`  ${matches ? '✅' : '❌'} ${item.name} es mensual - día configurado: ${item.monthDay}, hoy: ${dayOfMonth} - ${matches ? 'INCLUIDO' : 'EXCLUIDO'}`)
+      return matches
+    }
+    
+    // Items con calendario personalizado
+    if (item.recurrenceType === 'custom_calendar') {
+      const matches = item.customDays?.includes(dayOfMonth) || false
+      console.log(`  ${matches ? '✅' : '❌'} ${item.name} tiene calendario personalizado - días: ${item.customDays}, hoy: ${dayOfMonth} - ${matches ? 'INCLUIDO' : 'EXCLUIDO'}`)
+      return matches
+    }
+    
+    return false
   })
   
-  console.log(`✅ Items filtrados: ${filtered.length}`)
+  console.log(`✅ Total items para hoy: ${filtered.length}`)
   return filtered
 }
 
@@ -131,38 +105,24 @@ export function ExpensesDashboard() {
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activePeriod, setActivePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
   
   // ✅ OPTIMIZACIÓN: Hooks de optimización
   const { retryWithBackoff } = useRetry()
   const { canMakeRequest, makeRequest } = useRateLimit(20, 60000) // 20 requests por minuto
   
-  // ❌ AUTO-SCHEDULER ELIMINADO - Sistema simplificado
-  
-  // ✅ Filtrar gastos según el período activo
-  const filteredExpenses = useMemo(() => {
-    return filterExpensesByPeriod(expenses, activePeriod)
-  }, [expenses, activePeriod])
+  // ✅ Filtrar gastos de hoy
+  const todayExpenses = useMemo(() => {
+    return filterExpensesForToday(expenses)
+  }, [expenses])
 
-  // ✅ NUEVO: Filtrar items recurrentes según el período activo
-  const filteredRecurringItems = useMemo(() => {
-    return filterRecurringItemsByPeriod(recurringItems, activePeriod)
-  }, [recurringItems, activePeriod])
+  // ✅ Filtrar items recurrentes que corresponden a hoy
+  const todayRecurringItems = useMemo(() => {
+    return filterItemsForToday(recurringItems)
+  }, [recurringItems])
 
-  // ✅ Estado de items pendientes por período
-  const [pendingItemsStatus, setPendingItemsStatus] = useState<{
-    daily: { hasPending: boolean; hasOverdue: boolean }
-    weekly: { hasPending: boolean; hasOverdue: boolean }
-    monthly: { hasPending: boolean; hasOverdue: boolean }
-  }>({
-    daily: { hasPending: false, hasOverdue: false },
-    weekly: { hasPending: false, hasOverdue: false },
-    monthly: { hasPending: false, hasOverdue: false }
-  })
-
-  // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados para el período seleccionado
+  // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados
   const totals = useMemoizedCalculations(
-    filteredExpenses,
+    todayExpenses,
     (expenses) => {
       const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
       const totalPaid = expenses.filter((exp) => exp.status === 'paid').reduce((sum, exp) => sum + exp.amount, 0)
@@ -231,41 +191,10 @@ export function ExpensesDashboard() {
     return () => unsubscribe()
   }, [user])
 
-  // ✅ SIMPLIFICADO: Cargar items recurrentes solo cuando cambie el usuario
+  // ✅ Cargar items recurrentes cuando cambie el usuario
   useEffect(() => {
     loadRecurringItems()
   }, [user])
-
-  // ✅ SIMPLIFICADO: Calcular estado de items pendientes basado en items filtrados
-  useEffect(() => {
-    if (!user?.uid) return
-
-    const calculatePendingStatus = () => {
-      const now = new Date()
-      
-      // Verificar items para cada período
-      const dailyItems = filterRecurringItemsByPeriod(recurringItems, 'daily')
-      const weeklyItems = filterRecurringItemsByPeriod(recurringItems, 'weekly')
-      const monthlyItems = filterRecurringItemsByPeriod(recurringItems, 'monthly')
-      
-      setPendingItemsStatus({
-        daily: { 
-          hasPending: dailyItems.length > 0, 
-          hasOverdue: false // No hay concepto de vencido en el sistema simplificado
-        },
-        weekly: { 
-          hasPending: weeklyItems.length > 0, 
-          hasOverdue: false 
-        },
-        monthly: { 
-          hasPending: monthlyItems.length > 0, 
-          hasOverdue: false 
-        }
-      })
-    }
-    
-    calculatePendingStatus()
-  }, [recurringItems])
 
   // ✅ OPTIMIZACIÓN: Funciones memoizadas con retry logic
   const addExpense = useCallback(async (name: string, amount: number, category: string) => {
@@ -420,118 +349,38 @@ export function ExpensesDashboard() {
 
   return (
     <ErrorBoundary>
-      <div className="max-w-6xl mx-auto p-4 space-y-3">
+      <div className="max-w-6xl mx-auto p-4 space-y-4">
 
         {/* Banner de notificaciones */}
         <NotificationsBanner />
 
-        {/* Pestañas de períodos */}
-        <Tabs value={activePeriod} className="w-full" onValueChange={(value) => {
-          console.log("🔄 Cambiando período:", value)
-          setActivePeriod(value as 'daily' | 'weekly' | 'monthly')
-        }}>
-          <div className="flex justify-center mb-1">
-            <TabsList className="grid w-full max-w-md grid-cols-3">
-              <TabsTrigger 
-                value="daily" 
-                className={`text-sm font-medium relative ${
-                  pendingItemsStatus.daily.hasOverdue 
-                    ? 'border-red-500 bg-red-50 text-red-700' 
-                    : pendingItemsStatus.daily.hasPending 
-                    ? 'border-orange-500 bg-orange-50 text-orange-700'
-                    : ''
-                }`}
-              >
-                📅 Diario
-                {(pendingItemsStatus.daily.hasPending || pendingItemsStatus.daily.hasOverdue) && (
-                  <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
-                    pendingItemsStatus.daily.hasOverdue ? 'bg-red-500' : 'bg-orange-500'
-                  }`} />
-                )}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="weekly" 
-                className={`text-sm font-medium relative ${
-                  pendingItemsStatus.weekly.hasOverdue 
-                    ? 'border-red-500 bg-red-50 text-red-700' 
-                    : pendingItemsStatus.weekly.hasPending 
-                    ? 'border-orange-500 bg-orange-50 text-orange-700'
-                    : ''
-                }`}
-              >
-                📊 Semanal
-                {(pendingItemsStatus.weekly.hasPending || pendingItemsStatus.weekly.hasOverdue) && (
-                  <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
-                    pendingItemsStatus.weekly.hasOverdue ? 'bg-red-500' : 'bg-orange-500'
-                  }`} />
-                )}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="monthly" 
-                className={`text-sm font-medium relative ${
-                  pendingItemsStatus.monthly.hasOverdue 
-                    ? 'border-red-500 bg-red-50 text-red-700' 
-                    : pendingItemsStatus.monthly.hasPending 
-                    ? 'border-orange-500 bg-orange-50 text-orange-700'
-                    : ''
-                }`}
-              >
-                📈 Mensual
-                {(pendingItemsStatus.monthly.hasPending || pendingItemsStatus.monthly.hasOverdue) && (
-                  <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
-                    pendingItemsStatus.monthly.hasOverdue ? 'bg-red-500' : 'bg-orange-500'
-                  }`} />
-                )}
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        {/* Título con fecha actual */}
+        <div className="text-center mb-4">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+            📅 Gastos de Hoy
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            {new Date().toLocaleDateString('es-ES', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </p>
+        </div>
 
-          {/* Contenido para cada período */}
-          <TabsContent value="daily" className="space-y-6">
-            {/* Tabla unificada de gastos e items recurrentes */}
-            <ErrorBoundary fallback={ChartErrorFallback}>
-              <ExpensesTable
-                expenses={filteredExpenses}
-                recurringItems={filteredRecurringItems}
-                onAddExpense={addExpense}
-                onUpdateExpense={updateExpense}
-                onDeleteExpense={deleteExpense}
-                onTogglePaid={togglePaid}
-                onPayRecurringItem={handlePayRecurringItem}
-              />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="weekly" className="space-y-6">
-            {/* Tabla unificada de gastos e items recurrentes */}
-            <ErrorBoundary fallback={ChartErrorFallback}>
-              <ExpensesTable
-                expenses={filteredExpenses}
-                recurringItems={filteredRecurringItems}
-                onAddExpense={addExpense}
-                onUpdateExpense={updateExpense}
-                onDeleteExpense={deleteExpense}
-                onTogglePaid={togglePaid}
-                onPayRecurringItem={handlePayRecurringItem}
-              />
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="monthly" className="space-y-6">
-            {/* Tabla unificada de gastos e items recurrentes */}
-            <ErrorBoundary fallback={ChartErrorFallback}>
-              <ExpensesTable
-                expenses={filteredExpenses}
-                recurringItems={filteredRecurringItems}
-                onAddExpense={addExpense}
-                onUpdateExpense={updateExpense}
-                onDeleteExpense={deleteExpense}
-                onTogglePaid={togglePaid}
-                onPayRecurringItem={handlePayRecurringItem}
-              />
-            </ErrorBoundary>
-          </TabsContent>
-        </Tabs>
+        {/* Tabla unificada de gastos e items recurrentes de hoy */}
+        <ErrorBoundary fallback={ChartErrorFallback}>
+          <ExpensesTable
+            expenses={todayExpenses}
+            recurringItems={todayRecurringItems}
+            onAddExpense={addExpense}
+            onUpdateExpense={updateExpense}
+            onDeleteExpense={deleteExpense}
+            onTogglePaid={togglePaid}
+            onPayRecurringItem={handlePayRecurringItem}
+          />
+        </ErrorBoundary>
       </div>
     </ErrorBoundary>
   )
