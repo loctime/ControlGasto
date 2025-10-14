@@ -23,8 +23,10 @@ export function BottomNav() {
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-50">
+      {/* Efecto de fondo moderno */}
+      <div className="absolute inset-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t border-primary/20"></div>
+      <div className="relative flex items-center justify-around h-16 max-w-lg mx-auto px-4">
         {links.map((link) => {
           const isActive = pathname === link.href
           const Icon = link.icon
@@ -35,28 +37,47 @@ export function BottomNav() {
               key={link.href}
               href={link.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors relative",
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-300 relative rounded-xl",
+                isActive 
+                  ? "text-primary scale-110" 
+                  : "text-muted-foreground hover:text-foreground hover:scale-105",
               )}
             >
               <div className="relative">
-                <Icon className="w-6 h-6" />
+                <div className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300",
+                  isActive 
+                    ? "bg-gradient-to-r from-primary to-accent shadow-lg" 
+                    : "hover:bg-primary/10"
+                )}>
+                  <Icon className={cn(
+                    "w-5 h-5 transition-all duration-300",
+                    isActive ? "text-white" : "text-current"
+                  )} />
+                </div>
                 {showNotificationBadge && (
                   <Badge 
                     variant={badgeVariant} 
-                    className="absolute -top-2 -right-2 h-5 min-w-[20px] flex items-center justify-center p-1 text-[10px]"
+                    className="absolute -top-1 -right-1 h-4 min-w-[16px] flex items-center justify-center p-1 text-[9px] rounded-full animate-pulse"
                   >
                     {importantCount}
                   </Badge>
                 )}
               </div>
-              <span className="text-xs font-medium">{link.label}</span>
+              <span className={cn(
+                "text-xs font-medium transition-all duration-300",
+                isActive ? "font-bold" : ""
+              )}>
+                {link.label}
+              </span>
             </Link>
           )
         })}
-        {/* Toggle de tema */}
+        {/* Toggle de tema moderno */}
         <div className="flex flex-col items-center justify-center gap-1 flex-1 h-full">
-          <ThemeToggleCompact />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-primary/10 transition-all duration-300">
+            <ThemeToggleCompact />
+          </div>
           <span className="text-xs font-medium">Tema</span>
         </div>
       </div>

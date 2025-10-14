@@ -32,7 +32,7 @@ export default function RecurringItemsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen gradient-bg pb-20">
       <UnifiedHeader title="Items Recurrentes" />
       <div className="container mx-auto p-4 max-w-6xl">
         <RecurringItemsManager />

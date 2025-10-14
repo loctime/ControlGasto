@@ -3,20 +3,19 @@
 import { RecurringItemsService } from '@/lib/recurring-items-service'
 import { ExpenseCategory, RecurrenceType, RecurringItem } from '@/lib/types'
 import {
-  Calendar,
-  CalendarClock,
-  CalendarDays,
-  Check,
-  Clock,
-  Edit,
-  Plus,
-  Trash2,
-  X
+    Calendar,
+    CalendarClock,
+    CalendarDays,
+    Check,
+    Clock,
+    Edit,
+    Plus,
+    Trash2,
+    X
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from './auth-provider'
-import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
 import { Input } from './ui/input'

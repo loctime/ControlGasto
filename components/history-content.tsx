@@ -6,7 +6,6 @@ import { HistoryHeader } from "@/components/history-header"
 import { HistoryResetModal } from "@/components/history-reset-modal"
 import { HistoryStats } from "@/components/history-stats"
 import { ReceiptViewer } from "@/components/receipt-viewer"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
@@ -19,7 +18,6 @@ import { Payment } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import {
     Calendar as CalendarIcon,
-    CheckCircle,
     ChevronDown,
     ChevronUp,
     Plus,
@@ -314,8 +312,8 @@ export function HistoryContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <div className="min-h-screen gradient-bg pb-20">
+      <div className="max-w-4xl mx-auto p-4 space-y-4">
         <HistoryHeader 
           totals={totals}
           isNewMonth={isNewMonthWithPreviousPayments}
@@ -324,113 +322,118 @@ export function HistoryContent() {
 
         <HistoryStats payments={filteredPayments} />
 
-        {/* Filtros compactos */}
-        <div className="flex flex-wrap items-center gap-3 p-4 bg-muted/30 rounded-lg border">
-          {/* Búsqueda */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nombre del gasto..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-9"
-            />
-          </div>
+        {/* Filtros modernos y compactos */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-success/5 rounded-2xl blur-xl"></div>
+          <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Búsqueda */}
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                <Input
+                  placeholder="Buscar por nombre del gasto..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-10 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300"
+                />
+              </div>
 
-          {/* Ordenar */}
-          <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
-            <SelectTrigger className="w-[120px] h-9">
-              <SelectValue placeholder="Ordenar" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date">Fecha</SelectItem>
-              <SelectItem value="amount">Monto</SelectItem>
-              <SelectItem value="name">Nombre</SelectItem>
-            </SelectContent>
-          </Select>
+              {/* Ordenar */}
+              <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
+                <SelectTrigger className="w-[120px] h-10 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300">
+                  <SelectValue placeholder="Ordenar" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="date" className="rounded-lg">📅 Fecha</SelectItem>
+                  <SelectItem value="amount" className="rounded-lg">💰 Monto</SelectItem>
+                  <SelectItem value="name" className="rounded-lg">📝 Nombre</SelectItem>
+                </SelectContent>
+              </Select>
 
-          {/* Dirección orden */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="h-9 px-3"
-          >
-            {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </Button>
-
-          {/* Rango de fechas */}
-          <Popover>
-            <PopoverTrigger asChild>
+              {/* Dirección orden */}
               <Button
                 variant="outline"
-                className="h-9 px-3 text-sm"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="h-10 px-4 border-2 border-primary/20 text-primary hover:bg-primary/10 rounded-xl transition-all duration-300"
               >
-                <CalendarIcon className="w-4 h-4 mr-2" />
-                {useDateRange && dateRange.from && dateRange.to 
-                  ? `${dateRange.from.toLocaleDateString('es-ES')} - ${dateRange.to.toLocaleDateString('es-ES')}`
-                  : "Rango de fechas"
-                }
+                {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <div className="p-4">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Seleccionar rango:</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setDateRange({ from: undefined, to: undefined })
-                        setUseDateRange(false)
-                      }}
-                      className="h-6 px-2 text-xs"
-                    >
-                      Limpiar
-                    </Button>
-                  </div>
-                  <Calendar
-                    mode="range"
-                    selected={dateRange}
-                    onSelect={(range) => {
-                      if (range?.from && range?.to) {
-                        setDateRange(range)
-                        setUseDateRange(true)
-                      }
-                    }}
-                    className="rounded-md border"
-                    numberOfMonths={1}
-                  />
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
 
-          {/* Vista */}
-          <div className="flex items-center gap-1 bg-background rounded-md p-1">
-            <Button
-              variant={view === "week" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => {
-                setView("week")
-                setUseDateRange(false)
-              }}
-              className="h-7 px-3 text-xs"
-            >
-              Semana
-            </Button>
-            <Button
-              variant={view === "month" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => {
-                setView("month")
-                setUseDateRange(false)
-              }}
-              className="h-7 px-3 text-xs"
-            >
-              Mes
-            </Button>
+              {/* Rango de fechas */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-10 px-4 text-sm border-2 border-primary/20 text-primary hover:bg-primary/10 rounded-xl transition-all duration-300"
+                  >
+                    <CalendarIcon className="w-4 h-4 mr-2" />
+                    {useDateRange && dateRange.from && dateRange.to 
+                      ? `${dateRange.from.toLocaleDateString('es-ES')} - ${dateRange.to.toLocaleDateString('es-ES')}`
+                      : "📅 Rango"
+                    }
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-2xl" align="start">
+                  <div className="p-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Seleccionar rango:</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setDateRange({ from: undefined, to: undefined })
+                            setUseDateRange(false)
+                          }}
+                          className="h-6 px-2 text-xs rounded-lg"
+                        >
+                          Limpiar
+                        </Button>
+                      </div>
+                      <Calendar
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={(range) => {
+                          if (range?.from && range?.to) {
+                            setDateRange(range)
+                            setUseDateRange(true)
+                          }
+                        }}
+                        className="rounded-xl border"
+                        numberOfMonths={1}
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Vista */}
+              <div className="flex items-center gap-1 bg-primary/10 rounded-xl p-1">
+                <Button
+                  variant={view === "week" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => {
+                    setView("week")
+                    setUseDateRange(false)
+                  }}
+                  className="h-8 px-3 text-xs rounded-lg"
+                >
+                  📅 Semana
+                </Button>
+                <Button
+                  variant={view === "month" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => {
+                    setView("month")
+                    setUseDateRange(false)
+                  }}
+                  className="h-8 px-3 text-xs rounded-lg"
+                >
+                  📊 Mes
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -466,45 +469,28 @@ export function HistoryContent() {
               const { date, time } = formatDateTime(paymentDate)
               
               return (
-                 <Card 
+                 <div
                    key={payment.id}
-                   className="transition-all duration-200 hover:shadow-md border-green-200 bg-green-50/50 dark:bg-green-950/20"
+                   className="card-float bg-gradient-to-br from-green-50 via-emerald-50 to-white dark:from-green-900/20 dark:via-emerald-900/20 dark:to-gray-900/50 border-2 border-green-400 dark:border-green-500 rounded-2xl p-4 transition-all duration-300 hover:scale-[1.02]"
                  >
-                   <CardContent className="p-4">
-                     {/* Primera línea: Nombre y Estado */}
+                   {/* Efectos de fondo animados */}
+                   <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-green-400/10 to-emerald-500/10 rounded-full blur-lg animate-pulse"></div>
+                   
+                   <div className="relative">
+                     {/* Header del card */}
                      <div className="flex items-center justify-between mb-3">
-                       <h3 className="text-lg font-semibold text-foreground truncate flex-1">{payment.expenseName}</h3>
-                       
-                       <div className="flex items-center gap-2">
-                         <div className="flex items-center gap-1 text-green-600">
-                           <CheckCircle className="w-4 h-4" />
-                           <span className="text-sm font-medium">Pagado</span>
+                       <div className="flex items-center space-x-3">
+                         <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-lg font-bold animate-bounce-gentle">
+                           ✅
                          </div>
-                       </div>
-                     </div>
-
-                     {/* Segunda línea: Monto */}
-                     <div className="flex items-center justify-between mb-3">
-                       <div className="text-3xl font-bold text-foreground">
-                         {formatCurrency(payment.amount)}
-                       </div>
-                       
-                       <Badge variant="outline" className="text-sm px-3 py-1.5">
-                         {payment.currency || 'ARS'}
-                       </Badge>
-                     </div>
-
-                     {/* Tercera línea: Fecha y Comprobante */}
-                     <div className="flex items-center justify-between">
-                       <div className="text-sm text-muted-foreground">
-                         <span className="block text-green-600 font-medium">
-                           Pagado: {date} a las {time}
-                         </span>
-                         {payment.notes && (
-                           <span className="block text-xs mt-1 italic">
-                             Nota: {payment.notes}
-                           </span>
-                         )}
+                         <div>
+                           <h3 className="text-lg font-bold text-foreground">{payment.expenseName}</h3>
+                           <div className="flex items-center gap-2">
+                             <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded-full font-semibold">
+                               💳 Pagado
+                             </span>
+                           </div>
+                         </div>
                        </div>
                        
                        {payment.receiptImageId && (
@@ -516,30 +502,48 @@ export function HistoryContent() {
                          />
                        )}
                      </div>
-                   </CardContent>
-                 </Card>
+
+                     {/* Footer del card */}
+                     <div className="flex items-center justify-between">
+                       {/* Monto */}
+                       <div className="text-2xl font-bold text-foreground">
+                         {formatCurrency(payment.amount)}
+                       </div>
+                       
+                       <div className="text-right">
+                         <div className="text-sm text-green-600 font-medium">
+                           📅 {date} a las {time}
+                         </div>
+                         {payment.notes && (
+                           <div className="text-xs text-muted-foreground italic">
+                             📝 {payment.notes}
+                           </div>
+                         )}
+                       </div>
+                     </div>
+                   </div>
+                 </div>
               )
             })
           )}
 
-          {/* Botón Ver más */}
+          {/* Botón Ver más moderno */}
           {filteredPayments.length > 0 && hasMoreData && (
             <div className="flex justify-center pt-4">
               <Button
                 onClick={loadMoreMonths}
                 disabled={isLoadingMore}
-                variant="outline"
-                className="flex items-center gap-2"
+                className="btn-modern px-6 py-3 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 {isLoadingMore ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
                     Cargando...
                   </>
                 ) : (
                   <>
-                    <Plus className="w-4 h-4" />
-                    Ver más meses
+                    <Plus className="w-4 h-4 mr-2" />
+                    📅 Ver más meses
                   </>
                 )}
               </Button>
@@ -547,17 +551,24 @@ export function HistoryContent() {
           )}
         </div>
 
-        {/* Resumen compacto */}
+        {/* Resumen moderno */}
         {filteredPayments.length > 0 && (
-          <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
-            <CardContent className="p-4">
+          <div className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-success/10 rounded-2xl blur-xl"></div>
+            <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
                   <div className="text-center">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg animate-pulse-glow mx-auto mb-2">
+                      📊
+                    </div>
                     <p className="text-lg font-bold text-foreground">{filteredPayments.length}</p>
                     <p className="text-xs text-muted-foreground">Pagos</p>
                   </div>
                   <div className="text-center">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg animate-bounce-gentle mx-auto mb-2">
+                      💰
+                    </div>
                     <p className="text-lg font-bold text-green-600">
                       {formatCurrency(filteredPayments.reduce((sum, p) => sum + p.amount, 0))}
                     </p>
@@ -565,14 +576,17 @@ export function HistoryContent() {
                   </div>
                 </div>
                 <div className="text-right">
+                  <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-600 rounded-xl flex items-center justify-center text-white font-bold text-lg animate-wiggle mx-auto mb-2">
+                    📈
+                  </div>
                   <p className="text-sm text-muted-foreground">Promedio</p>
                   <p className="text-xl font-bold text-primary">
                     {formatCurrency(filteredPayments.reduce((sum, p) => sum + p.amount, 0) / filteredPayments.length)}
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         <HistoryResetModal 
