@@ -66,11 +66,19 @@ export function RecurringPaymentDialog({
   const { toast } = useToast()
 
   // Focus en el campo de monto cuando se abre el diálogo
+  // Solo para items sin monto sugerido (items diarios)
   React.useEffect(() => {
     if (isOpen && amountInputRef.current) {
-      setTimeout(() => amountInputRef.current?.focus(), 100)
+      // Solo hacer focus automático si no hay monto sugerido
+      if (suggestedAmount === 0) {
+        setTimeout(() => {
+          amountInputRef.current?.focus()
+          // En móviles, esto abrirá automáticamente el teclado numérico
+          // debido a inputMode="decimal"
+        }, 100)
+      }
     }
-  }, [isOpen])
+  }, [isOpen, suggestedAmount])
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -193,8 +201,9 @@ export function RecurringPaymentDialog({
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
+                  placeholder={suggestedAmount === 0 ? "Ej: 1500" : "0.00"}
                   className="pl-10 text-base font-semibold"
+                  autoFocus={suggestedAmount === 0}
                 />
               </div>
               {suggestedAmount > 0 && (
@@ -204,7 +213,7 @@ export function RecurringPaymentDialog({
               )}
               {suggestedAmount === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  💡 Ingresa el monto real
+                  💡 Ingresa el monto real que pagaste
                 </p>
               )}
             </div>

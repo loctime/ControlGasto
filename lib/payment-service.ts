@@ -51,9 +51,16 @@ export class PaymentService {
         expenseName,
         amount,
         currency: 'ARS',
-        paidAt: serverTimestamp(),
-        ...(receiptImageId && { receiptImageId }),
-        ...(notes && { notes })
+        paidAt: serverTimestamp()
+      }
+
+      // Solo agregar campos opcionales si tienen valor válido
+      if (receiptImageId && receiptImageId.trim()) {
+        paymentData.receiptImageId = receiptImageId
+      }
+      
+      if (notes && notes.trim()) {
+        paymentData.notes = notes
       }
 
       return await this.createPayment(paymentData)
@@ -102,6 +109,39 @@ export class PaymentService {
       })) as Payment[]
     } catch (error) {
       console.error('Error obteniendo pagos:', error)
+      throw error
+    }
+  }
+
+  // Obtener todos los gastos pagados (incluyendo items recurrentes)
+  async getAllPaidExpenses(): Promise<Payment[]> {
+    try {
+      const q = query(
+        collection(db, `apps/controlgastos/users/${this.userId}/expenses`),
+        where('status', '==', 'paid'),
+        orderBy('createdAt', 'desc')
+      )
+
+      const querySnapshot = await getDocs(q)
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          expenseId: doc.id,
+          expenseName: data.name,
+          amount: data.amount,
+          currency: 'ARS',
+          category: data.category,
+          paidAt: data.createdAt?.toDate() || new Date(),
+          createdAt: data.createdAt?.toDate() || new Date(),
+          type: data.type || 'manual',
+          recurringItemId: data.recurringItemId,
+          notes: data.notes,
+          receiptImageId: data.receiptImageId
+        }
+      }) as Payment[]
+    } catch (error) {
+      console.error('Error obteniendo gastos pagados:', error)
       throw error
     }
   }

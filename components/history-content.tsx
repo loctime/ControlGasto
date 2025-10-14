@@ -78,10 +78,20 @@ export function HistoryContent() {
       try {
         console.log("🔍 Historial - Cargando pagos para usuario:", user.uid)
         const paymentService = new PaymentService(user.uid)
+        
+        // Cargar pagos tradicionales
         const paymentsData = await paymentService.getAllPayments()
-        console.log("🔍 Historial - Pagos encontrados:", paymentsData.length)
-        console.log("🔍 Historial - Pagos procesados:", paymentsData)
-        setPayments(paymentsData)
+        console.log("🔍 Historial - Pagos tradicionales encontrados:", paymentsData.length)
+        
+        // Cargar gastos pagados (incluyendo items recurrentes pagados)
+        const expensesData = await paymentService.getAllPaidExpenses()
+        console.log("🔍 Historial - Gastos pagados encontrados:", expensesData.length)
+        
+        // Combinar ambos tipos de pagos
+        const allPayments = [...paymentsData, ...expensesData]
+        console.log("🔍 Historial - Total de pagos:", allPayments.length)
+        console.log("🔍 Historial - Pagos procesados:", allPayments)
+        setPayments(allPayments)
       } catch (error) {
         console.error("❌ Historial - Error fetching payments:", error)
         setError("Error al cargar historial de pagos")

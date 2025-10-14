@@ -33,6 +33,10 @@ interface Expense {
   userId: string
   createdAt: Timestamp | FieldValue
   updatedAt: Timestamp | FieldValue
+  type?: 'manual' | 'recurring'
+  recurringItemId?: string
+  notes?: string
+  receiptImageId?: string
 }
 
 // ✅ Función para filtrar gastos de hoy
@@ -51,12 +55,13 @@ const filterExpensesForToday = (expenses: Expense[]) => {
 }
 
 // ✅ Función para filtrar items recurrentes que corresponden a HOY
-const filterItemsForToday = (items: RecurringItem[]) => {
+const filterItemsForToday = (items: RecurringItem[], paidExpensesToday: Expense[] = []) => {
   const now = new Date()
   const today = now.getDay() // 0 = Domingo, 1 = Lunes, etc.
   const dayOfMonth = now.getDate()
   
   console.log(`🔍 Filtrando items para HOY - Día de semana: ${today}, Día del mes: ${dayOfMonth}`)
+  console.log(`🔍 Gastos pagados hoy: ${paidExpensesToday.length}`)
   
   const filtered = items.filter(item => {
     if (!item.isActive) {
@@ -64,7 +69,17 @@ const filterItemsForToday = (items: RecurringItem[]) => {
       return false
     }
     
-    // Items diarios: siempre se muestran
+    // Verificar si este item ya fue pagado hoy
+    const alreadyPaidToday = paidExpensesToday.some(expense => 
+      expense.recurringItemId === item.id && expense.status === 'paid'
+    )
+    
+    if (alreadyPaidToday) {
+      console.log(`❌ ${item.name} ya fue pagado hoy - EXCLUIDO`)
+      return false
+    }
+    
+    // Items diarios: siempre se muestran (a menos que ya estén pagados)
     if (item.recurrenceType === 'daily') {
       console.log(`  ✅ ${item.name} es diario - INCLUIDO`)
       return true
@@ -114,10 +129,23 @@ export function ExpensesDashboard() {
     return filterExpensesForToday(expenses)
   }, [expenses])
 
-  // ✅ Filtrar items recurrentes que corresponden a hoy
+  // ✅ Filtrar gastos pagados de hoy (para excluir items recurrentes ya pagados)
+  const todayPaidExpenses = useMemo(() => {
+    return expenses.filter(expense => {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const expenseDate = expense.createdAt instanceof Timestamp 
+        ? expense.createdAt.toDate() 
+        : new Date()
+      const expenseDay = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate())
+      return expenseDay.getTime() === today.getTime() && expense.status === 'paid' && expense.type === 'recurring'
+    })
+  }, [expenses])
+
+  // ✅ Filtrar items recurrentes que corresponden a hoy (excluyendo los ya pagados)
   const todayRecurringItems = useMemo(() => {
-    return filterItemsForToday(recurringItems)
-  }, [recurringItems])
+    return filterItemsForToday(recurringItems, todayPaidExpenses)
+  }, [recurringItems, todayPaidExpenses])
 
   // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados
   const totals = useMemoizedCalculations(
@@ -341,7 +369,7 @@ export function ExpensesDashboard() {
       if (!item) return
 
       // Crear gasto normal directamente
-      const expenseData = {
+      const expenseData: any = {
         name: item.name,
         amount,
         category: item.category,
@@ -350,8 +378,12 @@ export function ExpensesDashboard() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         type: 'recurring' as const,
-        recurringItemId: itemId,
-        notes: notes || undefined
+        recurringItemId: itemId
+      }
+
+      // Solo agregar notes si tiene valor
+      if (notes && notes.trim()) {
+        expenseData.notes = notes
       }
 
       await addDoc(collection(db, `apps/controlgastos/users/${user.uid}/expenses`), expenseData)
