@@ -4,7 +4,6 @@ import { useAuth } from '@/components/auth-provider'
 import { BottomNav } from '@/components/bottom-nav'
 import { RecurringItemsManager } from '@/components/recurring-items-manager'
 import { UnifiedHeader } from '@/components/unified-header'
-import { useAutoScheduler } from '@/lib/auto-scheduler'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
@@ -12,8 +11,7 @@ export default function RecurringItemsPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
   
-  // Ejecutar auto-scheduler
-  useAutoScheduler()
+  // ❌ AUTO-SCHEDULER ELIMINADO - Sistema simplificado
 
   useEffect(() => {
     if (!user && !loading) {

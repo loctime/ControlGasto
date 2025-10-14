@@ -73,37 +73,56 @@ const filterExpensesByPeriod = (expenses: Expense[], period: 'daily' | 'weekly' 
 // ✅ NUEVA FUNCIÓN: Filtrar items recurrentes por período (SISTEMA SIMPLIFICADO)
 const filterRecurringItemsByPeriod = (items: RecurringItem[], period: 'daily' | 'weekly' | 'monthly') => {
   const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  console.log(`🔍 Filtrando ${items.length} items para período: ${period}`)
+  console.log(`📅 Fecha actual - Día de semana: ${now.getDay()}, Día del mes: ${now.getDate()}`)
   
-  return items.filter(item => {
-    if (!item.isActive) return false
+  const filtered = items.filter(item => {
+    if (!item.isActive) {
+      console.log(`❌ ${item.name} no está activo`)
+      return false
+    }
+    
+    console.log(`🔎 Verificando ${item.name} (${item.recurrenceType})`)
     
     switch (period) {
       case 'daily':
         // Items diarios activos
-        return item.recurrenceType === 'daily'
+        const isDailyMatch = item.recurrenceType === 'daily'
+        console.log(`  ✅ ${item.name} es diario: ${isDailyMatch}`)
+        return isDailyMatch
       
       case 'weekly':
         // Items semanales que corresponden a hoy
         if (item.recurrenceType === 'weekly') {
-          return item.weekDay === now.getDay()
+          const matchesWeekDay = item.weekDay === now.getDay()
+          console.log(`  ✅ ${item.name} - weekDay: ${item.weekDay}, hoy: ${now.getDay()}, match: ${matchesWeekDay}`)
+          return matchesWeekDay
         }
         // También incluir items diarios
-        return item.recurrenceType === 'daily'
+        const isDaily = item.recurrenceType === 'daily'
+        console.log(`  ✅ ${item.name} es diario: ${isDaily}`)
+        return isDaily
       
       case 'monthly':
         // Items mensuales que corresponden a hoy
         if (item.recurrenceType === 'monthly') {
-          return item.customDays?.includes(now.getDate()) || false
+          const matchesDay = item.customDays?.includes(now.getDate()) || false
+          console.log(`  ✅ ${item.name} - customDays: ${item.customDays}, hoy: ${now.getDate()}, match: ${matchesDay}`)
+          return matchesDay
         }
         // También incluir items diarios y semanales
-        return item.recurrenceType === 'daily' || 
+        const isDailyOrWeekly = item.recurrenceType === 'daily' || 
                (item.recurrenceType === 'weekly' && item.weekDay === now.getDay())
+        console.log(`  ✅ ${item.name} es diario o semanal: ${isDailyOrWeekly}`)
+        return isDailyOrWeekly
       
       default:
         return false
     }
   })
+  
+  console.log(`✅ Items filtrados: ${filtered.length}`)
+  return filtered
 }
 
 export function ExpensesDashboard() {

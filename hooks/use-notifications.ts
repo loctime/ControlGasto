@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/components/auth-provider'
 import { notificationsService } from '@/lib/notifications-service'
-import { RecurringItemsService } from '@/lib/recurring-items-service'
 import { NotificationStats, RecurringItemInstance } from '@/lib/types'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -34,29 +33,22 @@ export function useNotifications() {
     return granted
   }, [])
 
-  // Cargar y verificar items
+  // ✅ SIMPLIFICADO: Solo verificar items, no generar instancias
   const checkItems = useCallback(async () => {
     if (!user?.uid) return
 
     try {
       setLoading(true)
-      const service = new RecurringItemsService(user.uid)
       
-      // Verificar y generar nuevos periodos
-      await service.checkAndGenerateNewPeriods()
-      
-      // Obtener instancias activas
-      const activeInstances = await service.getActiveInstances()
-      setInstances(activeInstances)
-
-      // Calcular estadísticas
-      const notificationStats = notificationsService.checkDueItems(activeInstances)
-      setStats(notificationStats)
-
-      // Enviar notificaciones si hay permisos
-      if (notificationsService.hasNotificationPermission()) {
-        await notificationsService.scheduleNotifications(activeInstances)
-      }
+      // En el sistema simplificado, no hay instancias ni notificaciones automáticas
+      // Solo reseteamos las estadísticas
+      setInstances([])
+      setStats({
+        overdueCount: 0,
+        dueTodayCount: 0,
+        dueSoonCount: 0,
+        totalPending: 0
+      })
     } catch (error) {
       console.error('Error verificando items:', error)
     } finally {

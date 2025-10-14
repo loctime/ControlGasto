@@ -28,6 +28,7 @@ import { formatCurrency } from "@/lib/utils"
 import { FieldValue, Timestamp } from "firebase/firestore"
 import { Check, DollarSign, MoreVertical, Pencil, Plus, Trash2, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 
 interface Expense {
   id: string
@@ -161,11 +162,8 @@ export function ExpensesTable({
   // ✅ SIMPLIFICADO: Funciones para manejar pagos de items recurrentes
   const handlePayRecurringItem = (item: RecurringItem) => {
     setSelectedRecurringItem(item)
-    if (item.amount) {
-      setPaymentAmount(item.amount.toString())
-    } else {
-      setPaymentAmount('')
-    }
+    // Siempre permitir ingresar monto, usar el del item como sugerencia
+    setPaymentAmount(item.amount ? item.amount.toString() : '')
     setPaymentNotes('')
     setShowRecurringPaymentDialog(true)
   }
@@ -175,7 +173,7 @@ export function ExpensesTable({
 
     const amount = parseFloat(paymentAmount)
     if (isNaN(amount) || amount <= 0) {
-      // Mostrar error
+      toast.error("Por favor ingresa un monto válido")
       return
     }
 
@@ -183,8 +181,11 @@ export function ExpensesTable({
       onPayRecurringItem?.(selectedRecurringItem.id, amount, paymentNotes || undefined)
       setShowRecurringPaymentDialog(false)
       setSelectedRecurringItem(null)
+      setPaymentAmount('')
+      setPaymentNotes('')
     } catch (error) {
       console.error('Error procesando pago:', error)
+      toast.error('Error al procesar el pago')
     }
   }
 
@@ -534,11 +535,9 @@ export function ExpensesTable({
                 <div className="flex items-center justify-between gap-3 min-w-0">
                   {/* Monto */}
                   <div className="font-bold text-foreground truncate min-w-0 flex-shrink-0 text-2xl">
-                    {recurringItem && 'amount' in recurringItem && recurringItem.amount
+                    {recurringItem && recurringItem.amount
                       ? formatCurrency(recurringItem.amount)
-                      : recurringItem && 'amount' in recurringItem && recurringItem.amount
-                      ? formatCurrency(recurringItem.amount)
-                      : 'Sin monto'}
+                      : 'Ingresar monto'}
                   </div>
                   
                   {/* Botón de pago */}
