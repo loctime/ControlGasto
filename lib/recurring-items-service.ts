@@ -94,25 +94,46 @@ export class RecurringItemsService {
 
   async deleteRecurringItem(itemId: string): Promise<void> {
     try {
-      // Eliminar instancias pendientes del item
-      const instancesQuery = query(
-        collection(db, `apps/controlgastos/users/${this.userId}/recurring_items_instances`),
-        where('recurringItemId', '==', itemId),
-        where('status', '==', 'pending')
-      )
-
-      const instancesSnapshot = await getDocs(instancesQuery)
-      for (const instanceDoc of instancesSnapshot.docs) {
-        await deleteDoc(instanceDoc.ref)
-      }
-
-      // Eliminar el item
+      console.log('🗑️ Eliminando item recurrente:', itemId)
+      
+      // Primero eliminar el item recurrente
       const itemRef = doc(db, `apps/controlgastos/users/${this.userId}/recurring_items`, itemId)
       await deleteDoc(itemRef)
-
       console.log('✅ Item recurrente eliminado:', itemId)
+      
+      // Luego eliminar las instancias asociadas (si existen)
+      // Hacerlo en segundo lugar evita problemas si falla
+      try {
+        const instancesQuery = query(
+          collection(db, `apps/controlgastos/users/${this.userId}/recurring_items_instances`),
+          where('recurringItemId', '==', itemId)
+        )
+
+        const instancesSnapshot = await getDocs(instancesQuery)
+        
+        if (instancesSnapshot.empty) {
+          console.log('ℹ️ No hay instancias para eliminar')
+          return
+        }
+        
+        // Eliminar instancias una por una para evitar problemas de batch
+        let deletedCount = 0
+        for (const docSnap of instancesSnapshot.docs) {
+          try {
+            await deleteDoc(docSnap.ref)
+            deletedCount++
+          } catch (err) {
+            console.warn('⚠️ No se pudo eliminar instancia:', docSnap.id, err)
+          }
+        }
+        
+        console.log(`✅ ${deletedCount}/${instancesSnapshot.docs.length} instancias eliminadas`)
+      } catch (instancesError) {
+        console.warn('⚠️ Error eliminando instancias (no crítico):', instancesError)
+        // No lanzar error aquí porque el item principal ya fue eliminado
+      }
     } catch (error) {
-      console.error('Error eliminando item recurrente:', error)
+      console.error('❌ Error eliminando item recurrente:', error)
       throw error
     }
   }

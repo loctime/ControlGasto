@@ -314,7 +314,8 @@ export function ExpensesTable({
           })
           .map((item) => {
             // Determinar si es un gasto normal o un item recurrente
-            const isExpense = 'userId' in item
+            // Los items recurrentes tienen 'recurrenceType', los gastos tienen 'status'
+            const isExpense = 'status' in item
             const expense = isExpense ? item as Expense : null
             const recurringItem = !isExpense ? item as RecurringItem : null
             

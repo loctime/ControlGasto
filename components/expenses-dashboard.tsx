@@ -243,15 +243,31 @@ export function ExpensesDashboard() {
       )
       
       await retryWithBackoff(async () => {
-        await updateDoc(doc(db, `apps/controlgastos/users/${user.uid}/expenses`, id), {
+        const docRef = doc(db, `apps/controlgastos/users/${user.uid}/expenses`, id)
+        
+        // Verificar que el documento existe antes de actualizar
+        const { getDoc } = await import('firebase/firestore')
+        const docSnap = await getDoc(docRef)
+        
+        if (!docSnap.exists()) {
+          throw new Error('El gasto no existe o ya fue eliminado')
+        }
+        
+        await updateDoc(docRef, {
           ...cleanUpdates,
           updatedAt: serverTimestamp()
         })
       })
       toast.success("Gasto actualizado correctamente")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating expense:", error)
-      toast.error("Error al actualizar gasto")
+      if (error.message?.includes('no existe')) {
+        toast.error("El gasto no existe. Por favor actualiza la página.")
+      } else if (error.code === 'permission-denied') {
+        toast.error("No tienes permisos para actualizar este gasto")
+      } else {
+        toast.error("Error al actualizar gasto")
+      }
       throw error
     }
   }, [user, canMakeRequest, makeRequest, retryWithBackoff])
@@ -281,14 +297,23 @@ export function ExpensesDashboard() {
   }, [user, canMakeRequest, makeRequest, retryWithBackoff])
 
   const togglePaid = useCallback(async (id: string, currentStatus: 'pending' | 'paid', receiptImageId?: string) => {
+    console.log('🔄 togglePaid llamado:', { id, currentStatus, receiptImageId })
+    
     const newStatus = currentStatus === 'pending' ? 'paid' : 'pending'
     
-    if (newStatus === 'paid') {
-      // Crear registro de pago en el historial
-      const paymentService = new (await import('@/lib/payment-service')).PaymentService(user!.uid)
-      const expense = expenses.find(exp => exp.id === id)
-      
-      if (expense) {
+    try {
+      if (newStatus === 'paid') {
+        // Crear registro de pago en el historial
+        const paymentService = new (await import('@/lib/payment-service')).PaymentService(user!.uid)
+        const expense = expenses.find(exp => exp.id === id)
+        
+        if (!expense) {
+          console.error('❌ Gasto no encontrado en la lista local:', id)
+          toast.error('Gasto no encontrado. Por favor actualiza la página.')
+          return
+        }
+        
+        console.log('💰 Registrando pago:', { expense })
         await paymentService.recordPayment(
           id,
           expense.name,
@@ -296,10 +321,15 @@ export function ExpensesDashboard() {
           receiptImageId
         )
       }
+      
+      // Actualizar estado del gasto
+      console.log('📝 Actualizando estado del gasto a:', newStatus)
+      await updateExpense(id, { status: newStatus })
+      console.log('✅ Estado actualizado correctamente')
+    } catch (error) {
+      console.error('❌ Error en togglePaid:', error)
+      throw error
     }
-    
-    // Actualizar estado del gasto
-    await updateExpense(id, { status: newStatus })
   }, [updateExpense, user, expenses])
 
   // ✅ SIMPLIFICADO: Función para manejar pagos de items recurrentes (crea gasto normal)
