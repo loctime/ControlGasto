@@ -1,19 +1,19 @@
 "use client"
 
 import { RecurringItemsService } from '@/lib/recurring-items-service'
-import { RecurringItem, RecurringItemInstance } from '@/lib/types'
+import { RecurrenceType, RecurringItem, RecurringItemInstance } from '@/lib/types'
 import { format, isPast, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
 import {
-    AlertCircle,
-    Calendar,
-    CalendarClock,
-    CalendarDays,
-    CheckCircle2,
-    Clock,
-    DollarSign
+  AlertCircle,
+  Calendar,
+  CalendarClock,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  DollarSign
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from './auth-provider'
 import { Badge } from './ui/badge'
@@ -24,7 +24,11 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 
-export function PendingItemsCard() {
+interface PendingItemsCardProps {
+  filterByRecurrence?: RecurrenceType // Filtrar por tipo de recurrencia
+}
+
+export function PendingItemsCard({ filterByRecurrence }: PendingItemsCardProps = {}) {
   const { user } = useAuth()
   const [dailyItems, setDailyItems] = useState<RecurringItem[]>([])
   const [instances, setInstances] = useState<RecurringItemInstance[]>([])
@@ -33,6 +37,17 @@ export function PendingItemsCard() {
   const [selectedItem, setSelectedItem] = useState<RecurringItem | RecurringItemInstance | null>(null)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentNotes, setPaymentNotes] = useState('')
+
+  // Filtrar items según el tipo de recurrencia
+  const filteredDailyItems = useMemo(() => {
+    if (!filterByRecurrence) return dailyItems
+    return dailyItems.filter(item => item.recurrenceType === filterByRecurrence)
+  }, [dailyItems, filterByRecurrence])
+
+  const filteredInstances = useMemo(() => {
+    if (!filterByRecurrence) return instances
+    return instances.filter(instance => instance.recurrenceType === filterByRecurrence)
+  }, [instances, filterByRecurrence])
 
   useEffect(() => {
     loadData()
@@ -88,17 +103,18 @@ export function PendingItemsCard() {
       }
 
       // Determinar si es item diario o instancia
-      if ('recurrenceType' in selectedItem && selectedItem.recurrenceType === 'daily') {
-        // Es un item diario
+      if ('name' in selectedItem) {
+        // Es un item diario (RecurringItem)
+        const item = selectedItem as RecurringItem
         await service.payDailyItem(
-          selectedItem.id,
-          selectedItem.name,
+          item.id,
+          item.name,
           amount,
-          selectedItem.category,
+          item.category,
           undefined,
           paymentNotes || undefined
         )
-        toast.success(`${selectedItem.name} pagado correctamente`)
+        toast.success(`${item.name} pagado correctamente`)
       } else {
         // Es una instancia
         const instance = selectedItem as RecurringItemInstance
@@ -161,14 +177,14 @@ export function PendingItemsCard() {
 
   const groupInstancesByType = () => {
     return {
-      weekly: instances.filter(i => i.recurrenceType === 'weekly'),
-      monthly: instances.filter(i => i.recurrenceType === 'monthly'),
-      calendar: instances.filter(i => i.recurrenceType === 'custom_calendar')
+      weekly: filteredInstances.filter(i => i.recurrenceType === 'weekly'),
+      monthly: filteredInstances.filter(i => i.recurrenceType === 'monthly'),
+      calendar: filteredInstances.filter(i => i.recurrenceType === 'custom_calendar')
     }
   }
 
   const grouped = groupInstancesByType()
-  const hasAnyItems = dailyItems.length > 0 || instances.length > 0
+  const hasAnyItems = filteredDailyItems.length > 0 || filteredInstances.length > 0
 
   if (loading) {
     return (
@@ -195,7 +211,7 @@ export function PendingItemsCard() {
     <>
       <div className="space-y-4">
         {/* Items Diarios */}
-        {dailyItems.length > 0 && (
+        {filteredDailyItems.length > 0 && (
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -208,7 +224,7 @@ export function PendingItemsCard() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {dailyItems.map(item => (
+                {filteredDailyItems.map(item => (
                   <Card key={item.id} className="border-2">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
@@ -417,10 +433,11 @@ export function PendingItemsCard() {
                 id="amount"
                 type="number"
                 step="0.01"
+                inputMode="decimal"
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
                 placeholder="0.00"
-                disabled={selectedItem && 'itemName' in selectedItem}
+                disabled={selectedItem ? 'itemName' in selectedItem : false}
               />
             </div>
 

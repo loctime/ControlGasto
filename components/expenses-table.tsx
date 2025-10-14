@@ -186,6 +186,7 @@ export function ExpensesTable({
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="number"
+                    inputMode="decimal"
                     placeholder="0.00"
                     value={newExpense.amount}
                     onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
@@ -270,6 +271,7 @@ export function ExpensesTable({
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         type="number"
+                        inputMode="decimal"
                         placeholder="0.00"
                         value={editingExpense.amount}
                         onChange={(e) => setEditingExpense({ ...editingExpense, amount: e.target.value })}

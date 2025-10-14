@@ -7,6 +7,7 @@ import { NotificationsBanner } from "@/components/notifications-banner"
 import { PendingItemsCard } from "@/components/pending-items-card"
 import { ChartErrorFallback, ErrorBoundary } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAutoScheduler } from "@/lib/auto-scheduler"
 import { db } from "@/lib/firebase"
 import { useMemoizedCalculations, useRateLimit, useRetry } from "@/lib/optimization"
@@ -22,7 +23,7 @@ import {
     Timestamp,
     updateDoc
 } from "firebase/firestore"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 interface Expense {
@@ -36,11 +37,45 @@ interface Expense {
   updatedAt: Timestamp | FieldValue
 }
 
+// Función helper para filtrar gastos por período
+const filterExpensesByPeriod = (expenses: Expense[], period: 'daily' | 'weekly' | 'monthly') => {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  
+  return expenses.filter(expense => {
+    const expenseDate = expense.createdAt instanceof Timestamp 
+      ? expense.createdAt.toDate() 
+      : new Date()
+    
+    switch (period) {
+      case 'daily':
+        // Gastos de hoy
+        const expenseDay = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate())
+        return expenseDay.getTime() === today.getTime()
+      
+      case 'weekly':
+        // Gastos de esta semana (últimos 7 días)
+        const weekAgo = new Date(today)
+        weekAgo.setDate(weekAgo.getDate() - 7)
+        return expenseDate >= weekAgo
+      
+      case 'monthly':
+        // Gastos de este mes
+        return expenseDate.getMonth() === now.getMonth() && 
+               expenseDate.getFullYear() === now.getFullYear()
+      
+      default:
+        return true
+    }
+  })
+}
+
 export function ExpensesDashboard() {
   const { user } = useAuth()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activePeriod, setActivePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
   
   // ✅ OPTIMIZACIÓN: Hooks de optimización
   const { retryWithBackoff } = useRetry()
@@ -49,10 +84,14 @@ export function ExpensesDashboard() {
   // ✅ AUTO-SCHEDULER: Verificar items recurrentes automáticamente
   useAutoScheduler()
   
+  // ✅ Filtrar gastos según el período activo
+  const filteredExpenses = useMemo(() => {
+    return filterExpensesByPeriod(expenses, activePeriod)
+  }, [expenses, activePeriod])
 
-  // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados
+  // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados para el período seleccionado
   const totals = useMemoizedCalculations(
-    expenses,
+    filteredExpenses,
     (expenses) => {
       const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
       const totalPaid = expenses.filter((exp) => exp.status === 'paid').reduce((sum, exp) => sum + exp.amount, 0)
@@ -231,28 +270,98 @@ export function ExpensesDashboard() {
         {/* Banner de notificaciones */}
         <NotificationsBanner />
 
-        {/* Items recurrentes pendientes */}
-        <ErrorBoundary fallback={ChartErrorFallback}>
-          <PendingItemsCard />
-        </ErrorBoundary>
+        {/* Pestañas de períodos */}
+        <Tabs defaultValue="daily" className="w-full" onValueChange={(value) => setActivePeriod(value as 'daily' | 'weekly' | 'monthly')}>
+          <div className="flex justify-center mb-6">
+            <TabsList className="grid w-full max-w-md grid-cols-3">
+              <TabsTrigger value="daily" className="text-sm font-medium">
+                📅 Diario
+              </TabsTrigger>
+              <TabsTrigger value="weekly" className="text-sm font-medium">
+                📊 Semanal
+              </TabsTrigger>
+              <TabsTrigger value="monthly" className="text-sm font-medium">
+                📈 Mensual
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        {/* Header con totales */}
-        <ExpensesHeader 
-          totalPaid={totals.totalPaid}
-          totalPending={totals.totalPending}
-          totalExpenses={totals.totalExpenses}
-        />
+          {/* Contenido para cada período */}
+          <TabsContent value="daily" className="space-y-6">
+            {/* Items recurrentes diarios pendientes */}
+            <ErrorBoundary fallback={ChartErrorFallback}>
+              <PendingItemsCard filterByRecurrence="daily" />
+            </ErrorBoundary>
 
-        {/* Tabla de gastos */}
-        <ErrorBoundary fallback={ChartErrorFallback}>
-          <ExpensesTable
-            expenses={expenses}
-            onAddExpense={addExpense}
-            onUpdateExpense={updateExpense}
-            onDeleteExpense={deleteExpense}
-            onTogglePaid={togglePaid}
-          />
-        </ErrorBoundary>
+            {/* Header con totales del día */}
+            <ExpensesHeader 
+              totalPaid={totals.totalPaid}
+              totalPending={totals.totalPending}
+              totalExpenses={totals.totalExpenses}
+            />
+
+            {/* Tabla de gastos del día */}
+            <ErrorBoundary fallback={ChartErrorFallback}>
+              <ExpensesTable
+                expenses={filteredExpenses}
+                onAddExpense={addExpense}
+                onUpdateExpense={updateExpense}
+                onDeleteExpense={deleteExpense}
+                onTogglePaid={togglePaid}
+              />
+            </ErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="weekly" className="space-y-6">
+            {/* Items recurrentes semanales pendientes */}
+            <ErrorBoundary fallback={ChartErrorFallback}>
+              <PendingItemsCard filterByRecurrence="weekly" />
+            </ErrorBoundary>
+
+            {/* Header con totales de la semana */}
+            <ExpensesHeader 
+              totalPaid={totals.totalPaid}
+              totalPending={totals.totalPending}
+              totalExpenses={totals.totalExpenses}
+            />
+
+            {/* Tabla de gastos de la semana */}
+            <ErrorBoundary fallback={ChartErrorFallback}>
+              <ExpensesTable
+                expenses={filteredExpenses}
+                onAddExpense={addExpense}
+                onUpdateExpense={updateExpense}
+                onDeleteExpense={deleteExpense}
+                onTogglePaid={togglePaid}
+              />
+            </ErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="monthly" className="space-y-6">
+            {/* Items recurrentes mensuales pendientes */}
+            <ErrorBoundary fallback={ChartErrorFallback}>
+              <PendingItemsCard filterByRecurrence="monthly" />
+            </ErrorBoundary>
+
+            {/* Header con totales del mes */}
+            <ExpensesHeader 
+              totalPaid={totals.totalPaid}
+              totalPending={totals.totalPending}
+              totalExpenses={totals.totalExpenses}
+            />
+
+            {/* Tabla de gastos del mes */}
+            <ErrorBoundary fallback={ChartErrorFallback}>
+              <ExpensesTable
+                expenses={filteredExpenses}
+                onAddExpense={addExpense}
+                onUpdateExpense={updateExpense}
+                onDeleteExpense={deleteExpense}
+                onTogglePaid={togglePaid}
+              />
+            </ErrorBoundary>
+          </TabsContent>
+        </Tabs>
       </div>
     </ErrorBoundary>
   )

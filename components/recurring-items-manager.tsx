@@ -352,6 +352,7 @@ export function RecurringItemsManager() {
                     id="amount"
                     type="number"
                     step="0.01"
+                    inputMode="decimal"
                     value={formData.amount}
                     onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                     placeholder="0.00"
