@@ -3,6 +3,7 @@
 import { useAuth } from "@/components/auth-provider"
 import { ExpensesTable } from "@/components/expenses-table"
 import { NotificationsBanner } from "@/components/notifications-banner"
+import { Button } from "@/components/ui/button"
 import { ChartErrorFallback, ErrorBoundary } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
 import { db } from "@/lib/firebase"
@@ -10,17 +11,18 @@ import { useMemoizedCalculations, useRateLimit, useRetry } from "@/lib/optimizat
 import { RecurringItemsService } from "@/lib/recurring-items-service"
 import { RecurringItem } from "@/lib/types"
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    FieldValue,
-    onSnapshot,
-    query,
-    serverTimestamp,
-    Timestamp,
-    updateDoc
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  FieldValue,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  Timestamp,
+  updateDoc
 } from "firebase/firestore"
+import { Plus } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -119,6 +121,7 @@ export function ExpensesDashboard() {
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAdding, setIsAdding] = useState(false)
   
   // ✅ OPTIMIZACIÓN: Hooks de optimización
   const { retryWithBackoff } = useRetry()
@@ -395,6 +398,10 @@ export function ExpensesDashboard() {
     }
   }, [user, recurringItems])
 
+  const handleToggleAdding = () => {
+    setIsAdding(!isAdding)
+  }
+
   // ✅ OPTIMIZACIÓN: Estados de carga y error
   if (isLoading) {
     return <DashboardSkeleton />
@@ -424,12 +431,21 @@ export function ExpensesDashboard() {
         {/* Banner de notificaciones */}
         <NotificationsBanner />
 
-        {/* Título con fecha actual */}
-        <div className="text-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-            📅 Gastos de Hoy
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+        {/* Título con fecha actual y botón agregar */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+              📅 Gastos de Hoy
+            </h2>
+            <Button
+              onClick={handleToggleAdding}
+              className="bg-primary hover:bg-primary/90 shadow-sm"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {isAdding ? "Cancelar" : "Agregar"}
+            </Button>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
             {new Date().toLocaleDateString('es-ES', { 
               weekday: 'long', 
               year: 'numeric', 
@@ -449,6 +465,8 @@ export function ExpensesDashboard() {
             onDeleteExpense={deleteExpense}
             onTogglePaid={togglePaid}
             onPayRecurringItem={handlePayRecurringItem}
+            isAdding={isAdding}
+            onToggleAdding={handleToggleAdding}
           />
         </ErrorBoundary>
       </div>

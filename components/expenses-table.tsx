@@ -4,23 +4,23 @@ import { useControlFile } from "@/components/controlfile-provider"
 import { PaymentReceiptDialog } from "@/components/payment-receipt-dialog"
 import { RecurringPaymentDialog } from "@/components/recurring-payment-dialog"
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -53,6 +53,8 @@ interface ExpensesTableProps {
   onDeleteExpense: (id: string) => void
   onTogglePaid: (id: string, currentStatus: 'pending' | 'paid', receiptImageId?: string) => void
   onPayRecurringItem?: (itemId: string, amount: number, notes?: string) => void
+  isAdding: boolean
+  onToggleAdding: () => void
 }
 
 export function ExpensesTable({ 
@@ -62,9 +64,10 @@ export function ExpensesTable({
   onUpdateExpense, 
   onDeleteExpense, 
   onTogglePaid,
-  onPayRecurringItem
+  onPayRecurringItem,
+  isAdding,
+  onToggleAdding
 }: ExpensesTableProps) {
-  const [isAdding, setIsAdding] = useState(false)
   const [newExpense, setNewExpense] = useState({ name: "", amount: "", category: "hogar" })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingExpense, setEditingExpense] = useState({ name: "", amount: "", category: "hogar" })
@@ -99,15 +102,11 @@ export function ExpensesTable({
     }
   }, [isAdding])
 
-  const handleToggleAdding = () => {
-    setIsAdding(!isAdding)
-  }
-
   const handleAddExpense = () => {
     if (newExpense.name && newExpense.amount) {
       onAddExpense(newExpense.name, Number.parseFloat(newExpense.amount), newExpense.category)
       setNewExpense({ name: "", amount: "", category: "hogar" })
-      setIsAdding(false)
+      onToggleAdding()
     }
   }
 
@@ -194,20 +193,6 @@ export function ExpensesTable({
 
   return (
     <div className="space-y-3">
-      {/* Header elegante */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Gastos</h2>
-        </div>
-        <Button
-          onClick={handleToggleAdding}
-          className="bg-primary hover:bg-primary/90 shadow-sm"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          {isAdding ? "Cancelar" : "Agregar"}
-        </Button>
-      </div>
-
       {/* Formulario de agregar - Estilo moderno */}
       {isAdding && (
         <div className="bg-gradient-to-br from-primary/8 via-primary/5 to-primary/3 rounded-xl p-4 border border-primary/30 shadow-lg backdrop-blur-sm">
@@ -262,7 +247,7 @@ export function ExpensesTable({
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => setIsAdding(false)}
+                  onClick={onToggleAdding}
                   className="flex-1 border-primary/30 text-primary hover:bg-primary/10 h-12"
                 >
                   <X className="w-4 h-4 mr-2" />
@@ -318,14 +303,14 @@ export function ExpensesTable({
             return (
               <div
                 key={item.id}
-                className={`group rounded-lg border transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${
+                className={`group rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${
                   isExpense && expense?.status === 'paid' 
-                    ? "bg-gradient-to-br from-paid/10 via-paid/5 to-paid/3 border-paid/30 hover:border-paid/40 shadow-md"
+                    ? "bg-gradient-to-br from-green-50 via-green-25 to-white border-2 border-green-500 hover:border-green-600 shadow-md"
                     : isExpense && expense?.status === 'pending'
-                    ? "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border-pending/30 hover:border-pending/40 shadow-md"
+                    ? "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border border-pending/30 hover:border-pending/40 shadow-md"
                     : recurringItem
-                    ? "bg-gradient-to-br from-blue-50 via-blue-25 to-blue-10 border-blue-200 hover:border-blue-300 shadow-md"
-                    : "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border-pending/30 hover:border-pending/40 shadow-md"
+                    ? "bg-gradient-to-br from-blue-50 via-blue-25 to-blue-10 border border-blue-200 hover:border-blue-300 shadow-md"
+                    : "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border border-pending/30 hover:border-pending/40 shadow-md"
                 }`}
               >
                 {isExpense && editingId === expense?.id ? (
@@ -569,7 +554,7 @@ export function ExpensesTable({
               Comienza agregando tu primer gasto fijo
             </p>
             <Button
-              onClick={handleToggleAdding}
+              onClick={onToggleAdding}
               className="bg-primary hover:bg-primary/90"
             >
               <Plus className="w-4 h-4 mr-2" />
