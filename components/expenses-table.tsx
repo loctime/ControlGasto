@@ -14,7 +14,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -192,55 +191,85 @@ export function ExpensesTable({
   }
 
   return (
-    <div className="space-y-3">
-      {/* Formulario de agregar - Estilo moderno */}
+    <div className="space-y-4">
+      {/* Formulario de agregar compacto */}
       {isAdding && (
-        <div className="bg-gradient-to-br from-primary/8 via-primary/5 to-primary/3 rounded-xl p-4 border border-primary/30 shadow-lg backdrop-blur-sm">
-          <h3 className="font-medium text-primary mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 bg-primary rounded-full"></span>
-            Nuevo Gasto
-          </h3>
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-accent/20 to-success/20 rounded-2xl blur-lg animate-pulse"></div>
+          <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl p-4 border border-white/30 shadow-xl">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center text-white font-bold text-sm animate-bounce-gentle">
+                ✨
+              </div>
+              <div>
+                <h3 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  Nuevo Gasto
+                </h3>
+              </div>
+            </div>
             <div className="space-y-3">
-              <Input
-                ref={nameInputRef}
-                placeholder="Descripción del gasto"
-                value={newExpense.name}
-                onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
-                className="h-12 text-lg border-primary/30 focus:border-primary focus:ring-primary"
-              />
-              <Select
-                value={newExpense.category}
-                onValueChange={(value) => setNewExpense({ ...newExpense, category: value })}
-              >
-                <SelectTrigger className="h-12 text-lg border-primary/30 focus:border-primary focus:ring-primary">
-                  <SelectValue placeholder="Selecciona una categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hogar">🏠 Hogar</SelectItem>
-                  <SelectItem value="transporte">🚗 Transporte</SelectItem>
-                  <SelectItem value="alimentacion">🍽️ Alimentación</SelectItem>
-                  <SelectItem value="servicios">⚡ Servicios</SelectItem>
-                  <SelectItem value="entretenimiento">🎬 Entretenimiento</SelectItem>
-                  <SelectItem value="salud">🏥 Salud</SelectItem>
-                  <SelectItem value="otros">📦 Otros</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1 mb-1">
+                    <span className="text-primary">📝</span>
+                    Descripción
+                  </label>
+                  <Input
+                    ref={nameInputRef}
+                    placeholder="Ej: Almuerzo con amigos"
+                    value={newExpense.name}
+                    onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
+                    className="h-10 text-sm border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1 mb-1">
+                    <span className="text-primary">🏷️</span>
+                    Categoría
+                  </label>
+                  <Select
+                    value={newExpense.category}
+                    onValueChange={(value) => setNewExpense({ ...newExpense, category: value })}
+                  >
+                    <SelectTrigger className="h-10 text-sm border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300">
+                      <SelectValue placeholder="Selecciona una categoría" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="hogar" className="rounded-lg">🏠 Hogar</SelectItem>
+                      <SelectItem value="transporte" className="rounded-lg">🚗 Transporte</SelectItem>
+                      <SelectItem value="alimentacion" className="rounded-lg">🍽️ Alimentación</SelectItem>
+                      <SelectItem value="servicios" className="rounded-lg">⚡ Servicios</SelectItem>
+                      <SelectItem value="entretenimiento" className="rounded-lg">🎬 Entretenimiento</SelectItem>
+                      <SelectItem value="salud" className="rounded-lg">🏥 Salud</SelectItem>
+                      <SelectItem value="otros" className="rounded-lg">📦 Otros</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1 mb-1">
+                  <span className="text-primary">💰</span>
+                  Monto
+                </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                   <Input
                     type="number"
                     inputMode="decimal"
                     placeholder="0.00"
                     value={newExpense.amount}
                     onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                    className="pl-9 h-12 text-lg border-primary/30 focus:border-primary focus:ring-primary"
+                    className="pl-9 h-10 text-lg font-bold border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300"
                   />
                 </div>
-              <div className="flex gap-3">
+              </div>
+              
+              <div className="flex gap-3 pt-2">
                 <Button
                   onClick={handleAddExpense}
-                  className="flex-1 bg-primary hover:bg-primary/90 h-12"
+                  className="flex-1 btn-modern h-10 text-sm font-semibold rounded-xl"
                 >
                   <Check className="w-4 h-4 mr-2" />
                   Guardar
@@ -248,7 +277,7 @@ export function ExpensesTable({
                 <Button
                   variant="outline"
                   onClick={onToggleAdding}
-                  className="flex-1 border-primary/30 text-primary hover:bg-primary/10 h-12"
+                  className="flex-1 h-10 text-sm font-semibold rounded-xl border-2 border-primary/30 text-primary hover:bg-primary/10 transition-all duration-300"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Cancelar
@@ -259,8 +288,8 @@ export function ExpensesTable({
         </div>
       )}
 
-      {/* Lista de gastos - Estilo moderno */}
-      <div className="space-y-2">
+      {/* Lista de gastos - Estilo compacto */}
+      <div className="space-y-3">
         {getAllExpenses()
           .filter(item => item && item.id) // Filtrar items inválidos
           .sort((a, b) => {
@@ -303,15 +332,18 @@ export function ExpensesTable({
             return (
               <div
                 key={item.id}
-                className={`group rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${
+                className={`group relative overflow-hidden transition-all duration-500 hover:scale-[1.02] animate-scale-in ${
                   isExpense && expense?.status === 'paid' 
-                    ? "bg-gradient-to-br from-green-50 via-green-25 to-white border-2 border-green-500 hover:border-green-600 shadow-md"
+                    ? "card-float bg-gradient-to-br from-green-50 via-emerald-50 to-white dark:from-green-900/20 dark:via-emerald-900/20 dark:to-gray-900/50 border-2 border-green-400 dark:border-green-500"
                     : isExpense && expense?.status === 'pending'
-                    ? "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border border-pending/30 hover:border-pending/40 shadow-md"
+                    ? "card-float bg-gradient-to-br from-orange-50 via-amber-50 to-white dark:from-orange-900/20 dark:via-amber-900/20 dark:to-gray-900/50 border-2 border-orange-400 dark:border-orange-500"
                     : recurringItem
-                    ? "bg-gradient-to-br from-blue-50 via-blue-25 to-blue-10 border border-blue-200 hover:border-blue-300 shadow-md"
-                    : "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border border-pending/30 hover:border-pending/40 shadow-md"
+                    ? "card-float bg-gradient-to-br from-blue-50 via-indigo-50 to-white dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-gray-900/50 border-2 border-blue-400 dark:border-blue-500"
+                    : "card-float bg-gradient-to-br from-orange-50 via-amber-50 to-white dark:from-orange-900/20 dark:via-amber-900/20 dark:to-gray-900/50 border-2 border-orange-400 dark:border-orange-500"
                 }`}
+                style={{
+                  animationDelay: `${Math.random() * 0.5}s`
+                }}
               >
                 {isExpense && editingId === expense?.id ? (
                   // Modo edición para gastos normales
@@ -377,81 +409,107 @@ export function ExpensesTable({
                 </div>
               </div>
             ) : isExpense ? (
-              // Vista normal reorganizada
+              // Vista compacta para gastos
               <div className="p-4">
-                {/* Primera fila: Menú - Descripción - Categoría */}
-                <div className="flex items-center justify-between mb-3 gap-2 min-w-0">
-                  {/* Dropdown de editar (incluye eliminar) - Pegado al borde */}
+                {/* Efectos de fondo animados */}
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/10 to-accent/10 rounded-full blur-lg animate-pulse"></div>
+                
+                {/* Header del card */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${
+                      expense?.status === 'paid' 
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 animate-bounce-gentle' 
+                        : 'bg-gradient-to-r from-orange-500 to-amber-600 animate-wiggle'
+                    }`}>
+                      {expense?.category === 'hogar' && '🏠'}
+                      {expense?.category === 'transporte' && '🚗'}
+                      {expense?.category === 'alimentacion' && '🍽️'}
+                      {expense?.category === 'servicios' && '⚡'}
+                      {expense?.category === 'entretenimiento' && '🎬'}
+                      {expense?.category === 'salud' && '🏥'}
+                      {expense?.category === 'otros' && '📦'}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">{expense?.name}</h3>
+                      <div className="flex items-center space-x-2">
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          expense?.status === 'paid' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+                        }`}>
+                          {expense?.category === 'hogar' && '🏠 Hogar'}
+                          {expense?.category === 'transporte' && '🚗 Transporte'}
+                          {expense?.category === 'alimentacion' && '🍽️ Alimentación'}
+                          {expense?.category === 'servicios' && '⚡ Servicios'}
+                          {expense?.category === 'entretenimiento' && '🎬 Entretenimiento'}
+                          {expense?.category === 'salud' && '🏥 Salud'}
+                          {expense?.category === 'otros' && '📦 Otros'}
+                        </span>
+                        {expense?.status === 'paid' && (
+                          <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full font-semibold animate-pulse">
+                            ✅
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Menú de acciones */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0 -ml-4"
+                        className="h-8 w-8 p-0 hover:bg-primary/10 rounded-lg transition-all duration-300"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuItem onClick={() => expense && handleEditExpense(expense)}>
+                    <DropdownMenuContent align="end" className="rounded-xl">
+                      <DropdownMenuItem onClick={() => expense && handleEditExpense(expense)} className="rounded-lg">
                         <Pencil className="w-4 h-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => expense && onDeleteExpense(expense.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Eliminar
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  
-                  {/* Descripción */}
-                  <h3 className="text-lg font-semibold text-foreground truncate flex-1 min-w-0 mx-2">{expense?.name}</h3>
-                  
-                  {/* Categoría */}
-                  <Badge variant="outline" className="text-sm px-2 py-1 whitespace-nowrap flex-shrink-0">
-                    {expense?.category === 'hogar' && '🏠 Hogar'}
-                    {expense?.category === 'transporte' && '🚗 Transporte'}
-                    {expense?.category === 'alimentacion' && '🍽️ Alimentación'}
-                    {expense?.category === 'servicios' && '⚡ Servicios'}
-                    {expense?.category === 'entretenimiento' && '🎬 Entretenimiento'}
-                    {expense?.category === 'salud' && '🏥 Salud'}
-                    {expense?.category === 'otros' && '📦 Otros'}
-                  </Badge>
                 </div>
 
-                {/* Segunda fila: Monto - Botón de estado - Indicador de pago */}
-                <div className="flex items-center justify-between gap-3 min-w-0">
+                {/* Footer del card */}
+                <div className="flex items-center justify-between">
                   {/* Monto */}
-                  <div className={`font-bold text-foreground truncate min-w-0 flex-shrink-0 ${
+                  <div className={`font-bold text-foreground ${
                     (expense?.amount?.toString().length || 0) <= 6 
-                      ? 'text-3xl' 
+                      ? 'text-2xl' 
                       : (expense?.amount?.toString().length || 0) <= 8 
-                        ? 'text-2xl' 
+                        ? 'text-xl' 
                         : (expense?.amount?.toString().length || 0) <= 10
-                          ? 'text-xl'
-                          : 'text-lg'
+                          ? 'text-lg'
+                          : 'text-base'
                   }`}>
                     {expense && formatCurrency(expense.amount)}
                   </div>
                   
-                  {/* Botón de estado de pago y indicador */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Botón de estado de pago */}
+                  {/* Botón de estado */}
+                  <div className="flex items-center gap-2">
                     {expense?.status === 'paid' ? (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="h-8 px-3 text-xs border-pending/40 text-pending hover:bg-pending/10 whitespace-nowrap"
+                            className="h-8 px-4 text-xs bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold transition-all duration-300 hover:scale-105"
                           >
-                            Pendiente
+                            ⏳ Pendiente
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent className="rounded-xl">
                           <AlertDialogHeader>
                             <AlertDialogTitle>¿Marcar como pendiente?</AlertDialogTitle>
                             <AlertDialogDescription>
@@ -459,10 +517,10 @@ export function ExpensesTable({
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogCancel className="rounded-lg">Cancelar</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => expense && onTogglePaid(expense.id, expense.status)}
-                              className="bg-blue-600 hover:bg-blue-700"
+                              className="rounded-lg"
                             >
                               Marcar como Pendiente
                             </AlertDialogAction>
@@ -473,66 +531,63 @@ export function ExpensesTable({
                       <Button
                         size="sm"
                         onClick={() => expense && handleTogglePaidClick(expense)}
-                        className="h-8 px-4 text-xs bg-paid hover:bg-paid/90 text-paid-foreground whitespace-nowrap shadow-md border-2 border-paid/30 hover:border-paid/50 font-semibold"
+                        className="h-8 px-4 text-xs bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-semibold transition-all duration-300 hover:scale-105 shadow-lg"
                       >
-                        Pagar
+                        💳 Pagar
                       </Button>
-                    )}
-                    
-                    {/* Indicador de estado de pago */}
-                    {expense?.status === 'paid' && (
-                      <div className="w-4 h-4 bg-paid rounded-full flex items-center justify-center">
-                        <Check className="w-3 h-3 text-paid-foreground" />
-                      </div>
                     )}
                   </div>
                 </div>
               </div>
             ) : null}
             {!isExpense && (
-              // Vista para items recurrentes
+              // Vista compacta para items recurrentes
               <div className="p-4">
-                <div className="flex items-center justify-between mb-3 gap-2 min-w-0">
-                  {/* Indicador de item recurrente */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
-                      Recurrente
-                    </Badge>
+                {/* Efectos de fondo animados */}
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-blue-400/10 to-indigo-500/10 rounded-full blur-lg animate-pulse"></div>
+                
+                {/* Header del card */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-lg font-bold animate-float">
+                      🔄
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">{recurringItem?.name}</h3>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded-full font-semibold">
+                          🔄 RECURRENTE
+                        </span>
+                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400">
+                          {recurringItem?.category === 'hogar' && '🏠 Hogar'}
+                          {recurringItem?.category === 'transporte' && '🚗 Transporte'}
+                          {recurringItem?.category === 'alimentacion' && '🍽️ Alimentación'}
+                          {recurringItem?.category === 'servicios' && '⚡ Servicios'}
+                          {recurringItem?.category === 'entretenimiento' && '🎬 Entretenimiento'}
+                          {recurringItem?.category === 'salud' && '🏥 Salud'}
+                          {recurringItem?.category === 'otros' && '📦 Otros'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  
-                  {/* Descripción */}
-                  <h3 className="text-lg font-semibold text-foreground truncate flex-1 min-w-0 mx-2">
-                    {recurringItem?.name}
-                  </h3>
-                  
-                  {/* Categoría */}
-                  <Badge variant="outline" className="text-sm px-2 py-1 whitespace-nowrap flex-shrink-0">
-                    {recurringItem?.category === 'hogar' && '🏠 Hogar'}
-                    {recurringItem?.category === 'transporte' && '🚗 Transporte'}
-                    {recurringItem?.category === 'alimentacion' && '🍽️ Alimentación'}
-                    {recurringItem?.category === 'servicios' && '⚡ Servicios'}
-                    {recurringItem?.category === 'entretenimiento' && '🎬 Entretenimiento'}
-                    {recurringItem?.category === 'salud' && '🏥 Salud'}
-                    {recurringItem?.category === 'otros' && '📦 Otros'}
-                  </Badge>
                 </div>
 
-                {/* Segunda fila: Monto y botón de pago */}
-                <div className="flex items-center justify-between gap-3 min-w-0">
+                {/* Footer del card */}
+                <div className="flex items-center justify-between">
                   {/* Monto */}
-                  <div className="font-bold text-foreground truncate min-w-0 flex-shrink-0 text-2xl">
+                  <div className="text-xl font-bold text-foreground">
                     {recurringItem && recurringItem.amount
                       ? formatCurrency(recurringItem.amount)
-                      : 'Ingresar monto'}
+                      : '💰 Ingresar monto'}
                   </div>
                   
                   {/* Botón de pago */}
                   <Button
                     size="sm"
                     onClick={() => handlePayRecurringItem(recurringItem!)}
-                    className="h-8 px-4 text-xs bg-paid hover:bg-paid/90 text-paid-foreground whitespace-nowrap shadow-md border-2 border-paid/30 hover:border-paid/50 font-semibold"
+                    className="h-8 px-4 text-xs bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-semibold transition-all duration-300 hover:scale-105 shadow-lg"
                   >
-                    Pagar
+                    💳 Pagar
                   </Button>
                 </div>
               </div>
@@ -541,25 +596,35 @@ export function ExpensesTable({
         )
       })}
 
-      {/* Estado vacío elegante */}
+      {/* Estado vacío compacto */}
         {expenses.length === 0 && !isAdding && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <DollarSign className="w-8 h-8 text-slate-400" />
+          <div className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-success/5 rounded-2xl blur-xl"></div>
+            <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-6 border border-white/30 shadow-xl text-center">
+              <div className="relative mb-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-3 animate-bounce-gentle">
+                  <DollarSign className="w-8 h-8 text-white" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center text-xs animate-pulse">
+                  ✨
+                </div>
+              </div>
+              
+              <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
+                ¡Tu lista está vacía! 🎉
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+                Comienza agregando tu primer gasto
+              </p>
+              
+              <Button
+                onClick={onToggleAdding}
+                className="btn-modern px-6 py-3 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar Primer Gasto
+              </Button>
             </div>
-            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-              No hay gastos registrados
-            </h3>
-            <p className="text-slate-500 dark:text-slate-400 mb-4">
-              Comienza agregando tu primer gasto fijo
-            </p>
-            <Button
-              onClick={onToggleAdding}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar Primer Gasto
-            </Button>
           </div>
         )}
       </div>

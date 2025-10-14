@@ -426,49 +426,112 @@ export function ExpensesDashboard() {
 
   return (
     <ErrorBoundary>
-      <div className="max-w-6xl mx-auto p-4 space-y-4">
-
-        {/* Banner de notificaciones */}
-        <NotificationsBanner />
-
-        {/* Título con fecha actual y botón agregar */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-              📅 Gastos de Hoy
-            </h2>
-            <Button
-              onClick={handleToggleAdding}
-              className="bg-primary hover:bg-primary/90 shadow-sm"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {isAdding ? "Cancelar" : "Agregar"}
-            </Button>
+      <div className="min-h-screen gradient-bg">
+        <div className="max-w-6xl mx-auto p-4 space-y-4">
+          {/* Banner de notificaciones */}
+          <div className="animate-slide-in">
+            <NotificationsBanner />
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-            {new Date().toLocaleDateString('es-ES', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </p>
-        </div>
 
-        {/* Tabla unificada de gastos e items recurrentes de hoy */}
-        <ErrorBoundary fallback={ChartErrorFallback}>
-          <ExpensesTable
-            expenses={todayExpenses}
-            recurringItems={todayRecurringItems}
-            onAddExpense={addExpense}
-            onUpdateExpense={updateExpense}
-            onDeleteExpense={deleteExpense}
-            onTogglePaid={togglePaid}
-            onPayRecurringItem={handlePayRecurringItem}
-            isAdding={isAdding}
-            onToggleAdding={handleToggleAdding}
-          />
-        </ErrorBoundary>
+          {/* Header principal compacto */}
+          <div className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-success/10 rounded-2xl blur-xl"></div>
+            <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-lg animate-bounce-gentle">
+                      💰
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center text-xs animate-pulse">
+                      ✨
+                    </div>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                      📅 Gastos de Hoy
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date().toLocaleDateString('es-ES', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleToggleAdding}
+                  className="btn-modern px-4 py-2 text-sm font-semibold rounded-xl shadow-lg transition-all duration-300"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {isAdding ? "Cancelar" : "Agregar"}
+                </Button>
+              </div>
+              
+              {/* Stats cards compactos */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="card-float p-3 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white text-sm animate-pulse-glow">
+                      💸
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400">Total</p>
+                      <p className="text-sm font-bold text-blue-800 dark:text-blue-200">
+                        ${totals.totalExpenses.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="card-float p-3 rounded-xl bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center text-white text-sm animate-bounce-gentle">
+                      ✅
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400">Pagados</p>
+                      <p className="text-sm font-bold text-green-800 dark:text-green-200">
+                        ${totals.totalPaid.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="card-float p-3 rounded-xl bg-gradient-to-br from-orange-50 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-200 dark:border-orange-800">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-amber-600 rounded-lg flex items-center justify-center text-white text-sm animate-wiggle">
+                      ⏳
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-orange-600 dark:text-orange-400">Pendientes</p>
+                      <p className="text-sm font-bold text-orange-800 dark:text-orange-200">
+                        ${totals.totalPending.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabla unificada de gastos e items recurrentes de hoy */}
+          <ErrorBoundary fallback={ChartErrorFallback}>
+            <ExpensesTable
+              expenses={todayExpenses}
+              recurringItems={todayRecurringItems}
+              onAddExpense={addExpense}
+              onUpdateExpense={updateExpense}
+              onDeleteExpense={deleteExpense}
+              onTogglePaid={togglePaid}
+              onPayRecurringItem={handlePayRecurringItem}
+              isAdding={isAdding}
+              onToggleAdding={handleToggleAdding}
+            />
+          </ErrorBoundary>
+        </div>
       </div>
     </ErrorBoundary>
   )

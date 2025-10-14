@@ -4,43 +4,43 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Colores base mejorados con más contraste */
-  --background: oklch(0.99 0.005 106);
-  --foreground: oklch(0.15 0.02 106);
+  /* Fondo con gradiente vibrante - inspirado en las imágenes */
+  --background: oklch(0.98 0.02 220);
+  --foreground: oklch(0.15 0.02 280);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 106);
+  --card-foreground: oklch(0.15 0.02 280);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 106);
+  --popover-foreground: oklch(0.15 0.02 280);
   
-  /* Primary más legible con ALTO CONTRASTE */
-  --primary: oklch(0.30 0.15 220);
-  --primary-foreground: oklch(0.98 0.01 220);
+  /* Primary vibrante - gradiente púrpura a azul */
+  --primary: oklch(0.45 0.20 280);
+  --primary-foreground: oklch(0.98 0.01 280);
   
-  /* Secondary con más personalidad */
-  --secondary: oklch(0.95 0.05 280);
-  --secondary-foreground: oklch(0.25 0.15 250);
+  /* Secondary con gradiente naranja */
+  --secondary: oklch(0.95 0.08 45);
+  --secondary-foreground: oklch(0.25 0.15 280);
   
-  /* Muted más sutil pero visible */
-  --muted: oklch(0.96 0.02 106);
-  --muted-foreground: oklch(0.45 0.05 106);
+  /* Muted con tinte púrpura */
+  --muted: oklch(0.96 0.03 280);
+  --muted-foreground: oklch(0.45 0.08 280);
   
-  /* Accent más llamativo */
-  --accent: oklch(0.92 0.08 320);
-  --accent-foreground: oklch(0.25 0.15 250);
+  /* Accent vibrante - naranja brillante */
+  --accent: oklch(0.85 0.15 45);
+  --accent-foreground: oklch(0.15 0.02 45);
   
-  /* Destructive más impactante */
-  --destructive: oklch(0.55 0.25 15);
+  /* Destructive - rojo vibrante */
+  --destructive: oklch(0.60 0.25 15);
   --destructive-foreground: oklch(0.98 0.01 15);
   
-  /* Bordes más definidos */
-  --border: oklch(0.88 0.05 106);
-  --input: oklch(0.88 0.05 106);
-  --ring: oklch(0.25 0.15 250);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  /* Bordes con gradiente */
+  --border: oklch(0.88 0.05 280);
+  --input: oklch(0.88 0.05 280);
+  --ring: oklch(0.45 0.20 280);
+  --chart-1: oklch(0.65 0.20 280);        /* Púrpura vibrante */
+  --chart-2: oklch(0.70 0.18 200);        /* Azul vibrante */
+  --chart-3: oklch(0.75 0.20 45);         /* Naranja vibrante */
+  --chart-4: oklch(0.60 0.22 320);        /* Rosa vibrante */
+  --chart-5: oklch(0.70 0.18 160);        /* Verde vibrante */
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -51,28 +51,28 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   
-  /* Colores semánticos con más impacto visual */
-  --success: oklch(0.55 0.18 140);
-  --success-foreground: oklch(0.98 0.01 140);
-  --warning: oklch(0.65 0.15 45);
+  /* Colores semánticos vibrantes */
+  --success: oklch(0.60 0.20 160);        /* Verde vibrante */
+  --success-foreground: oklch(0.98 0.01 160);
+  --warning: oklch(0.70 0.18 45);        /* Naranja vibrante */
   --warning-foreground: oklch(0.15 0.02 45);
-  --info: oklch(0.55 0.15 220);
+  --info: oklch(0.60 0.18 220);          /* Azul vibrante */
   --info-foreground: oklch(0.98 0.01 220);
   
-  /* Colores para estados de gastos - MÁS CONTRASTE */
-  --paid: oklch(0.45 0.20 140);        /* Verde más intenso */
-  --paid-foreground: oklch(0.98 0.01 140);
-  --pending: oklch(0.60 0.18 35);     /* Naranja vibrante */
-  --pending-foreground: oklch(0.15 0.02 35);
+  /* Estados de gastos - colores vibrantes */
+  --paid: oklch(0.55 0.22 160);        /* Verde vibrante */
+  --paid-foreground: oklch(0.98 0.01 160);
+  --pending: oklch(0.65 0.20 45);     /* Naranja vibrante */
+  --pending-foreground: oklch(0.15 0.02 45);
   
-  /* Colores para categorías - MEJOR CONTRASTE */
-  --category-hogar: oklch(0.50 0.12 200);        /* Azul más claro */
-  --category-transporte: oklch(0.45 0.15 280);    /* Púrpura más claro */
-  --category-alimentacion: oklch(0.55 0.18 60);  /* Amarillo más claro */
-  --category-servicios: oklch(0.40 0.18 320);    /* Rosa más claro */
-  --category-entretenimiento: oklch(0.50 0.15 300); /* Magenta más claro */
-  --category-salud: oklch(0.45 0.18 10);         /* Rojo más claro */
-  --category-otros: oklch(0.40 0.05 106);        /* Gris más claro */
+  /* Categorías - colores vibrantes y divertidos */
+  --category-hogar: oklch(0.65 0.18 200);        /* Azul vibrante */
+  --category-transporte: oklch(0.60 0.20 280);    /* Púrpura vibrante */
+  --category-alimentacion: oklch(0.70 0.18 60);  /* Amarillo vibrante */
+  --category-servicios: oklch(0.55 0.22 320);    /* Rosa vibrante */
+  --category-entretenimiento: oklch(0.65 0.18 300); /* Magenta vibrante */
+  --category-salud: oklch(0.60 0.20 10);         /* Rojo vibrante */
+  --category-otros: oklch(0.50 0.15 280);        /* Púrpura grisáceo */
 }
 
 .dark {
@@ -192,41 +192,98 @@
   }
   body {
     @apply bg-background text-foreground;
+    background: linear-gradient(135deg, 
+      hsl(var(--background)) 0%, 
+      hsl(var(--primary) / 0.03) 50%, 
+      hsl(var(--accent) / 0.03) 100%);
+    background-size: 400% 400%;
+    animation: gradient-shift 8s ease infinite;
   }
 }
 
-/* Estilos específicos para modales - COLORES BÁSICOS QUE SE VEN */
+/* Estilos modernos y vibrantes */
 @layer components {
-  /* Botones de acción en modales - AZUL OSCURO CON BLANCO */
+  /* Botones con efectos modernos */
+  .btn-modern {
+    @apply relative overflow-hidden transition-all duration-300;
+    background: linear-gradient(135deg, 
+      hsl(var(--primary)) 0%, 
+      hsl(var(--accent)) 100%);
+    background-size: 200% 200%;
+    animation: gradient-shift 3s ease infinite;
+  }
+  
+  .btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px hsl(var(--primary) / 0.3);
+  }
+  
+  .btn-modern:active {
+    transform: translateY(0);
+  }
+  
+  /* Cards con efectos flotantes */
+  .card-float {
+    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+    background: linear-gradient(135deg, 
+      hsl(var(--card)) 0%, 
+      hsl(var(--primary) / 0.02) 100%);
+    border: 1px solid hsl(var(--primary) / 0.1);
+  }
+  
+  .card-float:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: 0 20px 40px hsl(var(--primary) / 0.1);
+  }
+  
+  /* Efectos de pulso para elementos importantes */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  /* Gradientes animados para backgrounds */
+  .gradient-bg {
+    background: linear-gradient(-45deg, 
+      hsl(var(--primary) / 0.1), 
+      hsl(var(--accent) / 0.1), 
+      hsl(var(--success) / 0.1), 
+      hsl(var(--warning) / 0.1));
+    background-size: 400% 400%;
+    animation: gradient-shift 8s ease infinite;
+  }
+  
+  /* Botones de acción en modales - DISEÑO MODERNO */
   [data-slot="alert-dialog-action"] {
-    @apply font-semibold transition-all duration-200;
-    background-color: #1e40af !important;  /* Azul oscuro básico */
-    color: #ffffff !important;             /* Blanco puro */
-    border: 2px solid #1e40af !important;  /* Borde azul */
-    padding: 8px 16px !important;
-    border-radius: 6px !important;
+    @apply font-semibold transition-all duration-300;
+    background: linear-gradient(135deg, 
+      hsl(var(--primary)) 0%, 
+      hsl(var(--accent)) 100%) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border: none !important;
+    padding: 12px 24px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 15px hsl(var(--primary) / 0.3) !important;
   }
   
-  /* Botones de cancelar en modales - GRIS CON NEGRO */
+  [data-slot="alert-dialog-action"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px hsl(var(--primary) / 0.4) !important;
+  }
+  
+  /* Botones de cancelar en modales - DISEÑO MODERNO */
   [data-slot="alert-dialog-cancel"] {
-    @apply font-medium transition-all duration-200;
-    background-color: #f3f4f6 !important; /* Gris claro */
-    color: #1f2937 !important;             /* Negro */
-    border: 2px solid #d1d5db !important; /* Borde gris */
-    padding: 8px 16px !important;
-    border-radius: 6px !important;
+    @apply font-medium transition-all duration-300;
+    background: linear-gradient(135deg, 
+      hsl(var(--muted)) 0%, 
+      hsl(var(--secondary)) 100%) !important;
+    color: hsl(var(--foreground)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    padding: 12px 24px !important;
+    border-radius: 12px !important;
   }
   
-  /* Modo oscuro - CELESTE BRILLANTE CON NEGRO */
-  .dark [data-slot="alert-dialog-action"] {
-    background-color: #3b82f6 !important; /* Azul brillante */
-    color: #000000 !important;             /* Negro puro */
-    border: 2px solid #3b82f6 !important;  /* Borde azul */
-  }
-  
-  .dark [data-slot="alert-dialog-cancel"] {
-    background-color: #374151 !important; /* Gris oscuro */
-    color: #ffffff !important;             /* Blanco */
-    border: 2px solid #6b7280 !important;  /* Borde gris */
+  [data-slot="alert-dialog-cancel"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 15px hsl(var(--muted-foreground) / 0.2) !important;
   }
 }
