@@ -116,6 +116,8 @@ export interface RecurringItem {
   customDays?: number[] // Días del mes [1-31]
   // Configuración de semana
   weekDay?: number // 0=domingo, 1=lunes, etc.
+  // Configuración de mes
+  monthDay?: number // 1-31, día del mes para items mensuales
   // Estado
   isActive: boolean
   createdAt: Date

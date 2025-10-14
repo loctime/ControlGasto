@@ -3,15 +3,15 @@
 import { RecurringItemsService } from '@/lib/recurring-items-service'
 import { ExpenseCategory, RecurrenceType, RecurringItem } from '@/lib/types'
 import {
-    Calendar,
-    CalendarClock,
-    CalendarDays,
-    Check,
-    Clock,
-    Edit,
-    Plus,
-    Trash2,
-    X
+  Calendar,
+  CalendarClock,
+  CalendarDays,
+  Check,
+  Clock,
+  Edit,
+  Plus,
+  Trash2,
+  X
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -52,6 +52,7 @@ interface ItemFormData {
   category: ExpenseCategory
   recurrenceType: RecurrenceType
   weekDay?: number
+  monthDay?: number
   customDays: number[]
   isActive: boolean
 }
@@ -128,14 +129,33 @@ export function RecurringItemsManager() {
         return
       }
 
-      const itemData: Omit<RecurringItem, 'id' | 'userId' | 'createdAt' | 'updatedAt'> = {
+      if (formData.recurrenceType === 'monthly' && !formData.monthDay) {
+        toast.error('Debes seleccionar el día del mes para items mensuales')
+        return
+      }
+
+      const itemData: any = {
         name: formData.name.trim(),
-        amount: formData.amount ? parseFloat(formData.amount) : undefined,
         category: formData.category,
         recurrenceType: formData.recurrenceType,
-        weekDay: formData.recurrenceType === 'weekly' ? (formData.weekDay ?? 1) : undefined,
-        customDays: formData.recurrenceType === 'custom_calendar' ? formData.customDays : undefined,
         isActive: formData.isActive
+      }
+
+      // Solo agregar campos opcionales si tienen valor
+      if (formData.amount) {
+        itemData.amount = parseFloat(formData.amount)
+      }
+
+      if (formData.recurrenceType === 'weekly') {
+        itemData.weekDay = formData.weekDay ?? 1
+      }
+
+      if (formData.recurrenceType === 'monthly' && formData.monthDay) {
+        itemData.monthDay = formData.monthDay
+      }
+
+      if (formData.recurrenceType === 'custom_calendar' && formData.customDays.length > 0) {
+        itemData.customDays = formData.customDays
       }
 
       if (editingId) {
@@ -162,6 +182,7 @@ export function RecurringItemsManager() {
       category: item.category,
       recurrenceType: item.recurrenceType,
       weekDay: item.weekDay,
+      monthDay: item.monthDay,
       customDays: item.customDays || [],
       isActive: item.isActive
     })
@@ -238,6 +259,9 @@ export function RecurringItemsManager() {
                     {item.recurrenceType === 'weekly' && item.weekDay !== undefined && (
                       <span>{WEEK_DAYS.find(d => d.value === item.weekDay)?.label}</span>
                     )}
+                    {item.recurrenceType === 'monthly' && item.monthDay !== undefined && (
+                      <span>Día {item.monthDay}</span>
+                    )}
                     {item.recurrenceType === 'custom_calendar' && item.customDays && (
                       <span>Días: {item.customDays.join(', ')}</span>
                     )}
@@ -286,8 +310,8 @@ export function RecurringItemsManager() {
               <DialogTitle>{editingId ? 'Editar Item' : 'Nuevo Item Recurrente'}</DialogTitle>
               <DialogDescription>
                 {formData.recurrenceType === 'daily' && 'Los items diarios aparecen siempre en el dashboard. El monto se ingresa al pagar.'}
-                {formData.recurrenceType === 'weekly' && 'Los items semanales aparecen el primer día de cada semana.'}
-                {formData.recurrenceType === 'monthly' && 'Los items mensuales aparecen el primer día de cada mes.'}
+                {formData.recurrenceType === 'weekly' && 'Los items semanales aparecen el día de la semana que configures.'}
+                {formData.recurrenceType === 'monthly' && 'Los items mensuales aparecen el día del mes que configures.'}
                 {formData.recurrenceType === 'custom_calendar' && 'Selecciona los días específicos del mes en que se debe pagar este item.'}
               </DialogDescription>
             </DialogHeader>
@@ -365,6 +389,25 @@ export function RecurringItemsManager() {
                     <SelectContent>
                       {WEEK_DAYS.map(day => (
                         <SelectItem key={day.value} value={day.value.toString()}>{day.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.recurrenceType === 'monthly' && (
+                <div className="space-y-2">
+                  <Label htmlFor="monthDay">Día del Mes</Label>
+                  <Select 
+                    value={formData.monthDay?.toString() || '1'}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, monthDay: parseInt(value) }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                        <SelectItem key={day} value={day.toString()}>Día {day}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -463,7 +506,7 @@ export function RecurringItemsManager() {
             <CardHeader>
               <CardTitle>Items Semanales</CardTitle>
               <CardDescription>
-                Gastos que se repiten cada semana en un día específico. Se crean automáticamente cada semana.
+                Gastos que se repiten cada semana en el día que configures. Se crean automáticamente cada semana.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -477,7 +520,7 @@ export function RecurringItemsManager() {
             <CardHeader>
               <CardTitle>Items Mensuales</CardTitle>
               <CardDescription>
-                Gastos que se repiten el primer día de cada mes. Se crean automáticamente mensualmente.
+                Gastos que se repiten el día del mes que configures. Se crean automáticamente mensualmente.
               </CardDescription>
             </CardHeader>
             <CardContent>

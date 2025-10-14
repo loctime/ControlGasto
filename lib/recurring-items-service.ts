@@ -40,10 +40,20 @@ export class RecurringItemsService {
         throw new Error('Los items semanales, mensuales y de calendario deben tener un monto definido')
       }
 
+      // Validar que los items mensuales tengan día del mes configurado
+      if (itemData.recurrenceType === 'monthly' && !itemData.monthDay) {
+        throw new Error('Los items mensuales deben tener un día del mes configurado')
+      }
+
+      // Filtrar campos undefined (Firestore no los permite)
+      const cleanData = Object.fromEntries(
+        Object.entries(itemData).filter(([_, value]) => value !== undefined)
+      )
+
       const itemRef = await addDoc(
         collection(db, `apps/controlgastos/users/${this.userId}/recurring_items`),
         {
-          ...itemData,
+          ...cleanData,
           userId: this.userId,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
@@ -66,9 +76,14 @@ export class RecurringItemsService {
 
   async updateRecurringItem(itemId: string, updates: Partial<RecurringItem>): Promise<void> {
     try {
+      // Filtrar campos undefined (Firestore no los permite)
+      const cleanUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+      )
+
       const itemRef = doc(db, `apps/controlgastos/users/${this.userId}/recurring_items`, itemId)
       await updateDoc(itemRef, {
-        ...updates,
+        ...cleanUpdates,
         updatedAt: serverTimestamp()
       })
 
@@ -156,44 +171,60 @@ export class RecurringItemsService {
       const instances: Omit<RecurringItemInstance, 'id'>[] = []
 
       if (itemData.recurrenceType === 'weekly') {
-        // Generar instancia para esta semana
-        const weekStart = startOfWeek(now, { weekStartsOn: 1 }) // Lunes
-        const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
-        const dueDate = itemData.weekDay !== undefined 
-          ? addWeeks(startOfWeek(now, { weekStartsOn: 0 }), 0)
-          : weekStart
+        // Generar instancias para las próximas 4 semanas
+        for (let weekOffset = 0; weekOffset < 4; weekOffset++) {
+          const weekStart = addWeeks(startOfWeek(now, { weekStartsOn: 1 }), weekOffset)
+          const weekEnd = addWeeks(endOfWeek(now, { weekStartsOn: 1 }), weekOffset)
+          
+          // Calcular el día de la semana específico
+          const dayOfWeek = itemData.weekDay || 1 // 1 = Lunes por defecto
+          const dueDate = new Date(weekStart)
+          dueDate.setDate(weekStart.getDate() + (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
 
-        instances.push({
-          userId: this.userId,
-          recurringItemId: itemId,
-          itemName: itemData.name,
-          amount: itemData.amount || 0,
-          category: itemData.category,
-          recurrenceType: 'weekly',
-          dueDate: dueDate,
-          status: 'pending',
-          periodStart: weekStart,
-          periodEnd: weekEnd,
-          createdAt: now
-        })
+          // Solo crear si la fecha no ha pasado o es hoy
+          if (!isBefore(dueDate, startOfDay(now))) {
+            instances.push({
+              userId: this.userId,
+              recurringItemId: itemId,
+              itemName: itemData.name,
+              amount: itemData.amount || 0,
+              category: itemData.category,
+              recurrenceType: 'weekly',
+              dueDate: dueDate,
+              status: 'pending',
+              periodStart: weekStart,
+              periodEnd: weekEnd,
+              createdAt: now
+            })
+          }
+        }
       } else if (itemData.recurrenceType === 'monthly') {
-        // Generar instancia para este mes
-        const monthStart = startOfMonth(now)
-        const monthEnd = endOfMonth(now)
+        // Generar instancias para los próximos 3 meses
+        for (let monthOffset = 0; monthOffset < 3; monthOffset++) {
+          const monthStart = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1)
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() + monthOffset + 1, 0)
+          
+          // Usar el día configurado por el usuario, o el día 1 por defecto
+          const dayOfMonth = itemData.monthDay || 1
+          const dueDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, dayOfMonth)
 
-        instances.push({
-          userId: this.userId,
-          recurringItemId: itemId,
-          itemName: itemData.name,
-          amount: itemData.amount || 0,
-          category: itemData.category,
-          recurrenceType: 'monthly',
-          dueDate: monthStart,
-          status: 'pending',
-          periodStart: monthStart,
-          periodEnd: monthEnd,
-          createdAt: now
-        })
+          // Solo crear si la fecha no ha pasado o es hoy
+          if (!isBefore(dueDate, startOfDay(now))) {
+            instances.push({
+              userId: this.userId,
+              recurringItemId: itemId,
+              itemName: itemData.name,
+              amount: itemData.amount || 0,
+              category: itemData.category,
+              recurrenceType: 'monthly',
+              dueDate: dueDate,
+              status: 'pending',
+              periodStart: monthStart,
+              periodEnd: monthEnd,
+              createdAt: now
+            })
+          }
+        }
       } else if (itemData.recurrenceType === 'custom_calendar' && itemData.customDays) {
         // Generar instancias para cada día configurado en este mes
         const monthStart = startOfMonth(now)
