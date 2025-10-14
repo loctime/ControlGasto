@@ -2,6 +2,7 @@
 
 import { useControlFile } from "@/components/controlfile-provider"
 import { PaymentReceiptDialog } from "@/components/payment-receipt-dialog"
+import { RecurringPaymentDialog } from "@/components/recurring-payment-dialog"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -159,26 +160,21 @@ export function ExpensesTable({
     setSelectedExpense(null)
   }
 
-  // ✅ SIMPLIFICADO: Funciones para manejar pagos de items recurrentes
+  // ✅ UNIFICADO: Función para manejar pagos de TODOS los items recurrentes
   const handlePayRecurringItem = (item: RecurringItem) => {
     setSelectedRecurringItem(item)
-    // Siempre permitir ingresar monto, usar el del item como sugerencia
+    // Para items con monto predefinido, mostrarlo como valor inicial
+    // Para items diarios sin monto, empezar con campo vacío
     setPaymentAmount(item.amount ? item.amount.toString() : '')
     setPaymentNotes('')
     setShowRecurringPaymentDialog(true)
   }
 
-  const handleConfirmRecurringPayment = async () => {
+  const handleConfirmRecurringPayment = async (amount: number, receiptImageId?: string, notes?: string) => {
     if (!selectedRecurringItem) return
 
-    const amount = parseFloat(paymentAmount)
-    if (isNaN(amount) || amount <= 0) {
-      toast.error("Por favor ingresa un monto válido")
-      return
-    }
-
     try {
-      onPayRecurringItem?.(selectedRecurringItem.id, amount, paymentNotes || undefined)
+      onPayRecurringItem?.(selectedRecurringItem.id, amount, notes)
       setShowRecurringPaymentDialog(false)
       setSelectedRecurringItem(null)
       setPaymentAmount('')
@@ -598,15 +594,12 @@ export function ExpensesTable({
 
       {/* Diálogo de pago para items recurrentes */}
       {selectedRecurringItem && (
-        <PaymentReceiptDialog
+        <RecurringPaymentDialog
           isOpen={showRecurringPaymentDialog}
           onClose={handleRecurringPaymentClose}
-          onConfirm={(receiptImageId) => {
-            handleConfirmRecurringPayment()
-            // Aquí podrías agregar la lógica para guardar el receiptImageId si es necesario
-          }}
-          expenseName={selectedRecurringItem.name}
-          expenseAmount={parseFloat(paymentAmount) || 0}
+          onConfirm={handleConfirmRecurringPayment}
+          itemName={selectedRecurringItem.name}
+          suggestedAmount={selectedRecurringItem.amount || 0}
           isConnectedToControlFile={isControlFileConnected}
           onConnectionChange={() => {}}
         />
