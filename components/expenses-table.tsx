@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RecurringItem, RecurringItemInstance } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import { FieldValue, Timestamp } from "firebase/firestore"
 import { Check, DollarSign, MoreVertical, Pencil, Plus, Trash2, X } from "lucide-react"
@@ -37,22 +38,33 @@ interface Expense {
   userId: string
   createdAt: Timestamp | FieldValue
   updatedAt: Timestamp | FieldValue
+  type?: 'manual' | 'recurring' // Tipo de gasto
+  recurringItemId?: string // ID del item recurrente si aplica
+  receiptImageId?: string // ID del comprobante
 }
 
 interface ExpensesTableProps {
   expenses: Expense[]
+  recurringItems?: RecurringItem[] // Items diarios disponibles
+  recurringInstances?: RecurringItemInstance[] // Instancias pendientes
   onAddExpense: (name: string, amount: number, category: string) => void
   onUpdateExpense: (id: string, updates: Partial<Expense>) => void
   onDeleteExpense: (id: string) => void
   onTogglePaid: (id: string, currentStatus: 'pending' | 'paid', receiptImageId?: string) => void
+  onPayRecurringItem?: (itemId: string, amount: number, notes?: string) => void
+  onPayRecurringInstance?: (instanceId: string, notes?: string) => void
 }
 
 export function ExpensesTable({ 
   expenses, 
+  recurringItems = [],
+  recurringInstances = [],
   onAddExpense, 
   onUpdateExpense, 
   onDeleteExpense, 
-  onTogglePaid 
+  onTogglePaid,
+  onPayRecurringItem,
+  onPayRecurringInstance
 }: ExpensesTableProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [newExpense, setNewExpense] = useState({ name: "", amount: "", category: "hogar" })
@@ -60,10 +72,30 @@ export function ExpensesTable({
   const [editingExpense, setEditingExpense] = useState({ name: "", amount: "", category: "hogar" })
   const [showReceiptDialog, setShowReceiptDialog] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
+  const [showRecurringPaymentDialog, setShowRecurringPaymentDialog] = useState(false)
+  const [selectedRecurringItem, setSelectedRecurringItem] = useState<RecurringItem | RecurringItemInstance | null>(null)
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentNotes, setPaymentNotes] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   // Usar el contexto global de ControlFile
   const { isControlFileConnected } = useControlFile()
+
+  // Combinar gastos normales con items recurrentes
+  const getAllExpenses = () => {
+    const allItems: Array<Expense | RecurringItem | RecurringItemInstance> = []
+    
+    // Agregar gastos normales
+    allItems.push(...expenses)
+    
+    // Agregar items diarios disponibles
+    allItems.push(...recurringItems.filter(item => item.recurrenceType === 'daily' && item.isActive))
+    
+    // Agregar instancias pendientes/vencidas
+    allItems.push(...recurringInstances)
+    
+    return allItems
+  }
 
   // Auto-focus en el input cuando se abre el formulario
   useEffect(() => {
@@ -131,6 +163,50 @@ export function ExpensesTable({
   const handleReceiptClose = () => {
     setShowReceiptDialog(false)
     setSelectedExpense(null)
+  }
+
+  // Funciones para manejar pagos de items recurrentes
+  const handlePayRecurringItem = (item: RecurringItem | RecurringItemInstance) => {
+    setSelectedRecurringItem(item)
+    if ('amount' in item && item.amount) {
+      setPaymentAmount(item.amount.toString())
+    } else {
+      setPaymentAmount('')
+    }
+    setPaymentNotes('')
+    setShowRecurringPaymentDialog(true)
+  }
+
+  const handleConfirmRecurringPayment = async () => {
+    if (!selectedRecurringItem) return
+
+    const amount = parseFloat(paymentAmount)
+    if (isNaN(amount) || amount <= 0) {
+      // Mostrar error
+      return
+    }
+
+    try {
+      if ('recurrenceType' in selectedRecurringItem) {
+        // Es un RecurringItem
+        onPayRecurringItem?.(selectedRecurringItem.id, amount, paymentNotes || undefined)
+      } else {
+        // Es una RecurringItemInstance
+        onPayRecurringInstance?.(selectedRecurringItem.id, paymentNotes || undefined)
+      }
+      
+      setShowRecurringPaymentDialog(false)
+      setSelectedRecurringItem(null)
+    } catch (error) {
+      console.error('Error procesando pago:', error)
+    }
+  }
+
+  const handleRecurringPaymentClose = () => {
+    setShowRecurringPaymentDialog(false)
+    setSelectedRecurringItem(null)
+    setPaymentAmount('')
+    setPaymentNotes('')
   }
 
   return (
@@ -217,31 +293,56 @@ export function ExpensesTable({
 
       {/* Lista de gastos - Estilo moderno */}
       <div className="space-y-2">
-        {expenses
+        {getAllExpenses()
           .sort((a, b) => {
-            // Primero los pendientes (status: 'pending'), luego los pagados (status: 'paid')
-            if (a.status !== b.status) {
-              return a.status === 'paid' ? 1 : -1
+            // Primero determinar si son gastos normales o recurrentes
+            const aIsExpense = 'userId' in a
+            const bIsExpense = 'userId' in b
+            
+            // Los gastos normales primero, luego los recurrentes
+            if (aIsExpense !== bIsExpense) {
+              return aIsExpense ? -1 : 1
             }
-            // Si tienen el mismo estado de pago, ordenar por nombre alfabéticamente
-            return a.name.localeCompare(b.name)
+            
+            // Si ambos son gastos normales, ordenar por status
+            if (aIsExpense && bIsExpense) {
+              const aExpense = a as Expense
+              const bExpense = b as Expense
+              if (aExpense.status !== bExpense.status) {
+                return aExpense.status === 'paid' ? 1 : -1
+              }
+              return (aExpense.name || '').localeCompare(bExpense.name || '')
+            }
+            
+            // Si ambos son recurrentes, ordenar por nombre
+            return (a.name || '').localeCompare(b.name || '')
           })
-          .map((expense) => (
-          <div
-            key={expense.id}
-            className={`group rounded-lg border transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${
-              expense.status === 'paid' 
-                ? "bg-gradient-to-br from-paid/10 via-paid/5 to-paid/3 border-paid/30 hover:border-paid/40 shadow-md" 
-                : "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border-pending/30 hover:border-pending/40 shadow-md"
-            }`}
-          >
-            {editingId === expense.id ? (
-              // Modo edición
-              <div className="p-4 bg-gradient-to-br from-warning/15 via-warning/8 to-warning/5 rounded-lg border border-warning/30 shadow-md">
-                <h3 className="font-medium text-warning mb-3 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-warning rounded-full animate-pulse"></span>
-                  Editando Gasto
-                </h3>
+          .map((item) => {
+            // Determinar si es un gasto normal o un item recurrente
+            const isExpense = 'userId' in item
+            const expense = isExpense ? item as Expense : null
+            const recurringItem = !isExpense ? item as RecurringItem | RecurringItemInstance : null
+            
+            return (
+              <div
+                key={item.id}
+                className={`group rounded-lg border transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${
+                  isExpense && expense?.status === 'paid' 
+                    ? "bg-gradient-to-br from-paid/10 via-paid/5 to-paid/3 border-paid/30 hover:border-paid/40 shadow-md"
+                    : isExpense && expense?.status === 'pending'
+                    ? "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border-pending/30 hover:border-pending/40 shadow-md"
+                    : recurringItem
+                    ? "bg-gradient-to-br from-blue-50 via-blue-25 to-blue-10 border-blue-200 hover:border-blue-300 shadow-md"
+                    : "bg-gradient-to-br from-pending/10 via-pending/5 to-pending/3 border-pending/30 hover:border-pending/40 shadow-md"
+                }`}
+              >
+                {isExpense && editingId === expense?.id ? (
+                  // Modo edición para gastos normales
+                  <div className="p-4 bg-gradient-to-br from-warning/15 via-warning/8 to-warning/5 rounded-lg border border-warning/30 shadow-md">
+                    <h3 className="font-medium text-warning mb-3 flex items-center gap-2">
+                      <span className="w-2 h-2 bg-warning rounded-full animate-pulse"></span>
+                      Editando Gasto
+                    </h3>
                 <div className="space-y-3">
                   <Input
                     placeholder="Descripción del gasto"
@@ -298,7 +399,7 @@ export function ExpensesTable({
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : isExpense ? (
               // Vista normal reorganizada
               <div className="p-4">
                 {/* Primera fila: Menú - Descripción - Categoría */}
@@ -315,12 +416,12 @@ export function ExpensesTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
+                      <DropdownMenuItem onClick={() => expense && handleEditExpense(expense)}>
                         <Pencil className="w-4 h-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={() => onDeleteExpense(expense.id)}
+                        onClick={() => expense && onDeleteExpense(expense.id)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
@@ -330,17 +431,17 @@ export function ExpensesTable({
                   </DropdownMenu>
                   
                   {/* Descripción */}
-                  <h3 className="text-lg font-semibold text-foreground truncate flex-1 min-w-0 mx-2">{expense.name}</h3>
+                  <h3 className="text-lg font-semibold text-foreground truncate flex-1 min-w-0 mx-2">{expense?.name}</h3>
                   
                   {/* Categoría */}
                   <Badge variant="outline" className="text-sm px-2 py-1 whitespace-nowrap flex-shrink-0">
-                    {expense.category === 'hogar' && '🏠 Hogar'}
-                    {expense.category === 'transporte' && '🚗 Transporte'}
-                    {expense.category === 'alimentacion' && '🍽️ Alimentación'}
-                    {expense.category === 'servicios' && '⚡ Servicios'}
-                    {expense.category === 'entretenimiento' && '🎬 Entretenimiento'}
-                    {expense.category === 'salud' && '🏥 Salud'}
-                    {expense.category === 'otros' && '📦 Otros'}
+                    {expense?.category === 'hogar' && '🏠 Hogar'}
+                    {expense?.category === 'transporte' && '🚗 Transporte'}
+                    {expense?.category === 'alimentacion' && '🍽️ Alimentación'}
+                    {expense?.category === 'servicios' && '⚡ Servicios'}
+                    {expense?.category === 'entretenimiento' && '🎬 Entretenimiento'}
+                    {expense?.category === 'salud' && '🏥 Salud'}
+                    {expense?.category === 'otros' && '📦 Otros'}
                   </Badge>
                 </div>
 
@@ -348,21 +449,21 @@ export function ExpensesTable({
                 <div className="flex items-center justify-between gap-3 min-w-0">
                   {/* Monto */}
                   <div className={`font-bold text-foreground truncate min-w-0 flex-shrink-0 ${
-                    expense.amount.toString().length <= 6 
+                    (expense?.amount?.toString().length || 0) <= 6 
                       ? 'text-3xl' 
-                      : expense.amount.toString().length <= 8 
+                      : (expense?.amount?.toString().length || 0) <= 8 
                         ? 'text-2xl' 
-                        : expense.amount.toString().length <= 10
+                        : (expense?.amount?.toString().length || 0) <= 10
                           ? 'text-xl'
                           : 'text-lg'
                   }`}>
-                    {formatCurrency(expense.amount)}
+                    {expense && formatCurrency(expense.amount)}
                   </div>
                   
                   {/* Botón de estado de pago y indicador */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {/* Botón de estado de pago */}
-                    {expense.status === 'paid' ? (
+                    {expense?.status === 'paid' ? (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -377,13 +478,13 @@ export function ExpensesTable({
                           <AlertDialogHeader>
                             <AlertDialogTitle>¿Marcar como pendiente?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              ¿Estás seguro de que quieres marcar "{expense.name}" como pendiente?
+                              ¿Estás seguro de que quieres marcar "{expense?.name}" como pendiente?
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => onTogglePaid(expense.id, expense.status)}
+                              onClick={() => expense && onTogglePaid(expense.id, expense.status)}
                               className="bg-blue-600 hover:bg-blue-700"
                             >
                               Marcar como Pendiente
@@ -394,7 +495,7 @@ export function ExpensesTable({
                     ) : (
                       <Button
                         size="sm"
-                        onClick={() => handleTogglePaidClick(expense)}
+                        onClick={() => expense && handleTogglePaidClick(expense)}
                         className="h-8 px-4 text-xs bg-paid hover:bg-paid/90 text-paid-foreground whitespace-nowrap shadow-md border-2 border-paid/30 hover:border-paid/50 font-semibold"
                       >
                         Pagar
@@ -402,7 +503,7 @@ export function ExpensesTable({
                     )}
                     
                     {/* Indicador de estado de pago */}
-                    {expense.status === 'paid' && (
+                    {expense?.status === 'paid' && (
                       <div className="w-4 h-4 bg-paid rounded-full flex items-center justify-center">
                         <Check className="w-3 h-3 text-paid-foreground" />
                       </div>
@@ -410,11 +511,62 @@ export function ExpensesTable({
                   </div>
                 </div>
               </div>
+            ) : null}
+            {!isExpense && (
+              // Vista para items recurrentes
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3 gap-2 min-w-0">
+                  {/* Indicador de item recurrente */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
+                      {recurringItem && 'recurrenceType' in recurringItem ? 'Recurrente' : 'Programado'}
+                    </Badge>
+                  </div>
+                  
+                  {/* Descripción */}
+                  <h3 className="text-lg font-semibold text-foreground truncate flex-1 min-w-0 mx-2">
+                    {recurringItem?.name}
+                  </h3>
+                  
+                  {/* Categoría */}
+                  <Badge variant="outline" className="text-sm px-2 py-1 whitespace-nowrap flex-shrink-0">
+                    {recurringItem?.category === 'hogar' && '🏠 Hogar'}
+                    {recurringItem?.category === 'transporte' && '🚗 Transporte'}
+                    {recurringItem?.category === 'alimentacion' && '🍽️ Alimentación'}
+                    {recurringItem?.category === 'servicios' && '⚡ Servicios'}
+                    {recurringItem?.category === 'entretenimiento' && '🎬 Entretenimiento'}
+                    {recurringItem?.category === 'salud' && '🏥 Salud'}
+                    {recurringItem?.category === 'otros' && '📦 Otros'}
+                  </Badge>
+                </div>
+
+                {/* Segunda fila: Monto y botón de pago */}
+                <div className="flex items-center justify-between gap-3 min-w-0">
+                  {/* Monto */}
+                  <div className="font-bold text-foreground truncate min-w-0 flex-shrink-0 text-2xl">
+                    {recurringItem && 'amount' in recurringItem && recurringItem.amount
+                      ? formatCurrency(recurringItem.amount)
+                      : recurringItem && 'amount' in recurringItem && recurringItem.amount
+                      ? formatCurrency(recurringItem.amount)
+                      : 'Sin monto'}
+                  </div>
+                  
+                  {/* Botón de pago */}
+                  <Button
+                    size="sm"
+                    onClick={() => handlePayRecurringItem(recurringItem!)}
+                    className="h-8 px-4 text-xs bg-paid hover:bg-paid/90 text-paid-foreground whitespace-nowrap shadow-md border-2 border-paid/30 hover:border-paid/50 font-semibold"
+                  >
+                    Pagar
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
-        ))}
+        )
+      })}
 
-        {/* Estado vacío elegante */}
+      {/* Estado vacío elegante */}
         {expenses.length === 0 && !isAdding && (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -447,6 +599,22 @@ export function ExpensesTable({
           expenseAmount={selectedExpense.amount}
           isConnectedToControlFile={isControlFileConnected}
           onConnectionChange={() => {}} // No necesario ya que se maneja globalmente
+        />
+      )}
+
+      {/* Diálogo de pago para items recurrentes */}
+      {selectedRecurringItem && (
+        <PaymentReceiptDialog
+          isOpen={showRecurringPaymentDialog}
+          onClose={handleRecurringPaymentClose}
+          onConfirm={(receiptImageId) => {
+            handleConfirmRecurringPayment()
+            // Aquí podrías agregar la lógica para guardar el receiptImageId si es necesario
+          }}
+          expenseName={selectedRecurringItem.name}
+          expenseAmount={parseFloat(paymentAmount) || 0}
+          isConnectedToControlFile={isControlFileConnected}
+          onConnectionChange={() => {}}
         />
       )}
     </div>

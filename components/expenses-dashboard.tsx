@@ -3,7 +3,6 @@
 import { useAuth } from "@/components/auth-provider"
 import { ExpensesTable } from "@/components/expenses-table"
 import { NotificationsBanner } from "@/components/notifications-banner"
-import { PendingItemsCard } from "@/components/pending-items-card"
 import { ChartErrorFallback, ErrorBoundary } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,6 +10,7 @@ import { useAutoScheduler } from "@/lib/auto-scheduler"
 import { db } from "@/lib/firebase"
 import { useMemoizedCalculations, useRateLimit, useRetry } from "@/lib/optimization"
 import { RecurringItemsService } from "@/lib/recurring-items-service"
+import { RecurringItem, RecurringItemInstance } from "@/lib/types"
 import {
   addDoc,
   collection,
@@ -73,6 +73,8 @@ const filterExpensesByPeriod = (expenses: Expense[], period: 'daily' | 'weekly' 
 export function ExpensesDashboard() {
   const { user } = useAuth()
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([])
+  const [recurringInstances, setRecurringInstances] = useState<RecurringItemInstance[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activePeriod, setActivePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
@@ -110,6 +112,25 @@ export function ExpensesDashboard() {
       return { totalExpenses, totalPaid, totalPending }
     }
   )
+
+  // Cargar items recurrentes
+  const loadRecurringItems = async () => {
+    if (!user?.uid) return
+
+    try {
+      const service = new RecurringItemsService(user.uid)
+      
+      // Cargar items diarios
+      const dailyItems = await service.getDailyItems()
+      setRecurringItems(dailyItems)
+      
+      // Cargar instancias pendientes/vencidas según el período activo
+      const activeInstances: RecurringItemInstance[] = await service.getActiveInstances()
+      setRecurringInstances(activeInstances)
+    } catch (error) {
+      console.error('Error cargando items recurrentes:', error)
+    }
+  }
 
   useEffect(() => {
     if (!user) {
@@ -153,6 +174,11 @@ export function ExpensesDashboard() {
 
     return () => unsubscribe()
   }, [user])
+
+  // Cargar items recurrentes cuando cambie el usuario o el período
+  useEffect(() => {
+    loadRecurringItems()
+  }, [user, activePeriod])
 
   // ✅ Cargar estado de items pendientes para indicadores de pestañas
   useEffect(() => {
@@ -320,6 +346,54 @@ export function ExpensesDashboard() {
     await updateExpense(id, { status: newStatus })
   }, [updateExpense, user, expenses])
 
+  // Funciones para manejar pagos de items recurrentes
+  const handlePayRecurringItem = useCallback(async (itemId: string, amount: number, notes?: string) => {
+    if (!user?.uid) return
+
+    try {
+      const service = new RecurringItemsService(user.uid)
+      const item = recurringItems.find(item => item.id === itemId)
+      
+      if (!item) return
+
+      await service.payDailyItem(
+        itemId,
+        item.name,
+        amount,
+        item.category,
+        undefined, // receiptImageId
+        notes
+      )
+      
+      toast.success(`${item.name} pagado correctamente`)
+      await loadRecurringItems() // Recargar datos
+    } catch (error) {
+      console.error('Error procesando pago:', error)
+      toast.error('Error al procesar el pago')
+    }
+  }, [user, recurringItems])
+
+  const handlePayRecurringInstance = useCallback(async (instanceId: string, notes?: string) => {
+    if (!user?.uid) return
+
+    try {
+      const service = new RecurringItemsService(user.uid)
+      
+      await service.markInstanceAsPaid(
+        instanceId,
+        undefined, // receiptImageId
+        notes
+      )
+      
+      const instance = recurringInstances.find(inst => inst.id === instanceId)
+      toast.success(`${instance?.itemName || 'Item'} pagado correctamente`)
+      await loadRecurringItems() // Recargar datos
+    } catch (error) {
+      console.error('Error procesando pago:', error)
+      toast.error('Error al procesar el pago')
+    }
+  }, [user, recurringInstances])
+
   // ✅ OPTIMIZACIÓN: Estados de carga y error
   if (isLoading) {
     return <DashboardSkeleton />
@@ -409,58 +483,52 @@ export function ExpensesDashboard() {
 
           {/* Contenido para cada período */}
           <TabsContent value="daily" className="space-y-6">
-            {/* Items recurrentes diarios pendientes */}
-            <ErrorBoundary fallback={ChartErrorFallback}>
-              <PendingItemsCard filterByRecurrence="daily" />
-            </ErrorBoundary>
-
-
-            {/* Tabla de gastos del día */}
+            {/* Tabla unificada de gastos e items recurrentes */}
             <ErrorBoundary fallback={ChartErrorFallback}>
               <ExpensesTable
                 expenses={filteredExpenses}
+                recurringItems={recurringItems}
+                recurringInstances={recurringInstances}
                 onAddExpense={addExpense}
                 onUpdateExpense={updateExpense}
                 onDeleteExpense={deleteExpense}
                 onTogglePaid={togglePaid}
+                onPayRecurringItem={handlePayRecurringItem}
+                onPayRecurringInstance={handlePayRecurringInstance}
               />
             </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="weekly" className="space-y-6">
-            {/* Items recurrentes semanales pendientes */}
-            <ErrorBoundary fallback={ChartErrorFallback}>
-              <PendingItemsCard filterByRecurrence="weekly" />
-            </ErrorBoundary>
-
-
-            {/* Tabla de gastos de la semana */}
+            {/* Tabla unificada de gastos e items recurrentes */}
             <ErrorBoundary fallback={ChartErrorFallback}>
               <ExpensesTable
                 expenses={filteredExpenses}
+                recurringItems={recurringItems}
+                recurringInstances={recurringInstances}
                 onAddExpense={addExpense}
                 onUpdateExpense={updateExpense}
                 onDeleteExpense={deleteExpense}
                 onTogglePaid={togglePaid}
+                onPayRecurringItem={handlePayRecurringItem}
+                onPayRecurringInstance={handlePayRecurringInstance}
               />
             </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="monthly" className="space-y-6">
-            {/* Items recurrentes mensuales pendientes */}
-            <ErrorBoundary fallback={ChartErrorFallback}>
-              <PendingItemsCard filterByRecurrence="monthly" />
-            </ErrorBoundary>
-
-
-            {/* Tabla de gastos del mes */}
+            {/* Tabla unificada de gastos e items recurrentes */}
             <ErrorBoundary fallback={ChartErrorFallback}>
               <ExpensesTable
                 expenses={filteredExpenses}
+                recurringItems={recurringItems}
+                recurringInstances={recurringInstances}
                 onAddExpense={addExpense}
                 onUpdateExpense={updateExpense}
                 onDeleteExpense={deleteExpense}
                 onTogglePaid={togglePaid}
+                onPayRecurringItem={handlePayRecurringItem}
+                onPayRecurringInstance={handlePayRecurringInstance}
               />
             </ErrorBoundary>
           </TabsContent>
