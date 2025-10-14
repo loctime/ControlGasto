@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAutoScheduler } from "@/lib/auto-scheduler"
 import { db } from "@/lib/firebase"
 import { useMemoizedCalculations, useRateLimit, useRetry } from "@/lib/optimization"
+import { RecurringItemsService } from "@/lib/recurring-items-service"
 import {
     addDoc,
     collection,
@@ -89,6 +90,17 @@ export function ExpensesDashboard() {
     return filterExpensesByPeriod(expenses, activePeriod)
   }, [expenses, activePeriod])
 
+  // ✅ Estado de items pendientes por período
+  const [pendingItemsStatus, setPendingItemsStatus] = useState<{
+    daily: { hasPending: boolean; hasOverdue: boolean }
+    weekly: { hasPending: boolean; hasOverdue: boolean }
+    monthly: { hasPending: boolean; hasOverdue: boolean }
+  }>({
+    daily: { hasPending: false, hasOverdue: false },
+    weekly: { hasPending: false, hasOverdue: false },
+    monthly: { hasPending: false, hasOverdue: false }
+  })
+
   // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados para el período seleccionado
   const totals = useMemoizedCalculations(
     filteredExpenses,
@@ -141,6 +153,74 @@ export function ExpensesDashboard() {
     )
 
     return () => unsubscribe()
+  }, [user])
+
+  // ✅ Cargar estado de items pendientes para indicadores de pestañas
+  useEffect(() => {
+    if (!user?.uid) return
+
+    const loadPendingItemsStatus = async () => {
+      try {
+        const service = new RecurringItemsService(user.uid)
+        
+        // Obtener items diarios
+        const dailyItems = await service.getDailyItems()
+        
+        // Obtener instancias activas
+        const activeInstances = await service.getActiveInstances()
+        
+        const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        
+        // Función para verificar si hay items pendientes/vencidos por período
+        const checkPeriodStatus = (period: 'daily' | 'weekly' | 'monthly') => {
+          let hasPending = false
+          let hasOverdue = false
+          
+          // Verificar items diarios
+          if (period === 'daily' && dailyItems.length > 0) {
+            hasPending = true
+          }
+          
+          // Verificar instancias
+          const relevantInstances = activeInstances.filter(instance => {
+            if (instance.recurrenceType !== period) return false
+            
+            const dueDate = new Date(instance.dueDate)
+            
+            switch (period) {
+              case 'daily':
+                return dueDate <= today
+              case 'weekly':
+                const weekAgo = new Date(today)
+                weekAgo.setDate(weekAgo.getDate() - 7)
+                return dueDate >= weekAgo && dueDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+              case 'monthly':
+                return dueDate.getMonth() === now.getMonth() && dueDate.getFullYear() === now.getFullYear()
+              default:
+                return false
+            }
+          })
+          
+          if (relevantInstances.length > 0) {
+            hasPending = true
+            hasOverdue = relevantInstances.some(instance => new Date(instance.dueDate) < today)
+          }
+          
+          return { hasPending, hasOverdue }
+        }
+        
+        setPendingItemsStatus({
+          daily: checkPeriodStatus('daily'),
+          weekly: checkPeriodStatus('weekly'),
+          monthly: checkPeriodStatus('monthly')
+        })
+      } catch (error) {
+        console.error('Error cargando estado de items pendientes:', error)
+      }
+    }
+    
+    loadPendingItemsStatus()
   }, [user])
 
   // ✅ OPTIMIZACIÓN: Funciones memoizadas con retry logic
@@ -274,14 +354,56 @@ export function ExpensesDashboard() {
         <Tabs defaultValue="daily" className="w-full" onValueChange={(value) => setActivePeriod(value as 'daily' | 'weekly' | 'monthly')}>
           <div className="flex justify-center mb-6">
             <TabsList className="grid w-full max-w-md grid-cols-3">
-              <TabsTrigger value="daily" className="text-sm font-medium">
+              <TabsTrigger 
+                value="daily" 
+                className={`text-sm font-medium relative ${
+                  pendingItemsStatus.daily.hasOverdue 
+                    ? 'border-red-500 bg-red-50 text-red-700' 
+                    : pendingItemsStatus.daily.hasPending 
+                    ? 'border-orange-500 bg-orange-50 text-orange-700'
+                    : ''
+                }`}
+              >
                 📅 Diario
+                {(pendingItemsStatus.daily.hasPending || pendingItemsStatus.daily.hasOverdue) && (
+                  <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
+                    pendingItemsStatus.daily.hasOverdue ? 'bg-red-500' : 'bg-orange-500'
+                  }`} />
+                )}
               </TabsTrigger>
-              <TabsTrigger value="weekly" className="text-sm font-medium">
+              <TabsTrigger 
+                value="weekly" 
+                className={`text-sm font-medium relative ${
+                  pendingItemsStatus.weekly.hasOverdue 
+                    ? 'border-red-500 bg-red-50 text-red-700' 
+                    : pendingItemsStatus.weekly.hasPending 
+                    ? 'border-orange-500 bg-orange-50 text-orange-700'
+                    : ''
+                }`}
+              >
                 📊 Semanal
+                {(pendingItemsStatus.weekly.hasPending || pendingItemsStatus.weekly.hasOverdue) && (
+                  <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
+                    pendingItemsStatus.weekly.hasOverdue ? 'bg-red-500' : 'bg-orange-500'
+                  }`} />
+                )}
               </TabsTrigger>
-              <TabsTrigger value="monthly" className="text-sm font-medium">
+              <TabsTrigger 
+                value="monthly" 
+                className={`text-sm font-medium relative ${
+                  pendingItemsStatus.monthly.hasOverdue 
+                    ? 'border-red-500 bg-red-50 text-red-700' 
+                    : pendingItemsStatus.monthly.hasPending 
+                    ? 'border-orange-500 bg-orange-50 text-orange-700'
+                    : ''
+                }`}
+              >
                 📈 Mensual
+                {(pendingItemsStatus.monthly.hasPending || pendingItemsStatus.monthly.hasOverdue) && (
+                  <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
+                    pendingItemsStatus.monthly.hasOverdue ? 'bg-red-500' : 'bg-orange-500'
+                  }`} />
+                )}
               </TabsTrigger>
             </TabsList>
           </div>
