@@ -4,12 +4,11 @@ import { useNotifications } from '@/hooks/use-notifications'
 import { AlertCircle, Bell, BellOff, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Alert, AlertDescription, AlertTitle } from './ui/alert'
-import { Badge } from './ui/badge'
+import { Alert } from './ui/alert'
 import { Button } from './ui/button'
 
 export function NotificationsBanner() {
-  const { stats, permission, requestPermission, hasImportantNotifications, getNotificationMessage } = useNotifications()
+  const { stats, permission, requestPermission, hasImportantNotifications } = useNotifications()
   const [dismissed, setDismissed] = useState(false)
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(permission === 'default')
   const router = useRouter()
@@ -35,123 +34,105 @@ export function NotificationsBanner() {
     return null
   }
 
+  // Determinar el contenido principal y secundario
+  const getNotificationContent = () => {
+    // Prioridad 1: Items vencidos
+    if (stats.overdueCount > 0) {
+      return {
+        icon: <AlertCircle className="h-4 w-4" />,
+        title: null,
+        badge: null,
+        description: stats.overdueCount === 1 
+          ? '1 pago vencido requiere atención' 
+          : `${stats.overdueCount} pagos vencidos requieren atención`,
+        variant: 'destructive' as const,
+        actionText: 'Ver Pagos',
+        onAction: handleGoToPayments
+      }
+    }
+
+    // Prioridad 2: Items para hoy
+    if (stats.dueTodayCount > 0) {
+      return {
+        icon: <AlertCircle className="h-4 w-4" />,
+        title: null,
+        badge: null,
+        description: stats.dueTodayCount === 1 
+          ? '1 pago programado para hoy' 
+          : `${stats.dueTodayCount} pagos programados para hoy`,
+        variant: 'default' as const,
+        actionText: 'Ver Pagos',
+        onAction: handleGoToPayments
+      }
+    }
+
+    // Prioridad 3: Permisos de notificación
+    if (showPermissionPrompt && permission === 'default') {
+      return {
+        icon: <Bell className="h-4 w-4" />,
+        title: "Habilita notificaciones",
+        badge: null,
+        description: 'Recibe avisos de pagos directamente en tu navegador',
+        variant: 'default' as const,
+        actionText: 'Activar',
+        onAction: handleRequestPermission
+      }
+    }
+
+    // Prioridad 4: Notificaciones bloqueadas
+    if (permission === 'denied' && hasImportantNotifications) {
+      return {
+        icon: <BellOff className="h-4 w-4" />,
+        title: "Notificaciones bloqueadas",
+        badge: null,
+        description: 'Actívalas en configuración del navegador',
+        variant: 'destructive' as const,
+        actionText: 'Entendido',
+        onAction: () => setDismissed(true)
+      }
+    }
+
+    return null
+  }
+
+  const content = getNotificationContent()
+  if (!content) return null
+
   return (
-    <div className="space-y-2">
-      {/* Banner de permisos de notificación */}
-      {showPermissionPrompt && permission === 'default' && (
-        <Alert>
-          <Bell className="h-4 w-4" />
-          <AlertTitle>Habilita las notificaciones</AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            <span className="text-sm">
-              Recibe avisos de pagos pendientes y vencidos directamente en tu navegador.
-            </span>
-            <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                onClick={handleRequestPermission}
-              >
-                Activar
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost"
-                onClick={() => setShowPermissionPrompt(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Banner de notificaciones bloqueadas */}
-      {permission === 'denied' && hasImportantNotifications && (
-        <Alert variant="destructive">
-          <BellOff className="h-4 w-4" />
-          <AlertTitle>Notificaciones bloqueadas</AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            <span className="text-sm">
-              Las notificaciones están bloqueadas. Actívalas en la configuración de tu navegador para recibir avisos.
-            </span>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => setDismissed(true)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Banner de items vencidos */}
-      {stats.overdueCount > 0 && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="flex items-center gap-2">
-            Pagos Vencidos
-            <Badge variant="destructive">{stats.overdueCount}</Badge>
-          </AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            <span className="text-sm">
-              {stats.overdueCount === 1 
-                ? 'Tienes 1 pago vencido que requiere tu atención' 
-                : `Tienes ${stats.overdueCount} pagos vencidos que requieren tu atención`}
-            </span>
-            <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={handleGoToPayments}
-              >
-                Ver Pagos
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost"
-                onClick={() => setDismissed(true)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Banner de items para hoy (solo si no hay vencidos) */}
-      {stats.overdueCount === 0 && stats.dueTodayCount > 0 && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="flex items-center gap-2">
-            Pagos para Hoy
-            <Badge>{stats.dueTodayCount}</Badge>
-          </AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            <span className="text-sm">
-              {stats.dueTodayCount === 1 
-                ? 'Tienes 1 pago programado para hoy' 
-                : `Tienes ${stats.dueTodayCount} pagos programados para hoy`}
-            </span>
-            <div className="flex gap-2">
-              <Button 
-                size="sm"
-                onClick={handleGoToPayments}
-              >
-                Ver Pagos
-              </Button>
-              <Button 
-                size="sm" 
-                variant="ghost"
-                onClick={() => setDismissed(true)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-    </div>
+    <Alert variant={content.variant} className="py-3">
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {content.icon}
+          {content.title && <span className="font-medium text-sm">{content.title}</span>}
+          {content.badge}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            {content.description}
+          </span>
+          <Button 
+            size="sm" 
+            variant={content.variant === 'destructive' ? 'outline' : 'default'}
+            className="h-7 px-3 text-xs"
+            onClick={content.onAction}
+          >
+            {content.actionText}
+          </Button>
+          <Button 
+            size="sm" 
+            variant="ghost"
+            className="h-7 w-7 p-0"
+            onClick={() => setDismissed(true)}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+      {/* Descripción completa en móvil */}
+      <div className="sm:hidden mt-2 text-xs text-muted-foreground">
+        {content.description}
+      </div>
+    </Alert>
   )
 }
 

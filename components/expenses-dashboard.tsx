@@ -13,16 +13,16 @@ import { db } from "@/lib/firebase"
 import { useMemoizedCalculations, useRateLimit, useRetry } from "@/lib/optimization"
 import { RecurringItemsService } from "@/lib/recurring-items-service"
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    FieldValue,
-    onSnapshot,
-    query,
-    serverTimestamp,
-    Timestamp,
-    updateDoc
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  FieldValue,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  Timestamp,
+  updateDoc
 } from "firebase/firestore"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -345,14 +345,14 @@ export function ExpensesDashboard() {
 
   return (
     <ErrorBoundary>
-      <div className="max-w-6xl mx-auto p-4 space-y-6">
+      <div className="max-w-6xl mx-auto p-4 space-y-3">
 
         {/* Banner de notificaciones */}
         <NotificationsBanner />
 
         {/* Pestañas de períodos */}
         <Tabs defaultValue="daily" className="w-full" onValueChange={(value) => setActivePeriod(value as 'daily' | 'weekly' | 'monthly')}>
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-1">
             <TabsList className="grid w-full max-w-md grid-cols-3">
               <TabsTrigger 
                 value="daily" 
