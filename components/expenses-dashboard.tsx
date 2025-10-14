@@ -6,22 +6,22 @@ import { NotificationsBanner } from "@/components/notifications-banner"
 import { ChartErrorFallback, ErrorBoundary } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAutoScheduler } from "@/lib/auto-scheduler"
+// import { useAutoScheduler } from "@/lib/auto-scheduler" // ❌ ELIMINADO - Sistema simplificado
 import { db } from "@/lib/firebase"
 import { useMemoizedCalculations, useRateLimit, useRetry } from "@/lib/optimization"
 import { RecurringItemsService } from "@/lib/recurring-items-service"
-import { RecurringItem, RecurringItemInstance } from "@/lib/types"
+import { RecurringItem } from "@/lib/types"
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  FieldValue,
-  onSnapshot,
-  query,
-  serverTimestamp,
-  Timestamp,
-  updateDoc
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    FieldValue,
+    onSnapshot,
+    query,
+    serverTimestamp,
+    Timestamp,
+    updateDoc
 } from "firebase/firestore"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -70,11 +70,46 @@ const filterExpensesByPeriod = (expenses: Expense[], period: 'daily' | 'weekly' 
   })
 }
 
+// ✅ NUEVA FUNCIÓN: Filtrar items recurrentes por período (SISTEMA SIMPLIFICADO)
+const filterRecurringItemsByPeriod = (items: RecurringItem[], period: 'daily' | 'weekly' | 'monthly') => {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  
+  return items.filter(item => {
+    if (!item.isActive) return false
+    
+    switch (period) {
+      case 'daily':
+        // Items diarios activos
+        return item.recurrenceType === 'daily'
+      
+      case 'weekly':
+        // Items semanales que corresponden a hoy
+        if (item.recurrenceType === 'weekly') {
+          return item.weekDay === now.getDay()
+        }
+        // También incluir items diarios
+        return item.recurrenceType === 'daily'
+      
+      case 'monthly':
+        // Items mensuales que corresponden a hoy
+        if (item.recurrenceType === 'monthly') {
+          return item.customDays?.includes(now.getDate()) || false
+        }
+        // También incluir items diarios y semanales
+        return item.recurrenceType === 'daily' || 
+               (item.recurrenceType === 'weekly' && item.weekDay === now.getDay())
+      
+      default:
+        return false
+    }
+  })
+}
+
 export function ExpensesDashboard() {
   const { user } = useAuth()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([])
-  const [recurringInstances, setRecurringInstances] = useState<RecurringItemInstance[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activePeriod, setActivePeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
@@ -83,13 +118,17 @@ export function ExpensesDashboard() {
   const { retryWithBackoff } = useRetry()
   const { canMakeRequest, makeRequest } = useRateLimit(20, 60000) // 20 requests por minuto
   
-  // ✅ AUTO-SCHEDULER: Verificar items recurrentes automáticamente
-  useAutoScheduler()
+  // ❌ AUTO-SCHEDULER ELIMINADO - Sistema simplificado
   
   // ✅ Filtrar gastos según el período activo
   const filteredExpenses = useMemo(() => {
     return filterExpensesByPeriod(expenses, activePeriod)
   }, [expenses, activePeriod])
+
+  // ✅ NUEVO: Filtrar items recurrentes según el período activo
+  const filteredRecurringItems = useMemo(() => {
+    return filterRecurringItemsByPeriod(recurringItems, activePeriod)
+  }, [recurringItems, activePeriod])
 
   // ✅ Estado de items pendientes por período
   const [pendingItemsStatus, setPendingItemsStatus] = useState<{
@@ -113,20 +152,18 @@ export function ExpensesDashboard() {
     }
   )
 
-  // Cargar items recurrentes
+  // ✅ SIMPLIFICADO: Cargar items recurrentes (sin instancias)
   const loadRecurringItems = async () => {
     if (!user?.uid) return
 
     try {
       const service = new RecurringItemsService(user.uid)
       
-      // Cargar items diarios
-      const dailyItems = await service.getDailyItems()
-      setRecurringItems(dailyItems)
+      // Cargar todos los items recurrentes activos
+      const allItems = await service.getAllRecurringItems()
+      setRecurringItems(allItems)
       
-      // Cargar instancias pendientes/vencidas según el período activo
-      const activeInstances: RecurringItemInstance[] = await service.getActiveInstances()
-      setRecurringInstances(activeInstances)
+      console.log(`✅ Items recurrentes cargados: ${allItems.length}`)
     } catch (error) {
       console.error('Error cargando items recurrentes:', error)
     }
@@ -175,78 +212,41 @@ export function ExpensesDashboard() {
     return () => unsubscribe()
   }, [user])
 
-  // Cargar items recurrentes cuando cambie el usuario o el período
+  // ✅ SIMPLIFICADO: Cargar items recurrentes solo cuando cambie el usuario
   useEffect(() => {
     loadRecurringItems()
-  }, [user, activePeriod])
+  }, [user])
 
-  // ✅ Cargar estado de items pendientes para indicadores de pestañas
+  // ✅ SIMPLIFICADO: Calcular estado de items pendientes basado en items filtrados
   useEffect(() => {
     if (!user?.uid) return
 
-    const loadPendingItemsStatus = async () => {
-      try {
-        const service = new RecurringItemsService(user.uid)
-        
-        // Obtener items diarios
-        const dailyItems = await service.getDailyItems()
-        
-        // Obtener instancias activas
-        const activeInstances = await service.getActiveInstances()
-        
-        const now = new Date()
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        
-        // Función para verificar si hay items pendientes/vencidos por período
-        const checkPeriodStatus = (period: 'daily' | 'weekly' | 'monthly') => {
-          let hasPending = false
-          let hasOverdue = false
-          
-          // Verificar items diarios
-          if (period === 'daily' && dailyItems.length > 0) {
-            hasPending = true
-          }
-          
-          // Verificar instancias
-          const relevantInstances = activeInstances.filter(instance => {
-            if (instance.recurrenceType !== period) return false
-            
-            const dueDate = new Date(instance.dueDate)
-            
-            switch (period) {
-              case 'daily':
-                return dueDate <= today
-              case 'weekly':
-                const weekAgo = new Date(today)
-                weekAgo.setDate(weekAgo.getDate() - 7)
-                return dueDate >= weekAgo && dueDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-              case 'monthly':
-                return dueDate.getMonth() === now.getMonth() && dueDate.getFullYear() === now.getFullYear()
-              default:
-                return false
-            }
-          })
-          
-          if (relevantInstances.length > 0) {
-            hasPending = true
-            hasOverdue = relevantInstances.some(instance => new Date(instance.dueDate) < today)
-          }
-          
-          return { hasPending, hasOverdue }
+    const calculatePendingStatus = () => {
+      const now = new Date()
+      
+      // Verificar items para cada período
+      const dailyItems = filterRecurringItemsByPeriod(recurringItems, 'daily')
+      const weeklyItems = filterRecurringItemsByPeriod(recurringItems, 'weekly')
+      const monthlyItems = filterRecurringItemsByPeriod(recurringItems, 'monthly')
+      
+      setPendingItemsStatus({
+        daily: { 
+          hasPending: dailyItems.length > 0, 
+          hasOverdue: false // No hay concepto de vencido en el sistema simplificado
+        },
+        weekly: { 
+          hasPending: weeklyItems.length > 0, 
+          hasOverdue: false 
+        },
+        monthly: { 
+          hasPending: monthlyItems.length > 0, 
+          hasOverdue: false 
         }
-        
-        setPendingItemsStatus({
-          daily: checkPeriodStatus('daily'),
-          weekly: checkPeriodStatus('weekly'),
-          monthly: checkPeriodStatus('monthly')
-        })
-      } catch (error) {
-        console.error('Error cargando estado de items pendientes:', error)
-      }
+      })
     }
     
-    loadPendingItemsStatus()
-  }, [user])
+    calculatePendingStatus()
+  }, [recurringItems])
 
   // ✅ OPTIMIZACIÓN: Funciones memoizadas con retry logic
   const addExpense = useCallback(async (name: string, amount: number, category: string) => {
@@ -346,53 +346,36 @@ export function ExpensesDashboard() {
     await updateExpense(id, { status: newStatus })
   }, [updateExpense, user, expenses])
 
-  // Funciones para manejar pagos de items recurrentes
+  // ✅ SIMPLIFICADO: Función para manejar pagos de items recurrentes (crea gasto normal)
   const handlePayRecurringItem = useCallback(async (itemId: string, amount: number, notes?: string) => {
     if (!user?.uid) return
 
     try {
-      const service = new RecurringItemsService(user.uid)
       const item = recurringItems.find(item => item.id === itemId)
-      
       if (!item) return
 
-      await service.payDailyItem(
-        itemId,
-        item.name,
+      // Crear gasto normal directamente
+      const expenseData = {
+        name: item.name,
         amount,
-        item.category,
-        undefined, // receiptImageId
-        notes
-      )
+        category: item.category,
+        status: 'paid' as const,
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        type: 'recurring' as const,
+        recurringItemId: itemId,
+        notes: notes || undefined
+      }
+
+      await addDoc(collection(db, `apps/controlgastos/users/${user.uid}/expenses`), expenseData)
       
       toast.success(`${item.name} pagado correctamente`)
-      await loadRecurringItems() // Recargar datos
     } catch (error) {
       console.error('Error procesando pago:', error)
       toast.error('Error al procesar el pago')
     }
   }, [user, recurringItems])
-
-  const handlePayRecurringInstance = useCallback(async (instanceId: string, notes?: string) => {
-    if (!user?.uid) return
-
-    try {
-      const service = new RecurringItemsService(user.uid)
-      
-      await service.markInstanceAsPaid(
-        instanceId,
-        undefined, // receiptImageId
-        notes
-      )
-      
-      const instance = recurringInstances.find(inst => inst.id === instanceId)
-      toast.success(`${instance?.itemName || 'Item'} pagado correctamente`)
-      await loadRecurringItems() // Recargar datos
-    } catch (error) {
-      console.error('Error procesando pago:', error)
-      toast.error('Error al procesar el pago')
-    }
-  }, [user, recurringInstances])
 
   // ✅ OPTIMIZACIÓN: Estados de carga y error
   if (isLoading) {
@@ -424,7 +407,10 @@ export function ExpensesDashboard() {
         <NotificationsBanner />
 
         {/* Pestañas de períodos */}
-        <Tabs defaultValue="daily" className="w-full" onValueChange={(value) => setActivePeriod(value as 'daily' | 'weekly' | 'monthly')}>
+        <Tabs value={activePeriod} className="w-full" onValueChange={(value) => {
+          console.log("🔄 Cambiando período:", value)
+          setActivePeriod(value as 'daily' | 'weekly' | 'monthly')
+        }}>
           <div className="flex justify-center mb-1">
             <TabsList className="grid w-full max-w-md grid-cols-3">
               <TabsTrigger 
@@ -487,14 +473,12 @@ export function ExpensesDashboard() {
             <ErrorBoundary fallback={ChartErrorFallback}>
               <ExpensesTable
                 expenses={filteredExpenses}
-                recurringItems={recurringItems}
-                recurringInstances={recurringInstances}
+                recurringItems={filteredRecurringItems}
                 onAddExpense={addExpense}
                 onUpdateExpense={updateExpense}
                 onDeleteExpense={deleteExpense}
                 onTogglePaid={togglePaid}
                 onPayRecurringItem={handlePayRecurringItem}
-                onPayRecurringInstance={handlePayRecurringInstance}
               />
             </ErrorBoundary>
           </TabsContent>
@@ -504,14 +488,12 @@ export function ExpensesDashboard() {
             <ErrorBoundary fallback={ChartErrorFallback}>
               <ExpensesTable
                 expenses={filteredExpenses}
-                recurringItems={recurringItems}
-                recurringInstances={recurringInstances}
+                recurringItems={filteredRecurringItems}
                 onAddExpense={addExpense}
                 onUpdateExpense={updateExpense}
                 onDeleteExpense={deleteExpense}
                 onTogglePaid={togglePaid}
                 onPayRecurringItem={handlePayRecurringItem}
-                onPayRecurringInstance={handlePayRecurringInstance}
               />
             </ErrorBoundary>
           </TabsContent>
@@ -521,14 +503,12 @@ export function ExpensesDashboard() {
             <ErrorBoundary fallback={ChartErrorFallback}>
               <ExpensesTable
                 expenses={filteredExpenses}
-                recurringItems={recurringItems}
-                recurringInstances={recurringInstances}
+                recurringItems={filteredRecurringItems}
                 onAddExpense={addExpense}
                 onUpdateExpense={updateExpense}
                 onDeleteExpense={deleteExpense}
                 onTogglePaid={togglePaid}
                 onPayRecurringItem={handlePayRecurringItem}
-                onPayRecurringInstance={handlePayRecurringInstance}
               />
             </ErrorBoundary>
           </TabsContent>

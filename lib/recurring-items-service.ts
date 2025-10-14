@@ -292,8 +292,22 @@ export class RecurringItemsService {
       const items = await this.getAllRecurringItems()
       const activeItems = items.filter(item => item.isActive && item.recurrenceType !== 'daily')
 
+      console.log(`🔍 Verificando ${activeItems.length} items activos...`)
+
       for (const item of activeItems) {
-        await this.generateInstancesForItem(item.id, item)
+        // Verificar si ya hay instancias pendientes para este item
+        const existingInstances = await this.getInstancesForItem(item.id)
+        const hasPendingInstances = existingInstances.some(instance => instance.status === 'pending')
+        
+        console.log(`📋 Item ${item.name}: ${existingInstances.length} instancias existentes, pendientes: ${hasPendingInstances}`)
+        
+        // Solo generar nuevas instancias si no hay instancias pendientes
+        if (!hasPendingInstances) {
+          console.log(`🔄 Generando instancias para ${item.name}...`)
+          await this.generateInstancesForItem(item.id, item)
+        } else {
+          console.log(`⏭️ Saltando ${item.name} - ya tiene instancias pendientes`)
+        }
       }
 
       // Actualizar estado de instancias vencidas
@@ -302,6 +316,27 @@ export class RecurringItemsService {
       console.log('✅ Verificación de nuevos periodos completada')
     } catch (error) {
       console.error('Error verificando nuevos periodos:', error)
+    }
+  }
+
+  async getInstancesForItem(itemId: string): Promise<RecurringItemInstance[]> {
+    try {
+      const q = query(
+        collection(db, `apps/controlgastos/users/${this.userId}/recurring_items_instances`),
+        where('itemId', '==', itemId)
+      )
+
+      const querySnapshot = await getDocs(q)
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        dueDate: doc.data().dueDate?.toDate() || new Date(),
+        periodStart: doc.data().periodStart?.toDate() || new Date(),
+        periodEnd: doc.data().periodEnd?.toDate() || new Date(),
+      })) as RecurringItemInstance[]
+    } catch (error) {
+      console.error('Error obteniendo instancias del item:', error)
+      return []
     }
   }
 

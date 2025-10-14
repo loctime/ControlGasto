@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RecurringItem, RecurringItemInstance } from "@/lib/types"
+import { RecurringItem } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import { FieldValue, Timestamp } from "firebase/firestore"
 import { Check, DollarSign, MoreVertical, Pencil, Plus, Trash2, X } from "lucide-react"
@@ -45,26 +45,22 @@ interface Expense {
 
 interface ExpensesTableProps {
   expenses: Expense[]
-  recurringItems?: RecurringItem[] // Items diarios disponibles
-  recurringInstances?: RecurringItemInstance[] // Instancias pendientes
+  recurringItems?: RecurringItem[] // Items recurrentes filtrados por período
   onAddExpense: (name: string, amount: number, category: string) => void
   onUpdateExpense: (id: string, updates: Partial<Expense>) => void
   onDeleteExpense: (id: string) => void
   onTogglePaid: (id: string, currentStatus: 'pending' | 'paid', receiptImageId?: string) => void
   onPayRecurringItem?: (itemId: string, amount: number, notes?: string) => void
-  onPayRecurringInstance?: (instanceId: string, notes?: string) => void
 }
 
 export function ExpensesTable({ 
   expenses, 
   recurringItems = [],
-  recurringInstances = [],
   onAddExpense, 
   onUpdateExpense, 
   onDeleteExpense, 
   onTogglePaid,
-  onPayRecurringItem,
-  onPayRecurringInstance
+  onPayRecurringItem
 }: ExpensesTableProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [newExpense, setNewExpense] = useState({ name: "", amount: "", category: "hogar" })
@@ -73,7 +69,7 @@ export function ExpensesTable({
   const [showReceiptDialog, setShowReceiptDialog] = useState(false)
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
   const [showRecurringPaymentDialog, setShowRecurringPaymentDialog] = useState(false)
-  const [selectedRecurringItem, setSelectedRecurringItem] = useState<RecurringItem | RecurringItemInstance | null>(null)
+  const [selectedRecurringItem, setSelectedRecurringItem] = useState<RecurringItem | null>(null)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentNotes, setPaymentNotes] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -81,18 +77,15 @@ export function ExpensesTable({
   // Usar el contexto global de ControlFile
   const { isControlFileConnected } = useControlFile()
 
-  // Combinar gastos normales con items recurrentes
+  // ✅ SIMPLIFICADO: Combinar gastos normales con items recurrentes filtrados
   const getAllExpenses = () => {
-    const allItems: Array<Expense | RecurringItem | RecurringItemInstance> = []
+    const allItems: Array<Expense | RecurringItem> = []
     
     // Agregar gastos normales
     allItems.push(...expenses)
     
-    // Agregar items diarios disponibles
-    allItems.push(...recurringItems.filter(item => item.recurrenceType === 'daily' && item.isActive))
-    
-    // Agregar instancias pendientes/vencidas
-    allItems.push(...recurringInstances)
+    // Agregar items recurrentes filtrados por período
+    allItems.push(...recurringItems)
     
     return allItems
   }
@@ -165,10 +158,10 @@ export function ExpensesTable({
     setSelectedExpense(null)
   }
 
-  // Funciones para manejar pagos de items recurrentes
-  const handlePayRecurringItem = (item: RecurringItem | RecurringItemInstance) => {
+  // ✅ SIMPLIFICADO: Funciones para manejar pagos de items recurrentes
+  const handlePayRecurringItem = (item: RecurringItem) => {
     setSelectedRecurringItem(item)
-    if ('amount' in item && item.amount) {
+    if (item.amount) {
       setPaymentAmount(item.amount.toString())
     } else {
       setPaymentAmount('')
@@ -187,14 +180,7 @@ export function ExpensesTable({
     }
 
     try {
-      if ('recurrenceType' in selectedRecurringItem) {
-        // Es un RecurringItem
-        onPayRecurringItem?.(selectedRecurringItem.id, amount, paymentNotes || undefined)
-      } else {
-        // Es una RecurringItemInstance
-        onPayRecurringInstance?.(selectedRecurringItem.id, paymentNotes || undefined)
-      }
-      
+      onPayRecurringItem?.(selectedRecurringItem.id, amount, paymentNotes || undefined)
       setShowRecurringPaymentDialog(false)
       setSelectedRecurringItem(null)
     } catch (error) {
@@ -311,17 +297,21 @@ export function ExpensesTable({
               if (aExpense.status !== bExpense.status) {
                 return aExpense.status === 'paid' ? 1 : -1
               }
-              return (aExpense.name || '').localeCompare(bExpense.name || '')
+              const aName = aExpense.name || ''
+              const bName = bExpense.name || ''
+              return aName.localeCompare(bName)
             }
             
             // Si ambos son recurrentes, ordenar por nombre
-            return (a.name || '').localeCompare(b.name || '')
+            const aName = a.name || ''
+            const bName = b.name || ''
+            return aName.localeCompare(bName)
           })
           .map((item) => {
             // Determinar si es un gasto normal o un item recurrente
             const isExpense = 'userId' in item
             const expense = isExpense ? item as Expense : null
-            const recurringItem = !isExpense ? item as RecurringItem | RecurringItemInstance : null
+            const recurringItem = !isExpense ? item as RecurringItem : null
             
             return (
               <div
@@ -519,7 +509,7 @@ export function ExpensesTable({
                   {/* Indicador de item recurrente */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">
-                      {recurringItem && 'recurrenceType' in recurringItem ? 'Recurrente' : 'Programado'}
+                      Recurrente
                     </Badge>
                   </div>
                   

@@ -10,6 +10,9 @@ export function cn(...inputs: ClassValue[]) {
  * @param amount - El monto a formatear
  * @returns String formateado (ej: "$1.500")
  */
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number | undefined | null): string {
+  if (amount === undefined || amount === null || isNaN(amount)) {
+    return "Sin monto"
+  }
   return `$${Math.round(amount).toLocaleString('es-ES')}`
 }

@@ -5,6 +5,13 @@ import { useCallback, useEffect } from 'react'
 import { notificationsService } from './notifications-service'
 import { RecurringItemsService } from './recurring-items-service'
 
+// Variable global para controlar ejecuciones simultáneas
+let isSchedulerRunning = false
+let lastExecutionTime = 0
+const MIN_EXECUTION_INTERVAL = 60000 // 60 segundos mínimo entre ejecuciones
+let executionCount = 0
+const MAX_EXECUTIONS_PER_SESSION = 3 // Máximo 3 ejecuciones por sesión
+
 /**
  * Hook que ejecuta verificaciones automáticas de items recurrentes
  * - Se ejecuta al montar el componente
@@ -19,8 +26,31 @@ export function useAutoScheduler() {
   const runScheduler = useCallback(async () => {
     if (!user?.uid) return
 
+    // Prevenir ejecuciones simultáneas
+    if (isSchedulerRunning) {
+      console.log('[AutoScheduler] Ya hay una ejecución en curso, saltando...')
+      return
+    }
+
+    // Prevenir ejecuciones muy frecuentes
+    const now = Date.now()
+    if (now - lastExecutionTime < MIN_EXECUTION_INTERVAL) {
+      console.log('[AutoScheduler] Ejecución muy reciente, saltando...')
+      return
+    }
+
+    // Prevenir demasiadas ejecuciones por sesión
+    if (executionCount >= MAX_EXECUTIONS_PER_SESSION) {
+      console.log('[AutoScheduler] Máximo de ejecuciones alcanzado para esta sesión')
+      return
+    }
+
+    isSchedulerRunning = true
+    lastExecutionTime = now
+    executionCount++
+
     try {
-      console.log('[AutoScheduler] Ejecutando verificación...')
+      console.log(`[AutoScheduler] Ejecutando verificación (${executionCount}/${MAX_EXECUTIONS_PER_SESSION})...`)
       
       const service = new RecurringItemsService(user.uid)
 
@@ -39,10 +69,14 @@ export function useAutoScheduler() {
       console.log(`[AutoScheduler] ${activeInstances.length} instancias activas`)
     } catch (error) {
       console.error('[AutoScheduler] Error en verificación:', error)
+    } finally {
+      isSchedulerRunning = false
     }
   }, [user])
 
   useEffect(() => {
+    if (!user?.uid) return
+
     // Ejecutar inmediatamente al montar
     runScheduler()
 
@@ -52,7 +86,7 @@ export function useAutoScheduler() {
     }, 5 * 60 * 1000) // 5 minutos
 
     return () => clearInterval(interval)
-  }, [runScheduler])
+  }, [user?.uid, runScheduler])
 
   return { runScheduler }
 }
