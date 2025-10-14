@@ -1,7 +1,6 @@
 "use client"
 
 import { useAuth } from "@/components/auth-provider"
-import { ExpensesHeader } from "@/components/expenses-header"
 import { ExpensesTable } from "@/components/expenses-table"
 import { NotificationsBanner } from "@/components/notifications-banner"
 import { PendingItemsCard } from "@/components/pending-items-card"
@@ -415,12 +414,6 @@ export function ExpensesDashboard() {
               <PendingItemsCard filterByRecurrence="daily" />
             </ErrorBoundary>
 
-            {/* Header con totales del día */}
-            <ExpensesHeader 
-              totalPaid={totals.totalPaid}
-              totalPending={totals.totalPending}
-              totalExpenses={totals.totalExpenses}
-            />
 
             {/* Tabla de gastos del día */}
             <ErrorBoundary fallback={ChartErrorFallback}>
@@ -440,12 +433,6 @@ export function ExpensesDashboard() {
               <PendingItemsCard filterByRecurrence="weekly" />
             </ErrorBoundary>
 
-            {/* Header con totales de la semana */}
-            <ExpensesHeader 
-              totalPaid={totals.totalPaid}
-              totalPending={totals.totalPending}
-              totalExpenses={totals.totalExpenses}
-            />
 
             {/* Tabla de gastos de la semana */}
             <ErrorBoundary fallback={ChartErrorFallback}>
@@ -465,12 +452,6 @@ export function ExpensesDashboard() {
               <PendingItemsCard filterByRecurrence="monthly" />
             </ErrorBoundary>
 
-            {/* Header con totales del mes */}
-            <ExpensesHeader 
-              totalPaid={totals.totalPaid}
-              totalPending={totals.totalPending}
-              totalExpenses={totals.totalExpenses}
-            />
 
             {/* Tabla de gastos del mes */}
             <ErrorBoundary fallback={ChartErrorFallback}>
