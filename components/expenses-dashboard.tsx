@@ -5,7 +5,6 @@ import { ExpensesTable } from "@/components/expenses-table"
 import { NotificationsBanner } from "@/components/notifications-banner"
 import { ChartErrorFallback, ErrorBoundary } from "@/components/ui/error-boundary"
 import { DashboardSkeleton } from "@/components/ui/skeleton-loaders"
-// import { useAutoScheduler } from "@/lib/auto-scheduler" // ❌ ELIMINADO - Sistema simplificado
 import { db } from "@/lib/firebase"
 import { useMemoizedCalculations, useRateLimit, useRetry } from "@/lib/optimization"
 import { RecurringItemsService } from "@/lib/recurring-items-service"
@@ -131,23 +130,6 @@ export function ExpensesDashboard() {
     }
   )
 
-  // ✅ SIMPLIFICADO: Cargar items recurrentes (sin instancias)
-  const loadRecurringItems = async () => {
-    if (!user?.uid) return
-
-    try {
-      const service = new RecurringItemsService(user.uid)
-      
-      // Cargar todos los items recurrentes activos
-      const allItems = await service.getAllRecurringItems()
-      setRecurringItems(allItems)
-      
-      console.log(`✅ Items recurrentes cargados: ${allItems.length}`)
-    } catch (error) {
-      console.error('Error cargando items recurrentes:', error)
-    }
-  }
-
   useEffect(() => {
     if (!user) {
       setIsLoading(false)
@@ -193,6 +175,22 @@ export function ExpensesDashboard() {
 
   // ✅ Cargar items recurrentes cuando cambie el usuario
   useEffect(() => {
+    const loadRecurringItems = async () => {
+      if (!user?.uid) return
+
+      try {
+        const service = new RecurringItemsService(user.uid)
+        
+        // Cargar todos los items recurrentes activos
+        const allItems = await service.getAllRecurringItems()
+        setRecurringItems(allItems)
+        
+        console.log(`✅ Items recurrentes cargados: ${allItems.length}`)
+      } catch (error) {
+        console.error('Error cargando items recurrentes:', error)
+      }
+    }
+
     loadRecurringItems()
   }, [user])
 
@@ -227,6 +225,11 @@ export function ExpensesDashboard() {
   }, [user, canMakeRequest, makeRequest, retryWithBackoff])
 
   const updateExpense = useCallback(async (id: string, updates: Partial<Expense>) => {
+    if (!user?.uid) {
+      toast.error("Usuario no autenticado")
+      return
+    }
+
     if (!canMakeRequest) {
       toast.error("Demasiadas solicitudes. Espera un momento.")
       return
@@ -240,7 +243,7 @@ export function ExpensesDashboard() {
       )
       
       await retryWithBackoff(async () => {
-        await updateDoc(doc(db, `apps/controlgastos/users/${user?.uid}/expenses`, id), {
+        await updateDoc(doc(db, `apps/controlgastos/users/${user.uid}/expenses`, id), {
           ...cleanUpdates,
           updatedAt: serverTimestamp()
         })
@@ -251,9 +254,14 @@ export function ExpensesDashboard() {
       toast.error("Error al actualizar gasto")
       throw error
     }
-  }, [canMakeRequest, makeRequest, retryWithBackoff])
+  }, [user, canMakeRequest, makeRequest, retryWithBackoff])
 
   const deleteExpense = useCallback(async (id: string) => {
+    if (!user?.uid) {
+      toast.error("Usuario no autenticado")
+      return
+    }
+
     if (!canMakeRequest) {
       toast.error("Demasiadas solicitudes. Espera un momento.")
       return
@@ -262,7 +270,7 @@ export function ExpensesDashboard() {
     try {
       makeRequest()
       await retryWithBackoff(async () => {
-        await deleteDoc(doc(db, `apps/controlgastos/users/${user?.uid}/expenses`, id))
+        await deleteDoc(doc(db, `apps/controlgastos/users/${user.uid}/expenses`, id))
       })
       toast.success("Gasto eliminado correctamente")
     } catch (error) {
@@ -270,7 +278,7 @@ export function ExpensesDashboard() {
       toast.error("Error al eliminar gasto")
       throw error
     }
-  }, [canMakeRequest, makeRequest, retryWithBackoff])
+  }, [user, canMakeRequest, makeRequest, retryWithBackoff])
 
   const togglePaid = useCallback(async (id: string, currentStatus: 'pending' | 'paid', receiptImageId?: string) => {
     const newStatus = currentStatus === 'pending' ? 'paid' : 'pending'

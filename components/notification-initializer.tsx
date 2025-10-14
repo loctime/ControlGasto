@@ -1,20 +1,13 @@
 "use client"
 
-import { initializeNotificationSystem } from '@/lib/auto-scheduler'
-import { useEffect } from 'react'
-
 /**
  * Componente que inicializa el sistema de notificaciones
- * Se ejecuta una sola vez al cargar la aplicación
+ * DESACTIVADO EN SISTEMA SIMPLIFICADO - Ya no se generan instancias automáticamente
  */
 export function NotificationInitializer() {
-  useEffect(() => {
-    // Inicializar sistema de notificaciones (Service Worker)
-    initializeNotificationSystem().catch(error => {
-      console.error('Error inicializando sistema de notificaciones:', error)
-    })
-  }, [])
-
+  // ❌ Auto-scheduler desactivado en sistema simplificado
+  // El nuevo sistema NO genera instancias, solo filtra items recurrentes por día
+  
   return null // No renderiza nada
 }
 

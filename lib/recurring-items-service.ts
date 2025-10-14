@@ -62,10 +62,8 @@ export class RecurringItemsService {
 
       console.log('✅ Item recurrente creado:', itemRef.id)
 
-      // Generar instancias si no es diario
-      if (itemData.recurrenceType !== 'daily') {
-        await this.generateInstancesForItem(itemRef.id, itemData)
-      }
+      // ❌ SISTEMA SIMPLIFICADO: Ya no se generan instancias automáticamente
+      // Los items se filtran directamente por día en el dashboard
 
       return itemRef.id
     } catch (error) {

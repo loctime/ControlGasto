@@ -281,7 +281,11 @@ export function ExpensesTable({
       {/* Lista de gastos - Estilo moderno */}
       <div className="space-y-2">
         {getAllExpenses()
+          .filter(item => item && item.id) // Filtrar items inválidos
           .sort((a, b) => {
+            // Validar que ambos items existan
+            if (!a || !b) return 0
+            
             // Primero determinar si son gastos normales o recurrentes
             const aIsExpense = 'userId' in a
             const bIsExpense = 'userId' in b
@@ -298,14 +302,14 @@ export function ExpensesTable({
               if (aExpense.status !== bExpense.status) {
                 return aExpense.status === 'paid' ? 1 : -1
               }
-              const aName = aExpense.name || ''
-              const bName = bExpense.name || ''
+              const aName = (aExpense.name || '').toString()
+              const bName = (bExpense.name || '').toString()
               return aName.localeCompare(bName)
             }
             
             // Si ambos son recurrentes, ordenar por nombre
-            const aName = a.name || ''
-            const bName = b.name || ''
+            const aName = (a.name || '').toString()
+            const bName = (b.name || '').toString()
             return aName.localeCompare(bName)
           })
           .map((item) => {
