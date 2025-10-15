@@ -1,14 +1,14 @@
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    orderBy,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { Invoice, Payment, PaymentWithInvoices } from './types'
@@ -323,6 +323,33 @@ export class PaymentService {
     } catch (error) {
       console.error('Error obteniendo meses disponibles:', error)
       return []
+    }
+  }
+
+  // Método estático para reiniciar todos los pagos (para usar en nuevo mes)
+  static async resetAllPayments(userId: string): Promise<void> {
+    try {
+      // Obtener todos los gastos del usuario
+      const expensesQuery = query(
+        collection(db, `apps/controlgastos/users/${userId}/expenses`)
+      )
+      
+      const expensesSnapshot = await getDocs(expensesQuery)
+      
+      // Actualizar todos los gastos a estado pendiente
+      const updatePromises = expensesSnapshot.docs.map(doc => {
+        return updateDoc(doc.ref, {
+          status: 'pending',
+          updatedAt: serverTimestamp()
+        })
+      })
+      
+      await Promise.all(updatePromises)
+      
+      console.log(`✅ ${updatePromises.length} gastos reiniciados a estado pendiente`)
+    } catch (error) {
+      console.error('Error reiniciando gastos:', error)
+      throw error
     }
   }
 }
