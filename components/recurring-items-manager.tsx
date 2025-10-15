@@ -3,20 +3,19 @@
 import { RecurringItemsService } from '@/lib/recurring-items-service'
 import { ExpenseCategory, RecurrenceType, RecurringItem } from '@/lib/types'
 import {
-  Calendar,
-  CalendarClock,
-  CalendarDays,
-  Check,
-  Clock,
-  Edit,
-  Plus,
-  Trash2,
-  X
+    Calendar,
+    CalendarClock,
+    CalendarDays,
+    Check,
+    Clock,
+    Edit,
+    Plus,
+    Trash2,
+    X
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from './auth-provider'
-import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
 import { Input } from './ui/input'
@@ -251,14 +250,14 @@ export function RecurringItemsManager() {
             <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/10 to-accent/10 rounded-full blur-lg animate-pulse"></div>
             
             <div className="relative">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center text-white text-sm font-bold animate-bounce-gentle">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center text-white text-xs sm:text-sm font-bold animate-bounce-gentle">
                       {getRecurrenceIcon(type)}
                     </div>
-                    <div>
-                      <h4 className="font-bold text-foreground">{item.name}</h4>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-foreground text-sm sm:text-base truncate">{item.name}</h4>
                       {!item.isActive && (
                         <span className="text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 px-2 py-1 rounded-full font-semibold">
                           ⏸️ Inactivo
@@ -266,7 +265,7 @@ export function RecurringItemsManager() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
                     {item.amount && (
                       <div className="flex items-center gap-1">
                         <span className="text-primary font-bold">💰</span>
@@ -277,32 +276,32 @@ export function RecurringItemsManager() {
                       {CATEGORIES.find(c => c.value === item.category)?.label}
                     </span>
                     {item.recurrenceType === 'weekly' && item.weekDay !== undefined && (
-                      <span className="text-xs text-muted-foreground">📅 {WEEK_DAYS.find(d => d.value === item.weekDay)?.label}</span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">📅 {WEEK_DAYS.find(d => d.value === item.weekDay)?.label}</span>
                     )}
                     {item.recurrenceType === 'monthly' && item.monthDay !== undefined && (
-                      <span className="text-xs text-muted-foreground">📅 Día {item.monthDay}</span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">📅 Día {item.monthDay}</span>
                     )}
                     {item.recurrenceType === 'custom_calendar' && item.customDays && (
-                      <span className="text-xs text-muted-foreground">🗓️ Días: {item.customDays.join(', ')}</span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">🗓️ Días: {item.customDays.join(', ')}</span>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleEdit(item)}
-                    className="h-8 w-8 rounded-lg hover:bg-primary/10 text-primary hover:text-primary"
+                    className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg hover:bg-primary/10 text-primary hover:text-primary"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDelete(item.id)}
-                    className="h-8 w-8 rounded-lg hover:bg-red-500/10 text-red-500 hover:text-red-600"
+                    className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg hover:bg-red-500/10 text-red-500 hover:text-red-600"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </div>
               </div>
@@ -319,26 +318,28 @@ export function RecurringItemsManager() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-success/10 rounded-2xl blur-xl"></div>
         <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-lg animate-bounce-gentle">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-lg animate-bounce-gentle">
                 🔄
               </div>
               <div>
-                <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                   Items Recurrentes
                 </h2>
-                <p className="text-sm text-muted-foreground">Configura tus gastos diarios, semanales, mensuales y personalizados</p>
+                <p className="text-sm text-muted-foreground hidden sm:block">Configura tus gastos diarios, semanales, mensuales y personalizados</p>
+                <p className="text-xs text-muted-foreground sm:hidden">Gastos recurrentes configurados</p>
               </div>
             </div>
             <Dialog open={showDialog} onOpenChange={setShowDialog}>
               <DialogTrigger asChild>
                 <Button 
                   onClick={() => { resetForm(); setFormData(prev => ({ ...prev, recurrenceType: currentTab })) }}
-                  className="btn-modern px-4 py-2 text-sm font-semibold rounded-xl shadow-lg transition-all duration-300"
+                  className="btn-modern px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl shadow-lg transition-all duration-300 w-full sm:w-auto"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nuevo Item
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Nuevo Item</span>
+                  <span className="sm:hidden">Nuevo</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -506,44 +507,70 @@ export function RecurringItemsManager() {
         </div>
       </div>
 
-      {/* Tabs modernos */}
+      {/* Tabs modernos - Responsive */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-success/5 rounded-2xl blur-xl"></div>
         <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-2 border border-white/20 shadow-xl">
           <Tabs value={currentTab} onValueChange={(v) => setCurrentTab(v as RecurrenceType)}>
-            <TabsList className="grid w-full grid-cols-4 bg-transparent">
-              <TabsTrigger value="daily" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300">
-                <Clock className="h-4 w-4" />
-                Diarios ({filterItemsByType('daily').length})
-              </TabsTrigger>
-              <TabsTrigger value="weekly" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300">
-                <Calendar className="h-4 w-4" />
-                Semanales ({filterItemsByType('weekly').length})
-              </TabsTrigger>
-              <TabsTrigger value="monthly" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300">
-                <CalendarDays className="h-4 w-4" />
-                Mensuales ({filterItemsByType('monthly').length})
-              </TabsTrigger>
-              <TabsTrigger value="custom_calendar" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300">
-                <CalendarClock className="h-4 w-4" />
-                Calendario ({filterItemsByType('custom_calendar').length})
-              </TabsTrigger>
-            </TabsList>
+            {/* TabsList responsive - scroll horizontal en móvil */}
+            <div className="overflow-x-auto">
+              <TabsList className="inline-flex w-max min-w-full bg-transparent gap-1">
+                <TabsTrigger 
+                  value="daily" 
+                  className="flex items-center gap-1 sm:gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 whitespace-nowrap px-3 py-2 text-xs sm:text-sm"
+                >
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Diarios</span>
+                  <span className="sm:hidden">Diarios</span>
+                  <span className="ml-1">({filterItemsByType('daily').length})</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="weekly" 
+                  className="flex items-center gap-1 sm:gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 whitespace-nowrap px-3 py-2 text-xs sm:text-sm"
+                >
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Semanales</span>
+                  <span className="sm:hidden">Sem.</span>
+                  <span className="ml-1">({filterItemsByType('weekly').length})</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="monthly" 
+                  className="flex items-center gap-1 sm:gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 whitespace-nowrap px-3 py-2 text-xs sm:text-sm"
+                >
+                  <CalendarDays className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Mensuales</span>
+                  <span className="sm:hidden">Mes</span>
+                  <span className="ml-1">({filterItemsByType('monthly').length})</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="custom_calendar" 
+                  className="flex items-center gap-1 sm:gap-2 rounded-xl data-[state=active]:bg-primary/20 data-[state=active]:text-primary transition-all duration-300 whitespace-nowrap px-3 py-2 text-xs sm:text-sm"
+                >
+                  <CalendarClock className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Calendario</span>
+                  <span className="sm:hidden">Cal.</span>
+                  <span className="ml-1">({filterItemsByType('custom_calendar').length})</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="daily" className="space-y-4">
               <div className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 via-indigo-50/50 to-purple-50/50 dark:from-blue-900/10 dark:via-indigo-900/10 dark:to-purple-900/10 rounded-2xl blur-xl"></div>
                 <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg animate-bounce-gentle">
+                  <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-lg animate-bounce-gentle">
                       ⏰
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                         Items Diarios
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground hidden sm:block">
                         Gastos que puedes registrar en cualquier momento. Aparecen siempre en el dashboard.
+                      </p>
+                      <p className="text-xs text-muted-foreground sm:hidden">
+                        Gastos diarios configurables
                       </p>
                     </div>
                   </div>
@@ -556,16 +583,19 @@ export function RecurringItemsManager() {
               <div className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-green-50/50 via-emerald-50/50 to-teal-50/50 dark:from-green-900/10 dark:via-emerald-900/10 dark:to-teal-900/10 rounded-2xl blur-xl"></div>
                 <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg animate-bounce-gentle">
+                  <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-lg animate-bounce-gentle">
                       📅
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                         Items Semanales
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground hidden sm:block">
                         Gastos que se repiten cada semana en el día que configures.
+                      </p>
+                      <p className="text-xs text-muted-foreground sm:hidden">
+                        Gastos semanales configurables
                       </p>
                     </div>
                   </div>
@@ -578,16 +608,19 @@ export function RecurringItemsManager() {
               <div className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-orange-50/50 via-amber-50/50 to-yellow-50/50 dark:from-orange-900/10 dark:via-amber-900/10 dark:to-yellow-900/10 rounded-2xl blur-xl"></div>
                 <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-600 rounded-xl flex items-center justify-center text-white font-bold text-lg animate-bounce-gentle">
+                  <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-orange-500 to-amber-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-lg animate-bounce-gentle">
                       📊
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
                         Items Mensuales
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground hidden sm:block">
                         Gastos que se repiten el día del mes que configures.
+                      </p>
+                      <p className="text-xs text-muted-foreground sm:hidden">
+                        Gastos mensuales configurables
                       </p>
                     </div>
                   </div>
@@ -600,16 +633,19 @@ export function RecurringItemsManager() {
               <div className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-50/50 via-pink-50/50 to-rose-50/50 dark:from-purple-900/10 dark:via-pink-900/10 dark:to-rose-900/10 rounded-2xl blur-xl"></div>
                 <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center text-white font-bold text-lg animate-bounce-gentle">
+                  <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center text-white font-bold text-sm sm:text-lg animate-bounce-gentle">
                       🗓️
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                         Calendario Personalizado
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground hidden sm:block">
                         Gastos que se repiten en días específicos del mes que tú configures.
+                      </p>
+                      <p className="text-xs text-muted-foreground sm:hidden">
+                        Gastos con calendario personalizado
                       </p>
                     </div>
                   </div>

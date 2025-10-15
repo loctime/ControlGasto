@@ -430,16 +430,14 @@ export function ExpensesDashboard() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="relative">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-lg animate-bounce-gentle">
-                      💰
-                    </div>
+                    
                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center text-xs animate-pulse">
                       ✨
                     </div>
                   </div>
                   <div>
                     <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                      📅 Gastos de Hoy
+                      Gastos de Hoy
                     </h1>
                     <p className="text-sm text-muted-foreground">
                       {new Date().toLocaleDateString('es-ES', { 
