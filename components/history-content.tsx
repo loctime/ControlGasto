@@ -218,9 +218,8 @@ export function HistoryContent() {
     const totalPayments = filteredPayments.length
 
     return { 
-      totalExpenses: totalAmount, 
-      totalPaid: totalAmount, 
-      totalPending: 0
+      totalAmount: totalAmount, 
+      paymentsCount: totalPayments
     }
   }, [filteredPayments])
 
@@ -396,7 +395,7 @@ export function HistoryContent() {
                         selected={dateRange}
                         onSelect={(range) => {
                           if (range?.from && range?.to) {
-                            setDateRange(range)
+                            setDateRange({ from: range.from, to: range.to })
                             setUseDateRange(true)
                           }
                         }}

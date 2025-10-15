@@ -46,7 +46,7 @@ export function RecurringPaymentDialog({
   suggestedAmount = 0,
   isConnectedToControlFile: propIsConnected,
   onConnectionChange
-}: RecurringItemPaymentDialogProps) {
+}: RecurringPaymentDialogProps) {
   // Usar el contexto global de ControlFile
   const { isControlFileConnected, connectControlFile } = useControlFile()
   

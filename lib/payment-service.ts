@@ -1,14 +1,14 @@
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    orderBy,
+    query,
+    serverTimestamp,
+    updateDoc,
+    where
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { Invoice, Payment, PaymentWithInvoices } from './types'
@@ -46,7 +46,7 @@ export class PaymentService {
     notes?: string
   ): Promise<string> {
     try {
-      const paymentData = {
+      const paymentData: any = {
         expenseId,
         expenseName,
         amount,
@@ -127,6 +127,7 @@ export class PaymentService {
         const data = doc.data()
         return {
           id: doc.id,
+          userId: this.userId,
           expenseId: doc.id,
           expenseName: data.name,
           amount: data.amount,
