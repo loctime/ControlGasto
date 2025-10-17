@@ -202,12 +202,12 @@ export function HistoryContent() {
           <div className="relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-success/5 rounded-2xl blur-xl"></div>
             <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
                 {/* Búsqueda de texto */}
-                <div className="relative flex-1 min-w-[200px]">
+                <div className="relative flex-1 min-w-[120px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                   <Input
-                    placeholder="Buscar: 'supermercado', 'octubre', '2025', '14'..."
+                    placeholder="Buscar..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 pr-10 h-10 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300"
@@ -218,7 +218,7 @@ export function HistoryContent() {
                 </div>
 
                 {/* Búsqueda de fecha */}
-                <div className="relative min-w-[150px]">
+                <div className="relative w-[140px]">
                   <DateSearch 
                     onDateChange={setSelectedDate}
                     placeholder="DD/MM/YYYY"
@@ -252,9 +252,7 @@ export function HistoryContent() {
             <h2 className="text-xl font-semibold">
               Historial de Pagos ({payments.length} pagos)
             </h2>
-            <div className="text-sm text-muted-foreground">
-              Navega por años, meses, semanas y días
-            </div>
+            
           </div>
           
           <HierarchicalHistory 
