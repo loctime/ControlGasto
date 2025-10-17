@@ -1,5 +1,6 @@
 "use client"
 
+import { smartSearch } from "@/lib/smart-search"
 import { Payment } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import { Calendar, ChevronDown, ChevronRight } from "lucide-react"
@@ -48,13 +49,110 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
 
+  // Búsqueda inteligente
+  const searchResult = useMemo(() => {
+    return smartSearch(payments, searchTerm)
+  }, [payments, searchTerm])
+
   // Agrupar pagos jerárquicamente
   const hierarchicalData = useMemo(() => {
-    const filteredPayments = searchTerm.trim() 
-      ? payments.filter(payment => 
-          payment.expenseName.toLowerCase().includes(searchTerm.toLowerCase().trim())
-        )
-      : payments
+    const filteredPayments = searchResult.payments
+
+    // Si es búsqueda por mes, agrupar de manera especial
+    if (searchResult.searchType === 'month' && searchResult.matchedPeriod) {
+      const monthName = searchResult.matchedPeriod.value
+      const monthMap: Record<string, number> = {
+        'enero': 0, 'ene': 0, 'febrero': 1, 'feb': 1, 'marzo': 2, 'mar': 2,
+        'abril': 3, 'abr': 3, 'mayo': 4, 'may': 4, 'junio': 5, 'jun': 5,
+        'julio': 6, 'jul': 6, 'agosto': 7, 'ago': 7, 'septiembre': 8, 'sep': 8,
+        'octubre': 9, 'oct': 9, 'noviembre': 10, 'nov': 10, 'diciembre': 11, 'dic': 11
+      }
+      const targetMonth = monthMap[monthName]
+      
+      if (targetMonth !== undefined) {
+        // Agrupar por año, pero solo mostrar los meses específicos
+        const grouped: Record<number, Record<number, Record<number, Record<number, Payment[]>>>> = {}
+        
+        filteredPayments.forEach(payment => {
+          const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
+          const year = paymentDate.getFullYear()
+          const month = paymentDate.getMonth()
+          const day = paymentDate.getDate()
+          
+          if (month === targetMonth) {
+            const firstDayOfMonth = new Date(year, month, 1)
+            const firstMonday = new Date(firstDayOfMonth)
+            firstMonday.setDate(firstDayOfMonth.getDate() - firstDayOfMonth.getDay() + 1)
+            const weekNumber = Math.ceil((day + firstDayOfMonth.getDay() - 1) / 7)
+
+            if (!grouped[year]) grouped[year] = {}
+            if (!grouped[year][month]) grouped[year][month] = {}
+            if (!grouped[year][month][weekNumber]) grouped[year][month][weekNumber] = {}
+            if (!grouped[year][month][weekNumber][day]) grouped[year][month][weekNumber][day] = []
+            
+            grouped[year][month][weekNumber][day].push(payment)
+          }
+        })
+
+        // Convertir a estructura jerárquica especial para meses
+        const years: YearData[] = Object.keys(grouped)
+          .map(Number)
+          .sort((a, b) => b - a)
+          .map(year => {
+            const months: MonthData[] = Object.keys(grouped[year])
+              .map(Number)
+              .sort((a, b) => b - a)
+              .map(month => {
+                const weeks: WeekData[] = Object.keys(grouped[year][month])
+                  .map(Number)
+                  .sort((a, b) => b - a)
+                  .map(weekNumber => {
+                    const days: DayData[] = Object.keys(grouped[year][month][weekNumber])
+                      .map(Number)
+                      .sort((a, b) => b - a)
+                      .map(day => {
+                        const dayPayments = grouped[year][month][weekNumber][day]
+                        return {
+                          date: new Date(year, month, day),
+                          payments: dayPayments,
+                          totalAmount: dayPayments.reduce((sum, p) => sum + p.amount, 0),
+                          paymentsCount: dayPayments.length
+                        }
+                      })
+
+                    const weekPayments = days.flatMap(d => d.payments)
+                    return {
+                      weekNumber,
+                      month,
+                      year,
+                      days,
+                      totalAmount: weekPayments.reduce((sum, p) => sum + p.amount, 0),
+                      paymentsCount: weekPayments.length
+                    }
+                  })
+
+                const monthPayments = weeks.flatMap(w => w.days.flatMap(d => d.payments))
+                return {
+                  month,
+                  year,
+                  weeks,
+                  totalAmount: monthPayments.reduce((sum, p) => sum + p.amount, 0),
+                  paymentsCount: monthPayments.length
+                }
+              })
+
+            const yearPayments = months.flatMap(m => m.weeks.flatMap(w => w.days.flatMap(d => d.payments)))
+            return {
+              year,
+              months,
+              totalAmount: yearPayments.reduce((sum, p) => sum + p.amount, 0),
+              paymentsCount: yearPayments.length
+            }
+          })
+
+        return years
+      }
+    }
 
     const grouped: Record<number, Record<number, Record<number, Record<number, Payment[]>>>> = {}
 
@@ -135,7 +233,7 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
       })
 
     return years
-  }, [payments, searchTerm])
+  }, [searchResult.payments])
 
   const toggleYear = (year: number) => {
     const newExpanded = new Set(expandedYears)
@@ -198,17 +296,56 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
       <div className="text-center py-12">
         <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg font-medium text-foreground mb-2">
-          No hay pagos registrados
+          {searchTerm ? "No se encontraron pagos" : "No hay pagos registrados"}
         </h3>
         <p className="text-muted-foreground">
-          {searchTerm ? "Intenta ajustar los filtros de búsqueda" : "Comienza agregando tus primeros gastos"}
+          {searchTerm 
+            ? `No hay pagos que coincidan con "${searchTerm}"` 
+            : "Comienza agregando tus primeros gastos"
+          }
         </p>
+        {searchTerm && (
+          <div className="mt-4 text-sm text-muted-foreground">
+            <p>💡 Prueba buscar por:</p>
+            <ul className="list-disc list-inside space-y-1 mt-2">
+              <li>Nombre del gasto: "supermercado"</li>
+              <li>Mes: "octubre" o "enero"</li>
+              <li>Año: "2024" o "2025"</li>
+              <li>Mes y año: "octubre 2025"</li>
+              <li>Combinado: "supermercado octubre"</li>
+            </ul>
+          </div>
+        )}
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
+      {/* Indicador de búsqueda activa */}
+      {searchTerm && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+              🔍
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                Búsqueda: "{searchTerm}"
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {searchResult.searchType === 'name' && 'Por nombre de gasto'}
+                {searchResult.searchType === 'year' && `Año ${searchResult.matchedPeriod?.value}`}
+                {searchResult.searchType === 'month' && `Mes ${searchResult.matchedPeriod?.value}`}
+                {searchResult.searchType === 'date' && `Fecha ${searchResult.matchedPeriod?.value}`}
+                {searchResult.searchType === 'combined' && 'Búsqueda combinada'}
+                • {searchResult.payments.length} pagos encontrados
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {hierarchicalData.map(yearData => (
         <div key={yearData.year} className="space-y-2">
           {/* Año */}

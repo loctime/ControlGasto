@@ -6,6 +6,7 @@ import { HistoryHeader } from "@/components/history-header"
 import { HierarchicalHistory } from "@/components/history-hierarchical"
 import { HistoryResetModal } from "@/components/history-reset-modal"
 import { HistoryStats } from "@/components/history-stats"
+import { SearchHelp } from "@/components/search-help"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -237,11 +238,14 @@ export function HistoryContent() {
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
                 <Input
-                  placeholder="Buscar por nombre del gasto..."
+                  placeholder="Buscar: 'supermercado', 'octubre', '2025', 'supermercado octubre'..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-10 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300"
+                  className="pl-10 pr-10 h-10 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300"
                 />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <SearchHelp />
+                </div>
               </div>
 
               {/* Ordenar */}
