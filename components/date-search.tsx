@@ -139,6 +139,8 @@ export function DateSearch({ onDateChange, onSearchTermChange, placeholder = "DD
       <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
       <Input
         type="text"
+        inputMode="numeric"
+        pattern="[0-9/]*"
         placeholder={placeholder}
         value={dateString}
         onChange={handleInputChange}
