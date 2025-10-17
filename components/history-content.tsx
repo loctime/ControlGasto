@@ -3,24 +3,19 @@
 import { useAuth } from "@/components/auth-provider"
 import { BottomNav } from "@/components/bottom-nav"
 import { HistoryHeader } from "@/components/history-header"
+import { HierarchicalHistory } from "@/components/history-hierarchical"
 import { HistoryResetModal } from "@/components/history-reset-modal"
 import { HistoryStats } from "@/components/history-stats"
-import { ReceiptViewer } from "@/components/receipt-viewer"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { HistorySkeleton } from "@/components/ui/skeleton-loaders"
 import { PaymentService } from "@/lib/payment-service"
 import { Payment } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import {
-    Calendar as CalendarIcon,
     ChevronDown,
     ChevronUp,
-    Plus,
     Search
 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -34,28 +29,15 @@ export function HistoryContent() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const [payments, setPayments] = useState<Payment[]>([])
-  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([])
-  const [view, setView] = useState<"week" | "month">("month")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showResetModal, setShowResetModal] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   
-  // Control de meses
-  const [monthsToShow, setMonthsToShow] = useState(1) // Empezar con 1 mes
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  
-  // Filtros y ordenamiento
+  // Filtros simplificados
   const [searchTerm, setSearchTerm] = useState("")
   const [sortField, setSortField] = useState<SortField>("date")
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
-  
-  // Rango de fechas
-  const [dateRange, setDateRange] = useState<{from: Date | undefined, to: Date | undefined}>({
-    from: undefined,
-    to: undefined
-  })
-  const [useDateRange, setUseDateRange] = useState(false)
 
   useEffect(() => {
     if (!user && !loading) {
@@ -101,58 +83,11 @@ export function HistoryContent() {
     fetchPayments()
   }, [user])
 
-  // Aplicar filtros y ordenamiento
-  useEffect(() => {
-    console.log("🔍 Historial - Aplicando filtros. Pagos originales:", payments.length)
-    let filtered = [...payments]
-
-    // Filtrar por término de búsqueda (buscar en el nombre del gasto)
-    if (searchTerm.trim()) {
-      filtered = filtered.filter(payment =>
-        payment.expenseName.toLowerCase().includes(searchTerm.toLowerCase().trim())
-      )
-      console.log("🔍 Historial - Después de filtro de búsqueda:", filtered.length)
-    }
-
-    // Filtrar por período
-    if (useDateRange && dateRange.from && dateRange.to) {
-      // Usar rango de fechas personalizado
-      filtered = filtered.filter(payment => {
-        const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
-        return paymentDate >= dateRange.from! && paymentDate <= dateRange.to!
-      })
-    } else {
-      // Usar lógica de meses/semana
-      const now = new Date()
-      let startDate: Date
-
-      if (view === "week") {
-        // Últimos 7 días
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-      } else {
-        // Últimos X meses (empezando desde el mes actual hacia atrás)
-        const currentMonth = now.getMonth()
-        const currentYear = now.getFullYear()
-        const targetMonth = currentMonth - (monthsToShow - 1)
-        
-        if (targetMonth < 0) {
-          // Si necesitamos ir al año anterior
-          const targetYear = currentYear - Math.floor(Math.abs(targetMonth) / 12) - 1
-          const adjustedMonth = 12 + (targetMonth % 12)
-          startDate = new Date(targetYear, adjustedMonth, 1)
-        } else {
-          startDate = new Date(currentYear, targetMonth, 1)
-        }
-      }
-
-      filtered = filtered.filter(payment => {
-        const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
-        return paymentDate >= startDate
-      })
-    }
-
-    // Ordenar
-    filtered.sort((a, b) => {
+  // Aplicar ordenamiento a los pagos
+  const sortedPayments = useMemo(() => {
+    const sorted = [...payments]
+    
+    sorted.sort((a, b) => {
       let aValue: any
       let bValue: any
 
@@ -180,9 +115,8 @@ export function HistoryContent() {
       }
     })
 
-    console.log("🔍 Historial - Pagos filtrados finales:", filtered.length)
-    setFilteredPayments(filtered)
-  }, [payments, searchTerm, sortField, sortOrder, view, monthsToShow, useDateRange, dateRange])
+    return sorted
+  }, [payments, sortField, sortOrder])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -214,14 +148,14 @@ export function HistoryContent() {
 
   // ✅ OPTIMIZACIÓN: Memoizar cálculos pesados
   const totals = useMemo(() => {
-    const totalAmount = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0)
-    const totalPayments = filteredPayments.length
+    const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0)
+    const totalPayments = payments.length
 
     return { 
       totalAmount: totalAmount, 
       paymentsCount: totalPayments
     }
-  }, [filteredPayments])
+  }, [payments])
 
   // Verificar si hay más meses disponibles
   const isNewMonthWithPreviousPayments = useMemo(() => {
@@ -238,33 +172,6 @@ export function HistoryContent() {
     
     return hasPreviousMonthPayments
   }, [payments])
-
-  const loadMoreMonths = () => {
-    setIsLoadingMore(true)
-    // Simular carga (en realidad no necesitamos cargar más datos, solo mostrar más)
-    setTimeout(() => {
-      setMonthsToShow(prev => prev + 1)
-      setIsLoadingMore(false)
-    }, 500)
-  }
-
-  // Verificar si hay más datos disponibles
-  const hasMoreData = useMemo(() => {
-    if (payments.length === 0) return false
-    
-    const now = new Date()
-    const oldestPayment = payments.reduce((oldest, payment) => {
-      const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
-      const oldestDate = oldest.paidAt instanceof Date ? oldest.paidAt : new Date(oldest.paidAt)
-      return paymentDate < oldestDate ? payment : oldest
-    })
-    
-    const oldestDate = oldestPayment.paidAt instanceof Date ? oldestPayment.paidAt : new Date(oldestPayment.paidAt)
-    const monthsDifference = (now.getFullYear() - oldestDate.getFullYear()) * 12 + 
-                           (now.getMonth() - oldestDate.getMonth())
-    
-    return monthsToShow < monthsDifference + 1
-  }, [payments, monthsToShow])
 
   const resetAllPayments = async () => {
     setIsResetting(true)
@@ -319,9 +226,9 @@ export function HistoryContent() {
           onShowResetModal={() => setShowResetModal(true)}
         />
 
-        <HistoryStats payments={filteredPayments} />
+        <HistoryStats payments={payments} />
 
-        {/* Filtros modernos y compactos */}
+        {/* Filtros simplificados */}
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-success/5 rounded-2xl blur-xl"></div>
           <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
@@ -358,200 +265,29 @@ export function HistoryContent() {
               >
                 {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </Button>
-
-              {/* Rango de fechas */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="h-10 px-4 text-sm border-2 border-primary/20 text-primary hover:bg-primary/10 rounded-xl transition-all duration-300"
-                  >
-                    <CalendarIcon className="w-4 h-4 mr-2" />
-                    {useDateRange && dateRange.from && dateRange.to 
-                      ? `${dateRange.from.toLocaleDateString('es-ES')} - ${dateRange.to.toLocaleDateString('es-ES')}`
-                      : "📅 Rango"
-                    }
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-2xl" align="start">
-                  <div className="p-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Seleccionar rango:</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setDateRange({ from: undefined, to: undefined })
-                            setUseDateRange(false)
-                          }}
-                          className="h-6 px-2 text-xs rounded-lg"
-                        >
-                          Limpiar
-                        </Button>
-                      </div>
-                      <Calendar
-                        mode="range"
-                        selected={dateRange}
-                        onSelect={(range) => {
-                          if (range?.from && range?.to) {
-                            setDateRange({ from: range.from, to: range.to })
-                            setUseDateRange(true)
-                          }
-                        }}
-                        className="rounded-xl border"
-                        numberOfMonths={1}
-                      />
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              {/* Vista */}
-              <div className="flex items-center gap-1 bg-primary/10 rounded-xl p-1">
-                <Button
-                  variant={view === "week" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => {
-                    setView("week")
-                    setUseDateRange(false)
-                  }}
-                  className="h-8 px-3 text-xs rounded-lg"
-                >
-                  📅 Semana
-                </Button>
-                <Button
-                  variant={view === "month" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => {
-                    setView("month")
-                    setUseDateRange(false)
-                  }}
-                  className="h-8 px-3 text-xs rounded-lg"
-                >
-                  📊 Mes
-                </Button>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Lista de pagos */}
-        <div className="space-y-3">
+        {/* Navegación jerárquica */}
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">
-              Historial de Pagos ({filteredPayments.length} de {payments.length})
+              Historial de Pagos ({payments.length} pagos)
             </h2>
             <div className="text-sm text-muted-foreground">
-              Mostrando últimos {monthsToShow} {monthsToShow === 1 ? 'mes' : 'meses'}
+              Navega por años, meses, semanas y días
             </div>
           </div>
-          {filteredPayments.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  No se encontraron pagos
-                </h3>
-                <p className="text-muted-foreground">
-                  {searchTerm
-                    ? "Intenta ajustar los filtros de búsqueda" 
-                    : "No hay pagos registrados aún"}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredPayments.map((payment) => {
-              const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
-              const { date, time } = formatDateTime(paymentDate)
-              
-              return (
-                 <div
-                   key={payment.id}
-                   className="card-float bg-gradient-to-br from-green-50 via-emerald-50 to-white dark:from-green-900/20 dark:via-emerald-900/20 dark:to-gray-900/50 border-2 border-green-400 dark:border-green-500 rounded-2xl p-4 transition-all duration-300 hover:scale-[1.02]"
-                 >
-                   {/* Efectos de fondo animados */}
-                   <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-green-400/10 to-emerald-500/10 rounded-full blur-lg animate-pulse"></div>
-                   
-                   <div className="relative">
-                     {/* Header del card */}
-                     <div className="flex items-center justify-between mb-3">
-                       <div className="flex items-center space-x-3">
-                         <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-lg font-bold animate-bounce-gentle">
-                           ✅
-                         </div>
-                         <div>
-                           <h3 className="text-lg font-bold text-foreground">{payment.expenseName}</h3>
-                           <div className="flex items-center gap-2">
-                             <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded-full font-semibold">
-                               💳 Pagado
-                             </span>
-                           </div>
-                         </div>
-                       </div>
-                       
-                       {payment.receiptImageId && (
-                         <ReceiptViewer
-                           receiptImageId={payment.receiptImageId}
-                           expenseName={payment.expenseName}
-                           expenseAmount={payment.amount}
-                           paidAt={paymentDate}
-                         />
-                       )}
-                     </div>
-
-                     {/* Footer del card */}
-                     <div className="flex items-center justify-between">
-                       {/* Monto */}
-                       <div className="text-2xl font-bold text-foreground">
-                         {formatCurrency(payment.amount)}
-                       </div>
-                       
-                       <div className="text-right">
-                         <div className="text-sm text-green-600 font-medium">
-                           📅 {date} a las {time}
-                         </div>
-                         {payment.notes && (
-                           <div className="text-xs text-muted-foreground italic">
-                             📝 {payment.notes}
-                           </div>
-                         )}
-                       </div>
-                     </div>
-                   </div>
-                 </div>
-              )
-            })
-          )}
-
-          {/* Botón Ver más moderno */}
-          {filteredPayments.length > 0 && hasMoreData && (
-            <div className="flex justify-center pt-4">
-              <Button
-                onClick={loadMoreMonths}
-                disabled={isLoadingMore}
-                className="btn-modern px-6 py-3 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                {isLoadingMore ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                    Cargando...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" />
-                    📅 Ver más meses
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+          
+          <HierarchicalHistory 
+            payments={sortedPayments} 
+            searchTerm={searchTerm} 
+          />
         </div>
 
         {/* Resumen moderno */}
-        {filteredPayments.length > 0 && (
+        {payments.length > 0 && (
           <div className="relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-success/10 rounded-2xl blur-xl"></div>
             <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
@@ -561,7 +297,7 @@ export function HistoryContent() {
                     <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg animate-pulse-glow mx-auto mb-2">
                       📊
                     </div>
-                    <p className="text-lg font-bold text-foreground">{filteredPayments.length}</p>
+                    <p className="text-lg font-bold text-foreground">{payments.length}</p>
                     <p className="text-xs text-muted-foreground">Pagos</p>
                   </div>
                   <div className="text-center">
@@ -569,7 +305,7 @@ export function HistoryContent() {
                       💰
                     </div>
                     <p className="text-lg font-bold text-green-600">
-                      {formatCurrency(filteredPayments.reduce((sum, p) => sum + p.amount, 0))}
+                      {formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}
                     </p>
                     <p className="text-xs text-muted-foreground">Total Pagado</p>
                   </div>
@@ -580,7 +316,7 @@ export function HistoryContent() {
                   </div>
                   <p className="text-sm text-muted-foreground">Promedio</p>
                   <p className="text-xl font-bold text-primary">
-                    {formatCurrency(filteredPayments.reduce((sum, p) => sum + p.amount, 0) / filteredPayments.length)}
+                    {formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0) / payments.length)}
                   </p>
                 </div>
               </div>
