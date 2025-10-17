@@ -254,7 +254,7 @@ export function HistoryContent() {
                   <SelectValue placeholder="Ordenar" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="date" className="rounded-lg">📅 Fecha</SelectItem>
+                  <SelectItem value="date" className="rounded-lg">📅 Más reciente</SelectItem>
                   <SelectItem value="amount" className="rounded-lg">💰 Monto</SelectItem>
                   <SelectItem value="name" className="rounded-lg">📝 Nombre</SelectItem>
                 </SelectContent>

@@ -21,7 +21,7 @@ export function smartSearch(payments: Payment[], searchTerm: string): SmartSearc
 
   const term = searchTerm.toLowerCase().trim()
   
-  // Detectar patrones de fecha
+  // Detectar patrones de fecha (más flexibles)
   const datePatterns = {
     // Año completo: "2024", "2025"
     year: /^(20\d{2})$/,
@@ -31,6 +31,14 @@ export function smartSearch(payments: Payment[], searchTerm: string): SmartSearc
     month: /^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)$/,
     // Fecha específica: "15 octubre 2025", "15 oct 2025"
     specificDate: /^(\d{1,2})\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)(\s+(20\d{2}))?$/
+  }
+
+  // Patrones flexibles para búsqueda mientras se escribe
+  const flexiblePatterns = {
+    // Mes parcial: "oct", "ener", "feb"
+    monthPartial: /^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)$/,
+    // Año parcial: "202", "2024"
+    yearPartial: /^(20\d{0,2})$/
   }
 
   // Mapeo de nombres de meses
@@ -52,6 +60,27 @@ export function smartSearch(payments: Payment[], searchTerm: string): SmartSearc
   let filteredPayments = payments
   let searchType: SmartSearchResult['searchType'] = 'name'
   let matchedPeriod: SmartSearchResult['matchedPeriod']
+
+  // Función para detectar coincidencias parciales de meses
+  const getPartialMonthMatch = (term: string) => {
+    const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                       'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+                       'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+    
+    // Buscar coincidencias exactas primero
+    const exactMatch = monthNames.find(month => month === term)
+    if (exactMatch) return exactMatch
+    
+    // Buscar coincidencias parciales (el término está contenido en el mes)
+    const partialMatch = monthNames.find(month => month.startsWith(term))
+    if (partialMatch) return partialMatch
+    
+    // Buscar coincidencias donde el mes contiene el término
+    const containsMatch = monthNames.find(month => month.includes(term))
+    if (containsMatch) return containsMatch
+    
+    return null
+  }
 
   // Detectar tipo de búsqueda
   if (datePatterns.year.test(term)) {
@@ -97,35 +126,29 @@ export function smartSearch(payments: Payment[], searchTerm: string): SmartSearc
         return paymentDate.getMonth() === month
       })
     }
+  } else {
+    // Búsqueda flexible por mes (mientras se escribe)
+    const partialMonthMatch = getPartialMonthMatch(term)
     
-  } else if (datePatterns.specificDate.test(term)) {
-    // Búsqueda por fecha específica
-    const match = term.match(datePatterns.specificDate)
-    if (match) {
-      const day = parseInt(match[1])
-      const monthName = match[2]
-      const year = match[3] ? parseInt(match[3]) : new Date().getFullYear()
-      const month = monthMap[monthName]
+    if (partialMonthMatch) {
+      const month = monthMap[partialMonthMatch]
       
       if (month !== undefined) {
-        searchType = 'date'
-        matchedPeriod = { type: 'date', value: `${day} ${monthName} ${year}` }
+        searchType = 'month'
+        matchedPeriod = { type: 'month', value: partialMonthMatch }
         
         filteredPayments = payments.filter(payment => {
           const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
-          return paymentDate.getFullYear() === year && 
-                 paymentDate.getMonth() === month && 
-                 paymentDate.getDate() === day
+          return paymentDate.getMonth() === month
         })
       }
+    } else {
+      // Búsqueda por nombre (comportamiento por defecto)
+      searchType = 'name'
+      filteredPayments = payments.filter(payment =>
+        payment.expenseName.toLowerCase().includes(term)
+      )
     }
-    
-  } else {
-    // Búsqueda por nombre (comportamiento por defecto)
-    searchType = 'name'
-    filteredPayments = payments.filter(payment =>
-      payment.expenseName.toLowerCase().includes(term)
-    )
   }
 
   // Detectar búsquedas combinadas (nombre + fecha)
