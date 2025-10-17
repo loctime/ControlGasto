@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/auth-provider"
 import { BottomNav } from "@/components/bottom-nav"
+import { DateSearch } from "@/components/date-search"
 import { HistoryHeader } from "@/components/history-header"
 import { HierarchicalHistory } from "@/components/history-hierarchical"
 import { HistoryResetModal } from "@/components/history-reset-modal"
@@ -9,22 +10,15 @@ import { HistoryStats } from "@/components/history-stats"
 import { SearchHelp } from "@/components/search-help"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { HistorySkeleton } from "@/components/ui/skeleton-loaders"
 import { PaymentService } from "@/lib/payment-service"
 import { Payment } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
-import {
-    ChevronDown,
-    ChevronUp,
-    Search
-} from "lucide-react"
+import { Search } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
-type SortField = 'date' | 'amount' | 'name'
-type SortOrder = 'asc' | 'desc'
 
 export function HistoryContent() {
   const { user, loading } = useAuth()
@@ -37,8 +31,7 @@ export function HistoryContent() {
   
   // Filtros simplificados
   const [searchTerm, setSearchTerm] = useState("")
-  const [sortField, setSortField] = useState<SortField>("date")
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
   useEffect(() => {
     if (!user && !loading) {
@@ -84,54 +77,28 @@ export function HistoryContent() {
     fetchPayments()
   }, [user])
 
-  // Aplicar ordenamiento a los pagos
-  const sortedPayments = useMemo(() => {
-    const sorted = [...payments]
-    
-    sorted.sort((a, b) => {
-      let aValue: any
-      let bValue: any
+  // Aplicar filtros
+  const filteredPayments = useMemo(() => {
+    let filtered = [...payments]
 
-      switch (sortField) {
-        case 'date':
-          aValue = (a.paidAt instanceof Date ? a.paidAt : new Date(a.paidAt)).getTime()
-          bValue = (b.paidAt instanceof Date ? b.paidAt : new Date(b.paidAt)).getTime()
-          break
-        case 'amount':
-          aValue = a.amount
-          bValue = b.amount
-          break
-        case 'name':
-          aValue = a.expenseName.toLowerCase()
-          bValue = b.expenseName.toLowerCase()
-          break
-        default:
-          return 0
-      }
-
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1
-      } else {
-        return aValue < bValue ? 1 : -1
-      }
-    })
-
-    return sorted
-  }, [payments, sortField, sortOrder])
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortOrder('desc')
+    // Filtrar por fecha específica si está seleccionada
+    if (selectedDate) {
+      filtered = filtered.filter(payment => {
+        const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
+        return paymentDate.toDateString() === selectedDate.toDateString()
+      })
     }
-  }
 
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return null
-    return sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-  }
+    // Aplicar búsqueda inteligente solo si hay término de búsqueda
+    if (searchTerm.trim()) {
+      const { smartSearch } = require('@/lib/smart-search')
+      const searchResult = smartSearch(filtered, searchTerm)
+      filtered = searchResult.payments
+    }
+
+    return filtered
+  }, [payments, searchTerm, selectedDate])
+
 
   const formatDateTime = (date: Date) => {
     return {
@@ -229,48 +196,54 @@ export function HistoryContent() {
 
         <HistoryStats payments={payments} />
 
-        {/* Filtros simplificados */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-success/5 rounded-2xl blur-xl"></div>
-          <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Búsqueda */}
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
-                <Input
-                  placeholder="Buscar: 'supermercado', 'octubre', '2025', 'supermercado octubre'..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-10 h-10 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <SearchHelp />
+        {/* Filtros divididos */}
+        <div className="space-y-4">
+          {/* Búsqueda de texto */}
+          <div className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-success/5 rounded-2xl blur-xl"></div>
+            <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Búsqueda de texto */}
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                  <Input
+                    placeholder="Buscar: 'supermercado', 'octubre', '2025', '14'..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-10 h-10 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <SearchHelp />
+                  </div>
                 </div>
+
+                {/* Búsqueda de fecha */}
+                <div className="relative min-w-[150px]">
+                  <DateSearch 
+                    onDateChange={setSelectedDate}
+                    placeholder="DD/MM/YYYY"
+                  />
+                </div>
+
               </div>
-
-              {/* Ordenar */}
-              <Select value={sortField} onValueChange={(value) => setSortField(value as SortField)}>
-                <SelectTrigger className="w-[120px] h-10 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300">
-                  <SelectValue placeholder="Ordenar" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="date" className="rounded-lg">📅 Más reciente</SelectItem>
-                  <SelectItem value="amount" className="rounded-lg">💰 Monto</SelectItem>
-                  <SelectItem value="name" className="rounded-lg">📝 Nombre</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Dirección orden */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="h-10 px-4 border-2 border-primary/20 text-primary hover:bg-primary/10 rounded-xl transition-all duration-300"
-              >
-                {sortOrder === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </Button>
             </div>
           </div>
+
+          {/* Indicadores de filtros activos */}
+          {(searchTerm || selectedDate) && (
+            <div className="flex flex-wrap gap-2">
+              {searchTerm && (
+                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-medium">
+                  🔍 "{searchTerm}"
+                </div>
+              )}
+              {selectedDate && (
+                <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm font-medium">
+                  📅 {selectedDate.toLocaleDateString('es-ES')}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Navegación jerárquica */}
@@ -285,7 +258,7 @@ export function HistoryContent() {
           </div>
           
           <HierarchicalHistory 
-            payments={sortedPayments} 
+            payments={filteredPayments} 
             searchTerm={searchTerm} 
           />
         </div>

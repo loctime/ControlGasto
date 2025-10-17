@@ -30,7 +30,9 @@ export function smartSearch(payments: Payment[], searchTerm: string): SmartSearc
     // Solo mes: "octubre", "enero", "oct"
     month: /^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)$/,
     // Fecha específica: "15 octubre 2025", "15 oct 2025"
-    specificDate: /^(\d{1,2})\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)(\s+(20\d{2}))?$/
+    specificDate: /^(\d{1,2})\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)(\s+(20\d{2}))?$/,
+    // Día del mes: "14", "1", "31"
+    dayOfMonth: /^(\d{1,2})$/
   }
 
   // Patrones flexibles para búsqueda mientras se escribe
@@ -93,6 +95,25 @@ export function smartSearch(payments: Payment[], searchTerm: string): SmartSearc
       const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
       return paymentDate.getFullYear() === year
     })
+  } else if (datePatterns.dayOfMonth.test(term)) {
+    // Búsqueda por día del mes (14 → todos los días 14)
+    const day = parseInt(term)
+    
+    if (day >= 1 && day <= 31) {
+      searchType = 'date'
+      matchedPeriod = { type: 'date', value: `Día ${day}` }
+      
+      filteredPayments = payments.filter(payment => {
+        const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
+        return paymentDate.getDate() === day
+      })
+    } else {
+      // Si no es un día válido, buscar por nombre
+      searchType = 'name'
+      filteredPayments = payments.filter(payment =>
+        payment.expenseName.toLowerCase().includes(term)
+      )
+    }
     
   } else if (datePatterns.monthYear.test(term)) {
     // Búsqueda por mes y año
