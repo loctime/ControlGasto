@@ -221,6 +221,7 @@ export function HistoryContent() {
                 <div className="relative w-[140px]">
                   <DateSearch 
                     onDateChange={setSelectedDate}
+                    onSearchTermChange={setSearchTerm}
                     placeholder="DD/MM/YYYY"
                   />
                 </div>

@@ -6,16 +6,18 @@ import { Input } from "./ui/input"
 
 interface DateSearchProps {
   onDateChange: (date: Date | null) => void
+  onSearchTermChange?: (searchTerm: string) => void
   placeholder?: string
 }
 
-export function DateSearch({ onDateChange, placeholder = "DD/MM/YYYY" }: DateSearchProps) {
+export function DateSearch({ onDateChange, onSearchTermChange, placeholder = "DD/MM/YYYY" }: DateSearchProps) {
   const [dateString, setDateString] = useState("")
   const [isValid, setIsValid] = useState(true)
 
   useEffect(() => {
     if (!dateString.trim()) {
       onDateChange(null)
+      onSearchTermChange?.("")
       setIsValid(true)
       return
     }
@@ -29,13 +31,14 @@ export function DateSearch({ onDateChange, placeholder = "DD/MM/YYYY" }: DateSea
       const month = parseInt(match[2])
       const year = parseInt(match[3])
       
-      // Validar rango de fechas
+      // Validar rango de fechas más estricto
       if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2000 && year <= 2100) {
         const date = new Date(year, month - 1, day)
         
         // Verificar que la fecha sea válida (no 31 de febrero, etc.)
         if (date.getDate() === day && date.getMonth() === month - 1 && date.getFullYear() === year) {
           onDateChange(date)
+          onSearchTermChange?.(dateString) // Actualizar searchTerm con la fecha
           setIsValid(true)
         } else {
           setIsValid(false)
@@ -44,7 +47,48 @@ export function DateSearch({ onDateChange, placeholder = "DD/MM/YYYY" }: DateSea
         setIsValid(false)
       }
     } else {
-      setIsValid(false)
+      // Validar formato parcial mientras se escribe
+      if (dateString.length > 0) {
+        const parts = dateString.split('/')
+        
+        // Validar día (1-31) - ajustar automáticamente si se pasa
+        if (parts[0]) {
+          const day = parseInt(parts[0])
+          if (day < 1) {
+            setIsValid(false)
+            return
+          } else if (day > 31) {
+            // Ajustar automáticamente a 31
+            const newValue = '31/' + (parts[1] || '') + '/' + (parts[2] || '')
+            setDateString(newValue)
+            return
+          }
+        }
+        
+        // Validar mes (1-12) - ajustar automáticamente si se pasa
+        if (parts[1]) {
+          const month = parseInt(parts[1])
+          if (month < 1) {
+            setIsValid(false)
+            return
+          } else if (month > 12) {
+            // Ajustar automáticamente a 12
+            const newValue = parts[0] + '/12/' + (parts[2] || '')
+            setDateString(newValue)
+            return
+          }
+        }
+        
+        // Validar año (2000-2100)
+        if (parts[2] && (parseInt(parts[2]) < 2000 || parseInt(parts[2]) > 2100)) {
+          setIsValid(false)
+          return
+        }
+        
+        setIsValid(true)
+      } else {
+        setIsValid(true)
+      }
     }
   }, [dateString, onDateChange])
 
@@ -54,28 +98,38 @@ export function DateSearch({ onDateChange, placeholder = "DD/MM/YYYY" }: DateSea
     // Solo permitir números y barras
     value = value.replace(/[^\d\/]/g, '')
     
-    // Auto-formatear mientras se escribe
-    if (value.length <= 2) {
-      // Solo día
-      setDateString(value)
-    } else if (value.length <= 5) {
-      // Día/Mes
-      if (value.length === 3 && !value.includes('/')) {
-        value = value.slice(0, 2) + '/' + value.slice(2)
-      }
-      setDateString(value)
-    } else if (value.length <= 10) {
-      // Día/Mes/Año
-      if (value.length === 6 && value.split('/').length === 2) {
-        value = value + '/'
-      }
-      setDateString(value)
+    // Limitar longitud máxima
+    if (value.length > 10) {
+      value = value.slice(0, 10)
     }
+    
+    // Auto-formatear con barras automáticas
+    let formatted = ''
+    let numbers = value.replace(/\//g, '') // Solo números
+    
+    if (numbers.length >= 1) {
+      formatted += numbers.slice(0, 2) // Día
+    }
+    
+    if (numbers.length >= 3) {
+      formatted += '/' + numbers.slice(2, 4) // Mes
+    }
+    
+    if (numbers.length >= 5) {
+      formatted += '/' + numbers.slice(4, 8) // Año
+    }
+    
+    setDateString(formatted)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Permitir solo números, barras, backspace, delete, arrow keys
     if (!/[0-9\/\b\s\-\t]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+      e.preventDefault()
+    }
+    
+    // Prevenir múltiples barras consecutivas
+    if (e.key === '/' && dateString.includes('/')) {
       e.preventDefault()
     }
   }

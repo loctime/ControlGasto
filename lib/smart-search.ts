@@ -31,6 +31,8 @@ export function smartSearch(payments: Payment[], searchTerm: string): SmartSearc
     month: /^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)$/,
     // Fecha específica: "15 octubre 2025", "15 oct 2025"
     specificDate: /^(\d{1,2})\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)(\s+(20\d{2}))?$/,
+    // Fecha en formato DD/MM/YYYY: "14/10/2025", "1/1/2024"
+    dateFormat: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,
     // Día del mes: "14", "1", "31"
     dayOfMonth: /^(\d{1,2})$/
   }
@@ -85,7 +87,25 @@ export function smartSearch(payments: Payment[], searchTerm: string): SmartSearc
   }
 
   // Detectar tipo de búsqueda
-  if (datePatterns.year.test(term)) {
+  if (datePatterns.dateFormat.test(term)) {
+    // Búsqueda por fecha específica en formato DD/MM/YYYY
+    const match = term.match(datePatterns.dateFormat)
+    if (match) {
+      const day = parseInt(match[1])
+      const month = parseInt(match[2]) - 1 // Los meses en JS van de 0-11
+      const year = parseInt(match[3])
+      
+      searchType = 'date'
+      matchedPeriod = { type: 'date', value: `${day}/${month + 1}/${year}` }
+      
+      filteredPayments = payments.filter(payment => {
+        const paymentDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
+        return paymentDate.getFullYear() === year && 
+               paymentDate.getMonth() === month && 
+               paymentDate.getDate() === day
+      })
+    }
+  } else if (datePatterns.year.test(term)) {
     // Búsqueda por año
     const year = parseInt(term)
     searchType = 'year'

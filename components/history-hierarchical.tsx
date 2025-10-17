@@ -320,8 +320,9 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
     )
   }
 
-  // Si es búsqueda por día del mes, mostrar solo los días sin agrupar por años/meses
-  if (searchResult.searchType === 'date' && searchResult.matchedPeriod?.type === 'date' && searchResult.matchedPeriod.value.startsWith('Día')) {
+  // Si es búsqueda por fecha específica (DD/MM/YYYY) o día del mes, mostrar directamente
+  if (searchResult.searchType === 'date' && searchResult.matchedPeriod?.type === 'date' && 
+      (searchResult.matchedPeriod.value.startsWith('Día') || searchResult.matchedPeriod.value.includes('/'))) {
     return (
       <div className="space-y-4">
         {/* Indicador de búsqueda activa */}
