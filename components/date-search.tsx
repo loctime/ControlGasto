@@ -143,13 +143,25 @@ export function DateSearch({ onDateChange, onSearchTermChange, placeholder = "DD
         value={dateString}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        className={`pl-8 h-9 border-2 transition-all duration-300 rounded-lg text-sm ${
+        className={`pl-8 pr-6 h-9 border-2 transition-all duration-300 rounded-lg text-sm ${
           isValid 
             ? 'border-green-200 focus:border-green-500 focus:ring-green-500' 
             : 'border-red-300 focus:border-red-500 focus:ring-red-500'
         }`}
         maxLength={10}
       />
+      {dateString && (
+        <button
+          onClick={() => {
+            setDateString("")
+            onDateChange(null)
+            onSearchTermChange?.("")
+          }}
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex items-center justify-center text-xs transition-colors"
+        >
+          ×
+        </button>
+      )}
       {!isValid && dateString && (
         <div className="absolute -bottom-6 left-0 text-xs text-red-500">
           Formato: DD/MM/YYYY

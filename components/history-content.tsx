@@ -209,9 +209,17 @@ export function HistoryContent() {
                   placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-10 h-9 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-lg transition-all duration-300"
+                  className="pl-10 pr-20 h-9 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-lg transition-all duration-300"
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="w-5 h-5 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex items-center justify-center text-xs transition-colors"
+                    >
+                      ×
+                    </button>
+                  )}
                   <SearchHelp />
                 </div>
               </div>
