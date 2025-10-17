@@ -55,8 +55,8 @@ export class ControlFileService {
 
       console.log('🔄 ControlFile: Obteniendo carpeta "Gastos" existente...')
 
-      // Solo obtener la carpeta existente, no crear duplicados
-      const response = await fetch(`${this.backendUrl}/api/folders/root?name=${encodeURIComponent('Gastos')}&pin=1`, {
+      // Usar proxy interno para evitar CORS
+      const response = await fetch('/api/controlfile-folders?name=Gastos&pin=1', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -210,15 +210,15 @@ export class ControlFileService {
 
       const token = await user.getIdToken()
 
-      // Usar /api/folders/create para subcarpetas (no del taskbar)
-      // Este endpoint es correcto para carpetas normales dentro de otras carpetas
-      const response = await fetch(`${this.backendUrl}/api/folders/create`, {
+      // Usar proxy interno para evitar CORS
+      const response = await fetch('/api/controlfile-folders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          action: 'create',
           name: folderName,
           parentId: parentId,
           icon: "Folder",
@@ -233,7 +233,7 @@ export class ControlFileService {
       }
 
       const result = await response.json()
-      console.log(`✅ ControlFile: Subcarpeta "${folderName}" creada usando /api/folders/create`)
+      console.log(`✅ ControlFile: Subcarpeta "${folderName}" creada usando proxy interno`)
       return { success: true, folderId: result.folderId }
     } catch (error: any) {
       console.error('❌ ControlFile: Error creando subcarpeta:', error)
@@ -319,13 +319,15 @@ export class ControlFileService {
 
       const token = await user.getIdToken()
 
-      const response = await fetch(`${this.backendUrl}/api/files/presign-get`, {
+      // Usar proxy interno para evitar CORS
+      const response = await fetch('/api/controlfile-files', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          action: 'presign-get',
           fileId: fileId
         })
       })
@@ -356,13 +358,15 @@ export class ControlFileService {
 
       const token = await user.getIdToken()
 
-      const response = await fetch(`${this.backendUrl}/api/shares/create`, {
+      // Usar proxy interno para evitar CORS
+      const response = await fetch('/api/controlfile-files', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          action: 'create-share',
           fileId: fileId,
           expiresIn: expiresInHours || 8760 // 1 año por defecto
         })
@@ -397,14 +401,16 @@ export class ControlFileService {
       }
 
       const token = await user.getIdToken()
+
+      console.log(`🔍 ControlFile: Listando archivos en carpeta ${parentId || 'null'}`)
+
+      // Usar proxy interno para evitar CORS
       const params = new URLSearchParams({
         parentId: parentId || 'null',
         pageSize: pageSize.toString()
       })
 
-      console.log(`🔍 ControlFile: Listando archivos en carpeta ${parentId || 'null'}`)
-
-      const response = await fetch(`${this.backendUrl}/api/files/list?${params}`, {
+      const response = await fetch(`/api/controlfile-files?${params}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -89,14 +89,15 @@ export class TaskbarStructureService {
 
       console.log(`🔄 Creando carpeta principal "${name}" en el taskbar...`);
 
-      // Usar POST para crear con metadata de taskbar
-      const response = await fetch(`${this.backendUrl}/api/folders/create`, {
+      // Usar proxy interno para evitar CORS
+      const response = await fetch('/api/controlfile-folders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          action: 'create',
           name: name,
           parentId: null, // Carpeta raíz
           icon: 'Taskbar',
@@ -157,13 +158,15 @@ export class TaskbarStructureService {
         return { success: true, folderId: this.cache[cacheKey] };
       }
 
-      const response = await fetch(`${this.backendUrl}/api/folders/create`, {
+      // Usar proxy interno para evitar CORS
+      const response = await fetch('/api/controlfile-folders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          action: 'create',
           name: year.toString(),
           parentId: parentId,
           icon: 'Folder',
@@ -218,13 +221,15 @@ export class TaskbarStructureService {
         return { success: true, folderId: this.cache[cacheKey] };
       }
 
-      const response = await fetch(`${this.backendUrl}/api/folders/create`, {
+      // Usar proxy interno para evitar CORS
+      const response = await fetch('/api/controlfile-folders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          action: 'create',
           name: monthName,
           parentId: parentId,
           icon: 'Folder',

@@ -1,20 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog"
-import { Receipt, Eye, Download, ExternalLink, Loader2, Upload } from "lucide-react"
-import { controlFileService } from "@/lib/controlfile"
-import { useToast } from "@/hooks/use-toast"
 import { useControlFile } from "@/components/controlfile-provider"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
+import { controlFileService } from "@/lib/controlfile"
+import { Download, ExternalLink, Eye, Loader2, Receipt, Upload } from "lucide-react"
+import { useState } from "react"
 
 interface ReceiptViewerProps {
   receiptImageId: string
@@ -241,25 +240,14 @@ export function ReceiptViewer({
                       />
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                      Imagen cargada desde BlackBlaze B2
+                      Imagen cargada desde tu cuenta de ControlFile 
                     </p>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Información técnica (solo en desarrollo) */}
-            {process.env.NODE_ENV === 'development' && (
-              <Card className="bg-gray-50 border-gray-200">
-                <CardContent className="p-4">
-                  <div className="text-xs text-gray-600">
-                    <p><strong>File ID:</strong> {receiptImageId}</p>
-                    <p><strong>Almacenamiento:</strong> BlackBlaze B2 via ControlFile</p>
-                    <p><strong>Acceso:</strong> URL directa o interfaz ControlFile</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+          
           </div>
         </DialogContent>
       </Dialog>
