@@ -136,16 +136,16 @@ export function DateSearch({ onDateChange, onSearchTermChange, placeholder = "DD
 
   return (
     <div className="relative">
-      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+      <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
       <Input
         type="text"
         placeholder={placeholder}
         value={dateString}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        className={`pl-10 h-10 border-2 transition-all duration-300 rounded-xl ${
+        className={`pl-8 h-9 border-2 transition-all duration-300 rounded-lg text-sm ${
           isValid 
-            ? 'border-primary/20 focus:border-primary focus:ring-primary' 
+            ? 'border-green-200 focus:border-green-500 focus:ring-green-500' 
             : 'border-red-300 focus:border-red-500 focus:ring-red-500'
         }`}
         maxLength={10}

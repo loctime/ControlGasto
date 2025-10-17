@@ -197,64 +197,40 @@ export function HistoryContent() {
         <HistoryStats payments={payments} />
 
         {/* Filtros divididos */}
-        <div className="space-y-4">
-          {/* Búsqueda de texto */}
-          <div className="relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-success/5 rounded-2xl blur-xl"></div>
-            <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-xl">
-              <div className="flex items-center gap-2">
-                {/* Búsqueda de texto */}
-                <div className="relative flex-1 min-w-[120px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
-                  <Input
-                    placeholder="Buscar..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-10 h-10 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-xl transition-all duration-300"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <SearchHelp />
-                  </div>
+        {/* Búsqueda simplificada en una fila */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-success/5 rounded-2xl blur-xl"></div>
+          <div className="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl p-3 border border-white/20 shadow-xl">
+            <div className="flex items-center gap-2">
+              {/* Búsqueda de texto */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                <Input
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-10 h-9 border-2 border-primary/20 focus:border-primary focus:ring-primary rounded-lg transition-all duration-300"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <SearchHelp />
                 </div>
+              </div>
 
-                {/* Búsqueda de fecha */}
-                <div className="relative w-[140px]">
-                  <DateSearch 
-                    onDateChange={setSelectedDate}
-                    onSearchTermChange={setSearchTerm}
-                    placeholder="DD/MM/YYYY"
-                  />
-                </div>
-
+              {/* Búsqueda de fecha */}
+              <div className="relative w-[120px]">
+                <DateSearch 
+                  onDateChange={setSelectedDate}
+                  onSearchTermChange={setSearchTerm}
+                  placeholder="DD/MM/YYYY"
+                />
               </div>
             </div>
           </div>
-
-          {/* Indicadores de filtros activos */}
-          {(searchTerm || selectedDate) && (
-            <div className="flex flex-wrap gap-2">
-              {searchTerm && (
-                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-medium">
-                  🔍 "{searchTerm}"
-                </div>
-              )}
-              {selectedDate && (
-                <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm font-medium">
-                  📅 {selectedDate.toLocaleDateString('es-ES')}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Navegación jerárquica */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">
-              Historial de Pagos ({payments.length} pagos)
-            </h2>
-            
-          </div>
+          
           
           <HierarchicalHistory 
             payments={filteredPayments} 
