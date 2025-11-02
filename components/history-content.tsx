@@ -5,7 +5,6 @@ import { BottomNav } from "@/components/bottom-nav"
 import { DateSearch } from "@/components/date-search"
 import { HistoryHeader } from "@/components/history-header"
 import { HierarchicalHistory } from "@/components/history-hierarchical"
-import { HistoryResetModal } from "@/components/history-reset-modal"
 import { HistoryStats } from "@/components/history-stats"
 import { SearchHelp } from "@/components/search-help"
 import { Button } from "@/components/ui/button"
@@ -17,7 +16,6 @@ import { formatCurrency } from "@/lib/utils"
 import { Search } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
-import { toast } from "sonner"
 
 
 export function HistoryContent() {
@@ -26,8 +24,6 @@ export function HistoryContent() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [showResetModal, setShowResetModal] = useState(false)
-  const [isResetting, setIsResetting] = useState(false)
   
   // Filtros simplificados
   const [searchTerm, setSearchTerm] = useState("")
@@ -125,38 +121,6 @@ export function HistoryContent() {
     }
   }, [payments])
 
-  // Verificar si hay más meses disponibles
-  const isNewMonthWithPreviousPayments = useMemo(() => {
-    if (payments.length === 0) return false
-    
-    const now = new Date()
-    const currentMonth = now.getMonth()
-    const currentYear = now.getFullYear()
-    
-    const hasPreviousMonthPayments = payments.some(payment => {
-      const paidDate = payment.paidAt instanceof Date ? payment.paidAt : new Date(payment.paidAt)
-      return paidDate.getMonth() < currentMonth || paidDate.getFullYear() < currentYear
-    })
-    
-    return hasPreviousMonthPayments
-  }, [payments])
-
-  const resetAllPayments = async () => {
-    setIsResetting(true)
-    try {
-      await PaymentService.resetAllPayments(user!.uid)
-      toast.success("Todos los pagos han sido reiniciados")
-      setShowResetModal(false)
-      // Recargar datos
-      window.location.reload()
-    } catch (error) {
-      console.error("Error resetting payments:", error)
-      toast.error("Error al reiniciar pagos")
-    } finally {
-      setIsResetting(false)
-    }
-  }
-
   if (loading || isLoading) {
     return <HistorySkeleton />
   }
@@ -190,8 +154,6 @@ export function HistoryContent() {
       <div className="max-w-4xl mx-auto p-4 space-y-4">
         <HistoryHeader 
           totals={totals}
-          isNewMonth={isNewMonthWithPreviousPayments}
-          onShowResetModal={() => setShowResetModal(true)}
         />
 
         <HistoryStats payments={payments} />
@@ -283,13 +245,6 @@ export function HistoryContent() {
             </div>
           </div>
         )}
-
-        <HistoryResetModal 
-          open={showResetModal}
-          onOpenChange={setShowResetModal}
-          onReset={resetAllPayments}
-          isResetting={isResetting}
-        />
       </div>
       <BottomNav />
     </div>

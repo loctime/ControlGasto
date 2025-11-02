@@ -27,7 +27,7 @@ import { RecurringItem } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import { FieldValue, Timestamp } from "firebase/firestore"
 import { Check, DollarSign, MoreVertical, Pencil, Plus, Trash2, X } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
 interface Expense {
@@ -51,7 +51,7 @@ interface ExpensesTableProps {
   onUpdateExpense: (id: string, updates: Partial<Expense>) => void
   onDeleteExpense: (id: string) => void
   onTogglePaid: (id: string, currentStatus: 'pending' | 'paid', receiptImageId?: string) => void
-  onPayRecurringItem?: (itemId: string, amount: number, notes?: string) => void
+  onPayRecurringItem?: (itemId: string, amount: number, receiptImageId?: string, notes?: string) => void
   isAdding: boolean
   onToggleAdding: () => void
 }
@@ -81,8 +81,8 @@ export function ExpensesTable({
   // Usar el contexto global de ControlFile
   const { isControlFileConnected } = useControlFile()
 
-  // ✅ SIMPLIFICADO: Combinar gastos normales con items recurrentes filtrados
-  const getAllExpenses = () => {
+  // ✅ OPTIMIZADO: Memoizar la lista combinada y ordenada
+  const sortedExpenses = useMemo(() => {
     const allItems: Array<Expense | RecurringItem> = []
     
     // Agregar gastos normales
@@ -91,8 +91,46 @@ export function ExpensesTable({
     // Agregar items recurrentes filtrados por período
     allItems.push(...recurringItems)
     
+    // Filtrar items inválidos y ordenar
     return allItems
-  }
+      .filter(item => item && item.id)
+      .sort((a, b) => {
+        // Validar que ambos items existan
+        if (!a || !b) return 0
+        
+        // Primero determinar si son gastos normales o recurrentes
+        const aIsExpense = 'userId' in a
+        const bIsExpense = 'userId' in b
+        
+        // Los gastos normales primero, luego los recurrentes
+        if (aIsExpense !== bIsExpense) {
+          return aIsExpense ? -1 : 1
+        }
+        
+        // Si ambos son gastos normales, ordenar por status
+        if (aIsExpense && bIsExpense) {
+          const aExpense = a as Expense
+          const bExpense = b as Expense
+          if (!aExpense || !bExpense) return 0
+          if (aExpense.status !== bExpense.status) {
+            return aExpense.status === 'paid' ? 1 : -1
+          }
+          const aName = aExpense?.name ? String(aExpense.name) : ''
+          const bName = bExpense?.name ? String(bExpense.name) : ''
+          if (!aName || !bName || typeof aName !== 'string' || typeof bName !== 'string') return 0
+          return aName.localeCompare(bName)
+        }
+        
+        // Si ambos son recurrentes, ordenar por nombre
+        const aRecurring = a as RecurringItem
+        const bRecurring = b as RecurringItem
+        if (!aRecurring || !bRecurring) return 0
+        const aName = aRecurring?.name ? String(aRecurring.name) : ''
+        const bName = bRecurring?.name ? String(bRecurring.name) : ''
+        if (!aName || !bName || typeof aName !== 'string' || typeof bName !== 'string') return 0
+        return aName.localeCompare(bName)
+      })
+  }, [expenses, recurringItems])
 
   // Auto-focus en el input cuando se abre el formulario
   useEffect(() => {
@@ -172,7 +210,7 @@ export function ExpensesTable({
     if (!selectedRecurringItem) return
 
     try {
-      onPayRecurringItem?.(selectedRecurringItem.id, amount, notes)
+      onPayRecurringItem?.(selectedRecurringItem.id, amount, receiptImageId, notes)
       setShowRecurringPaymentDialog(false)
       setSelectedRecurringItem(null)
       setPaymentAmount('')
@@ -290,39 +328,7 @@ export function ExpensesTable({
 
       {/* Lista de gastos - Estilo compacto */}
       <div className="space-y-3">
-        {getAllExpenses()
-          .filter(item => item && item.id) // Filtrar items inválidos
-          .sort((a, b) => {
-            // Validar que ambos items existan
-            if (!a || !b) return 0
-            
-            // Primero determinar si son gastos normales o recurrentes
-            const aIsExpense = 'userId' in a
-            const bIsExpense = 'userId' in b
-            
-            // Los gastos normales primero, luego los recurrentes
-            if (aIsExpense !== bIsExpense) {
-              return aIsExpense ? -1 : 1
-            }
-            
-            // Si ambos son gastos normales, ordenar por status
-            if (aIsExpense && bIsExpense) {
-              const aExpense = a as Expense
-              const bExpense = b as Expense
-              if (aExpense.status !== bExpense.status) {
-                return aExpense.status === 'paid' ? 1 : -1
-              }
-              const aName = (aExpense.name || '').toString()
-              const bName = (bExpense.name || '').toString()
-              return aName.localeCompare(bName)
-            }
-            
-            // Si ambos son recurrentes, ordenar por nombre
-            const aName = (a.name || '').toString()
-            const bName = (b.name || '').toString()
-            return aName.localeCompare(bName)
-          })
-          .map((item) => {
+        {sortedExpenses.map((item) => {
             // Determinar si es un gasto normal o un item recurrente
             // Los items recurrentes tienen 'recurrenceType', los gastos tienen 'status'
             const isExpense = 'status' in item

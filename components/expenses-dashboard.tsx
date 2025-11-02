@@ -354,7 +354,7 @@ export function ExpensesDashboard() {
   }, [updateExpense, user, expenses])
 
   // ✅ SIMPLIFICADO: Función para manejar pagos de items recurrentes (crea gasto normal)
-  const handlePayRecurringItem = useCallback(async (itemId: string, amount: number, notes?: string) => {
+  const handlePayRecurringItem = useCallback(async (itemId: string, amount: number, receiptImageId?: string, notes?: string) => {
     if (!user?.uid) return
 
     try {
@@ -377,6 +377,11 @@ export function ExpensesDashboard() {
       // Solo agregar notes si tiene valor
       if (notes && notes.trim()) {
         expenseData.notes = notes
+      }
+
+      // Solo agregar receiptImageId si tiene valor
+      if (receiptImageId && receiptImageId.trim()) {
+        expenseData.receiptImageId = receiptImageId
       }
 
       await addDoc(collection(db, `apps/controlgastos/users/${user.uid}/expenses`), expenseData)
