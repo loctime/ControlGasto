@@ -57,9 +57,17 @@ export function HistoryContent() {
         const expensesData = await paymentService.getAllPaidExpenses()
         console.log("🔍 Historial - Gastos pagados encontrados:", expensesData.length)
         
-        // Combinar ambos tipos de pagos
-        const allPayments = [...paymentsData, ...expensesData]
-        console.log("🔍 Historial - Total de pagos:", allPayments.length)
+        // Obtener IDs de gastos que ya tienen un registro en payments para evitar duplicados
+        const paidExpenseIds = new Set(paymentsData.map(p => p.expenseId).filter(Boolean))
+        console.log("🔍 Historial - Gastos ya registrados en payments:", paidExpenseIds.size)
+        
+        // Filtrar gastos pagados que NO tienen registro en payments (solo items recurrentes y manuales antiguos)
+        const expensesWithoutPayment = expensesData.filter(exp => !paidExpenseIds.has(exp.expenseId))
+        console.log("🔍 Historial - Gastos sin registro duplicado:", expensesWithoutPayment.length)
+        
+        // Combinar pagos tradicionales con gastos que no están duplicados
+        const allPayments = [...paymentsData, ...expensesWithoutPayment]
+        console.log("🔍 Historial - Total de pagos (sin duplicados):", allPayments.length)
         console.log("🔍 Historial - Pagos procesados:", allPayments)
         setPayments(allPayments)
       } catch (error) {

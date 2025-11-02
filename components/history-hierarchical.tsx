@@ -4,7 +4,7 @@ import { smartSearch } from "@/lib/smart-search"
 import { Payment } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import { Calendar, ChevronDown, ChevronRight } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ReceiptViewer } from "./receipt-viewer"
 
 interface HierarchicalHistoryProps {
@@ -48,6 +48,15 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set())
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
+  
+  // Refs para elementos específicos para scroll automático
+  const yearRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const monthRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const weekRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const dayRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  
+  // Ref para rastrear el último elemento que se expandió (para evitar scroll duplicado)
+  const lastExpandedKeyRef = useRef<string | null>(null)
 
   // Búsqueda inteligente
   const searchResult = useMemo(() => {
@@ -235,6 +244,13 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
     return years
   }, [searchResult.payments])
 
+  // Función helper para scroll suave
+  const scrollToElement = useCallback((element: HTMLDivElement | undefined) => {
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [])
+
   const toggleYear = (year: number) => {
     const newExpanded = new Set(expandedYears)
     if (newExpanded.has(year)) {
@@ -243,6 +259,32 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
       newExpanded.add(year)
     }
     setExpandedYears(newExpanded)
+    
+    // Auto-expandir si solo hay un mes
+    if (!newExpanded.has(year)) return
+    
+    const yearData = hierarchicalData.find(y => y.year === year)
+    if (yearData && yearData.months.length === 1) {
+      const month = yearData.months[0]
+      const monthKey = `${month.year}-${month.month}`
+      if (!expandedMonths.has(monthKey)) {
+        setExpandedMonths(new Set([...expandedMonths, monthKey]))
+        
+        // Auto-expandir semana si solo hay una
+        if (month.weeks.length === 1) {
+          const week = month.weeks[0]
+          const weekKey = `${week.year}-${week.month}-${week.weekNumber}`
+          setExpandedWeeks(new Set([...expandedWeeks, weekKey]))
+          
+          // Auto-expandir día si solo hay uno
+          if (week.days.length === 1) {
+            const day = week.days[0]
+            const dayKey = `${day.date.getFullYear()}-${day.date.getMonth()}-${day.date.getDate()}`
+            setExpandedDays(new Set([...expandedDays, dayKey]))
+          }
+        }
+      }
+    }
   }
 
   const toggleMonth = (year: number, month: number) => {
@@ -254,6 +296,26 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
       newExpanded.add(key)
     }
     setExpandedMonths(newExpanded)
+    
+    // Auto-expandir si solo hay una semana
+    if (!newExpanded.has(key)) return
+    
+    const yearData = hierarchicalData.find(y => y.year === year)
+    const monthData = yearData?.months.find(m => m.month === month && m.year === year)
+    if (monthData && monthData.weeks.length === 1) {
+      const week = monthData.weeks[0]
+      const weekKey = `${week.year}-${week.month}-${week.weekNumber}`
+      if (!expandedWeeks.has(weekKey)) {
+        setExpandedWeeks(new Set([...expandedWeeks, weekKey]))
+        
+        // Auto-expandir día si solo hay uno
+        if (week.days.length === 1) {
+          const day = week.days[0]
+          const dayKey = `${day.date.getFullYear()}-${day.date.getMonth()}-${day.date.getDate()}`
+          setExpandedDays(new Set([...expandedDays, dayKey]))
+        }
+      }
+    }
   }
 
   const toggleWeek = (year: number, month: number, weekNumber: number) => {
@@ -265,6 +327,18 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
       newExpanded.add(key)
     }
     setExpandedWeeks(newExpanded)
+    
+    // Auto-expandir si solo hay un día
+    if (!newExpanded.has(key)) return
+    
+    const yearData = hierarchicalData.find(y => y.year === year)
+    const monthData = yearData?.months.find(m => m.month === month && m.year === year)
+    const weekData = monthData?.weeks.find(w => w.weekNumber === weekNumber)
+    if (weekData && weekData.days.length === 1) {
+      const day = weekData.days[0]
+      const dayKey = `${day.date.getFullYear()}-${day.date.getMonth()}-${day.date.getDate()}`
+      setExpandedDays(new Set([...expandedDays, dayKey]))
+    }
   }
 
   const toggleDay = (year: number, month: number, day: number) => {
@@ -290,6 +364,46 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
       year: 'numeric'
     })
   }
+
+  // Effect para scroll automático cuando se expande el último nivel
+  useEffect(() => {
+    // Encontrar el último elemento expandido y hacer scroll
+    let lastExpandedRef: HTMLDivElement | undefined
+    let currentKey: string | null = null
+    
+    // Buscar en este orden: días > semanas > meses > años
+    if (expandedDays.size > 0) {
+      const lastDayKey = Array.from(expandedDays).slice(-1)[0]
+      currentKey = `day-${lastDayKey}`
+      lastExpandedRef = dayRefs.current.get(lastDayKey)
+    } else if (expandedWeeks.size > 0) {
+      const lastWeekKey = Array.from(expandedWeeks).slice(-1)[0]
+      currentKey = `week-${lastWeekKey}`
+      lastExpandedRef = weekRefs.current.get(lastWeekKey)
+    } else if (expandedMonths.size > 0) {
+      const lastMonthKey = Array.from(expandedMonths).slice(-1)[0]
+      currentKey = `month-${lastMonthKey}`
+      lastExpandedRef = monthRefs.current.get(lastMonthKey)
+    } else if (expandedYears.size > 0) {
+      const lastYearKey = Array.from(expandedYears).slice(-1)[0]
+      currentKey = `year-${lastYearKey}`
+      lastExpandedRef = yearRefs.current.get(lastYearKey)
+    }
+    
+    // Solo hacer scroll si es un elemento diferente al último
+    if (lastExpandedRef && currentKey && currentKey !== lastExpandedKeyRef.current) {
+      lastExpandedKeyRef.current = currentKey
+      
+      // Usar requestAnimationFrame para esperar a que el DOM se actualice
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            scrollToElement(lastExpandedRef)
+          }, 100)
+        })
+      })
+    }
+  }, [expandedDays, expandedWeeks, expandedMonths, expandedYears, scrollToElement])
 
   if (hierarchicalData.length === 0) {
     return (
@@ -350,6 +464,7 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
                 <div key={`${dayData.date.getFullYear()}-${dayData.date.getMonth()}-${dayData.date.getDate()}`} className="space-y-2">
                   {/* Día */}
                   <div 
+                    ref={(el) => el && dayRefs.current.set(`${dayData.date.getFullYear()}-${dayData.date.getMonth()}-${dayData.date.getDate()}`, el)}
                     className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-md transition-all duration-200"
                     onClick={() => toggleDay(dayData.date.getFullYear(), dayData.date.getMonth(), dayData.date.getDate())}
                   >
@@ -487,6 +602,7 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
             <div key={`${monthData.year}-${monthData.month}`} className="space-y-2">
               {/* Mes */}
               <div 
+                ref={(el) => el && monthRefs.current.set(`${monthData.year}-${monthData.month}`, el)}
                 className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800 cursor-pointer hover:shadow-md transition-all duration-200"
                 onClick={() => toggleMonth(monthData.year, monthData.month)}
               >
@@ -526,6 +642,7 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
                   {monthData.weeks.map(weekData => (
                     <div key={`${weekData.year}-${weekData.month}-${weekData.weekNumber}`} className="space-y-2">
                       <div 
+                        ref={(el) => el && weekRefs.current.set(`${weekData.year}-${weekData.month}-${weekData.weekNumber}`, el)}
                         className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg p-3 border border-orange-200 dark:border-orange-800 cursor-pointer hover:shadow-md transition-all duration-200"
                         onClick={() => toggleWeek(weekData.year, weekData.month, weekData.weekNumber)}
                       >
@@ -565,6 +682,7 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
                           {weekData.days.map(dayData => (
                             <div key={`${dayData.date.getFullYear()}-${dayData.date.getMonth()}-${dayData.date.getDate()}`} className="space-y-2">
                               <div 
+                                ref={(el) => el && dayRefs.current.set(`${dayData.date.getFullYear()}-${dayData.date.getMonth()}-${dayData.date.getDate()}`, el)}
                                 className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-md transition-all duration-200"
                                 onClick={() => toggleDay(dayData.date.getFullYear(), dayData.date.getMonth(), dayData.date.getDate())}
                               >
@@ -711,6 +829,7 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
         <div key={yearData.year} className="space-y-2">
           {/* Año */}
           <div 
+            ref={(el) => el && yearRefs.current.set(yearData.year, el)}
             className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800 cursor-pointer hover:shadow-md transition-all duration-200"
             onClick={() => toggleYear(yearData.year)}
           >
@@ -748,6 +867,7 @@ export function HierarchicalHistory({ payments, searchTerm }: HierarchicalHistor
               {yearData.months.map(monthData => (
                 <div key={`${monthData.year}-${monthData.month}`} className="space-y-2">
                   <div 
+                    ref={(el) => el && monthRefs.current.set(`${monthData.year}-${monthData.month}`, el)}
                     className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800 cursor-pointer hover:shadow-md transition-all duration-200"
                     onClick={() => toggleMonth(monthData.year, monthData.month)}
                   >
