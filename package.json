@@ -14,7 +14,8 @@
     "setup-firebase": "node scripts/setup-firebase.js",
     "firebase:emulators": "firebase emulators:start",
     "firebase:deploy": "firebase deploy",
-    "firebase:rules": "firebase deploy --only firestore:rules"
+    "build:rules": "node firestore-rules/build.js",
+    "firebase:rules": "npm run build:rules && firebase deploy --only firestore:rules"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

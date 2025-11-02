@@ -1,125 +1,179 @@
+// ⚠️ ARCHIVO GENERADO AUTOMÁTICAMENTE - NO EDITAR MANUALMENTE
+// Este archivo es generado por: npm run build:rules
+// Solo contiene reglas de CONTROLGASTOS para testing local.
+// Para desplegar al Firestore compartido:
+// 1. Copiar firestore-rules/controlgastos.rules al repositorio CONTROLFILE
+// 2. Actualizar firestore-rules/build.js en CONTROLFILE para incluir controlgastos.rules
+// 3. Ejecutar npm run build:rules y firebase deploy --only firestore:rules desde CONTROLFILE
+
 rules_version = '2';
 
 service cloud.firestore {
-  match /databases/{database}/documents {
+  match /databases/{db}/documents {
+
+    /* ========= BASE ========= */
     
-    // ===== REGLAS PARA CONTROLGASTOS =====
+    // ========= HELPERS BASE =========
+    function isAuth() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
     
-    // Gastos del usuario - nueva estructura organizada
+    // Roles desde documento - CONTROL-STORE
+    function controlStoreUserDocExists() {
+      return isAuth() && exists(/databases/$(db)/documents/apps/control-store/users/$(uid()));
+    }
+    function controlStoreUserRole() {
+      return isAuth() && controlStoreUserDocExists()
+        ? get(/databases/$(db)/documents/apps/control-store/users/$(uid())).data.role
+        : null;
+    }
+    
+    // Roles desde documento - CONTROLD (para otras apps)
+    function userDocExists() {
+      return isAuth() && exists(/databases/$(db)/documents/apps/controld/users/$(uid()));
+    }
+    function userRole() {
+      return isAuth() && userDocExists()
+        ? get(/databases/$(db)/documents/apps/controld/users/$(uid())).data.role
+        : null;
+    }
+    
+    // Helpers para CONTROL-STORE
+    function isControlStoreMaxDev() { return controlStoreUserRole() == 'maxdev'; }
+    function isControlStoreAdmin()  { return controlStoreUserRole() == 'admin' || controlStoreUserRole() == 'maxdev'; }
+    
+    // Helpers para CONTROLD y otras apps
+    function isMaxDev() { return userRole() == 'maxdev'; }
+    function isAdmin()  { return userRole() == 'admin' || userRole() == 'maxdev'; }
+    function isFactory(){ return userRole() == 'factory'; }
+    function isBranch() { return userRole() == 'branch'; }
+    function isDelivery(){return userRole() == 'delivery'; }
+    
+    // Operación y campos
+    function isCreate() { return !exists(resource.path); }
+    function isUpdate() { return exists(resource.path); }
+    
+    // Dueño por campo (e.g., userId/ownerId)
+    function ownerIs(field) {
+      return isAuth() && (
+        (isCreate() && request.resource.data[field] == uid()) ||
+        (isUpdate() && resource.data[field] == uid() && request.resource.data[field] == uid())
+      );
+    }
+    
+    // Inmutabilidad
+    function unchanged(field) {
+      return isUpdate() ? request.resource.data[field] == resource.data[field] : true;
+    }
+    
+    // Tipos y validadores comunes
+    function strBetween(field, min, max) {
+      return request.resource.data[field] is string
+          && request.resource.data[field].size() >= min
+          && request.resource.data[field].size() <= max;
+    }
+    function nonEmptyString(field) {
+      return request.resource.data[field] is string && request.resource.data[field].size() >= 1;
+    }
+    function isBool(field) { return request.resource.data[field] is bool; }
+    function isInt(field) {
+      return request.resource.data[field] is number
+          && (request.resource.data[field] % 1) == 0;
+    }
+    function isTs(field) { return request.resource.data[field] is timestamp; }
+    function isStringOrNull(field) {
+      return !(field in request.resource.data) || request.resource.data[field] is string || request.resource.data[field] == null;
+    }
+    
+    // Lectura pública por flag booleano del doc
+    function publicRead(flagField) {
+      return resource.data[flagField] == true;
+    }
+    
+    
+
+    /* ========= CONTROLGASTOS ========= */
+    
+    // ========= CONTROLGASTOS =========
+    
+    // Estructura organizada: apps/controlgastos/users/{userId}/...
     match /apps/controlgastos/users/{userId}/expenses/{expenseId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isAuth() && userId == uid();
+      allow create: if isAuth() && userId == uid();
+      allow update, delete: if isAuth() && userId == uid();
     }
     
-    // Pagos del usuario (historial)
     match /apps/controlgastos/users/{userId}/payments/{paymentId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isAuth() && userId == uid();
+      allow create: if isAuth() && userId == uid();
+      allow update, delete: if isAuth() && userId == uid();
     }
     
-    // Comprobantes del usuario
     match /apps/controlgastos/users/{userId}/receipts/{receiptId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isAuth() && userId == uid();
+      allow create: if isAuth() && userId == uid();
+      allow update, delete: if isAuth() && userId == uid();
     }
     
-    // Items recurrentes del usuario (plantillas)
     match /apps/controlgastos/users/{userId}/recurring_items/{itemId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null 
-                    && request.auth.uid == userId
+      allow read: if isAuth() && userId == uid();
+      allow create: if isAuth() 
+                    && userId == uid()
                     && request.resource.data.userId == userId;
-      allow update: if request.auth != null 
-                    && request.auth.uid == userId
+      allow update: if isAuth() 
+                    && userId == uid()
                     && resource.data.userId == userId;
-      allow delete: if request.auth != null 
-                    && request.auth.uid == userId
+      allow delete: if isAuth() 
+                    && userId == uid()
                     && resource.data.userId == userId;
     }
     
-    // Instancias de items recurrentes del usuario
     match /apps/controlgastos/users/{userId}/recurring_items_instances/{instanceId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null 
-                    && request.auth.uid == userId
+      allow read: if isAuth() && userId == uid();
+      allow create: if isAuth() 
+                    && userId == uid()
                     && request.resource.data.userId == userId;
-      allow update: if request.auth != null 
-                    && request.auth.uid == userId
+      allow update: if isAuth() 
+                    && userId == uid()
                     && resource.data.userId == userId;
-      allow delete: if request.auth != null 
-                    && request.auth.uid == userId
+      allow delete: if isAuth() 
+                    && userId == uid()
                     && resource.data.userId == userId;
     }
     
-    // Configuraciones del usuario
     match /apps/controlgastos/users/{userId}/settings/{settingId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isAuth() && userId == uid();
+      allow create: if isAuth() && userId == uid();
+      allow update, delete: if isAuth() && userId == uid();
     }
     
     // Colecciones globales de ControlGastos
     match /apps/controlgastos/categories/{categoryId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isAuth();
+      allow write: if isAuth();
     }
     
-    // Reglas legacy para ControlGastos (temporal)
+    // Reglas legacy para ControlGastos (temporal - compatibilidad hacia atrás)
     match /expenses/{expenseId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read, write: if isAuth() && resource.data.userId == uid();
+      allow create: if isAuth() && request.resource.data.userId == uid();
+      allow update, delete: if isAuth() && resource.data.userId == uid();
     }
     
     match /payments/{paymentId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read, write: if isAuth() && resource.data.userId == uid();
+      allow create: if isAuth() && request.resource.data.userId == uid();
+      allow update, delete: if isAuth() && resource.data.userId == uid();
     }
     
     match /invoices/{invoiceId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read, write: if isAuth() && resource.data.userId == uid();
+      allow create: if isAuth() && request.resource.data.userId == uid();
+      allow update, delete: if isAuth() && resource.data.userId == uid();
     }
     
-    // ===== REGLAS PARA CONTROLFILE =====
-    
-    // Users - solo pueden acceder a sus propios datos
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Files - solo el propietario puede acceder
-    match /files/{fileId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-    
-    // Folders - solo el propietario puede acceder
-    match /folders/{folderId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-    
-    // Upload sessions - solo el propietario puede acceder
-    match /uploadSessions/{sessionId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.uid;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
-    }
-    
-    // Shares - lectura pública si es público, escritura solo para el propietario
-    match /shares/{shareId} {
-      allow read: if resource.data.isPublic == true || 
-                     (request.auth != null && request.auth.uid == resource.data.userId);
-      allow write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-    
-    // Denegar acceso a cualquier otra colección
+
+    /* ========= DENY POR DEFECTO ========= */
+
     match /{document=**} {
       allow read, write: if false;
     }
